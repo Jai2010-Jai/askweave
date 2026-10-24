@@ -86,23 +86,26 @@ class AndroidBuilder:
                 pass
         if not self.s.android_home:
             raise BuildError("Android SDK not found (set ANDROID_HOME)")
-        (workspace / "local.properties").write_text(f"sdk.dir={self._prop_escape(str(self.s.android_home))}\n")
-        (workspace / "genesis.properties").write_text(f"applicationId={manifest.package_id}\nversionName=1.0\n")
+        (workspace / "local.properties").write_text(f"sdk.dir={self._prop_escape(str(self.s.android_home))}\n", encoding="utf-8")
+        (workspace / "genesis.properties").write_text(f"applicationId={manifest.package_id}\nversionName=1.0\n", encoding="utf-8")
         argb = "0xFF" + manifest.primary_color.lstrip("#").upper()
         (workspace / SOURCE_ROOT / "ui/theme/ThemeConfig.kt").write_text(
             "// GENESIS PROTECTED FILE — rewritten by the server from validated manifest values.\n"
             "package com.genesis.app.ui.theme\n\n"
             f"internal const val GENESIS_PRIMARY_COLOR: Long = {argb}\n"
-            f'internal const val GENESIS_THEME_MODE: String = "{manifest.theme_mode.value}"\n'
+            f'internal const val GENESIS_THEME_MODE: String = "{manifest.theme_mode.value}"\n',
+            encoding="utf-8",
         )
         res = workspace / "app/src/main/res/values"
         (res / "strings.xml").write_text(
             '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-            f'    <string name="app_name">{android_string_escape(manifest.app_name)}</string>\n</resources>\n'
+            f'    <string name="app_name">{android_string_escape(manifest.app_name)}</string>\n</resources>\n',
+            encoding="utf-8",
         )
         (res / "colors.xml").write_text(
             '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-            f'    <color name="genesis_icon_background">#FF{manifest.primary_color.lstrip("#").upper()}</color>\n</resources>\n'
+            f'    <color name="genesis_icon_background">#FF{manifest.primary_color.lstrip("#").upper()}</color>\n</resources>\n',
+            encoding="utf-8",
         )
 
     def write_sources(self, workspace: Path, files: list[ValidatedFile]) -> None:

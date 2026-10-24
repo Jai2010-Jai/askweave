@@ -108,7 +108,7 @@ class JobStore:
             job["updated_at"] = now_iso()
             p = self.path(job["id"]) / "job.json"
             tmp = p.with_suffix(".tmp")
-            tmp.write_text(json.dumps(job, indent=2))
+            tmp.write_text(json.dumps(job, indent=2), encoding="utf-8")
             tmp.replace(p)
 
     def get(self, job_id: str) -> dict:
@@ -116,13 +116,13 @@ class JobStore:
         with self._lock:
             if not p.is_file():
                 raise KeyError(job_id)
-            return json.loads(p.read_text())
+            return json.loads(p.read_text(encoding="utf-8"))
 
     def list(self, limit: int = 50) -> list[dict]:
         jobs = []
         for p in self.dir.glob("*/job.json"):
             try:
-                jobs.append(json.loads(p.read_text()))
+                jobs.append(json.loads(p.read_text(encoding="utf-8")))
             except (OSError, json.JSONDecodeError):
                 continue
         jobs.sort(key=lambda j: j.get("created_at", ""), reverse=True)
@@ -237,7 +237,7 @@ class Orchestrator:
         if modify is None:
             raise GeminiError("This generator cannot modify existing apps")
         base_dir = self.store.path(base_id)
-        base_manifest = AppManifest.model_validate_json((base_dir / "manifest.json").read_text())
+        base_manifest = AppManifest.model_validate_json((base_dir / "manifest.json").read_text(encoding="utf-8"))
         sources = self.builder.read_sources(base_dir / "workspace")
         if not sources:
             raise GeminiError("The sources of the previous build are no longer available")
@@ -290,7 +290,7 @@ class Orchestrator:
         self._log(job, f"App: {manifest.app_name} ({manifest.package_id}), category {manifest.category.value}")
         self._log(job, "Files: " + ", ".join(f.rel_path for f in files))
         self.store.save(job)
-        (self.store.path(job["id"]) / "manifest.json").write_text(manifest.model_dump_json(indent=2))
+        (self.store.path(job["id"]) / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
 
         # 2. Workspace
         workspace = self.store.path(job["id"]) / "workspace"

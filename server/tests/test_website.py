@@ -202,6 +202,8 @@ export class GeminiClient {
       { slug: 'index', title: 'Home', purpose: 'dup' }, { slug: '../evil', title: 'Evil', purpose: 'x' }, { slug: 'contact', title: 'Contact', purpose: 'reach us' }] }), raw: {} };
     if (system.includes('matching page')) return { text: '```html\\n<!DOCTYPE html><html><body><nav><a href="index.html">Home</a><a href="about.html">About</a><a href="contact.html">Contact</a></nav>page</body></html>\\n```', raw: {} };
     if (mode === 'nohtml') return { text: 'Sorry, I cannot.', raw: {} };
+    if (system.includes('approved designs')) return { text: '<!DOCTYPE html><html><body>coded ' +
+      (prompt.includes('STITCH DESIGN') && prompt.includes('stitch hero') ? 'from the design' : 'blind') + '</body></html>', raw: {} };
     if (system.includes('critique')) return { text: mode === 'same' ? CURRENT : '<!DOCTYPE html><html><body>changed</body></html>', raw: {} };
     const budget = system.includes('LENGTH BUDGET') ? ' budgeted' : '';
     return { text: '```html\\n<!DOCTYPE html><html><body>model page' + budget + '</body></html>\\n```', raw: { usageMetadata: { promptTokenCount: 5 } } };

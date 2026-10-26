@@ -39,6 +39,14 @@ CREATE TABLE IF NOT EXISTS phone_codes (
     expires_at REAL NOT NULL,
     used_at REAL
 );
+CREATE TABLE IF NOT EXISTS stitch_links (
+    account_id INTEGER PRIMARY KEY REFERENCES accounts(id),
+    email TEXT,                              -- the Google account Stitch runs under
+    refresh_token TEXT NOT NULL,             -- encrypted (genesis/site/stitch.py)
+    connected_at REAL NOT NULL,
+    used_at REAL,
+    error TEXT                               -- why the last use failed, e.g. access revoked
+);
 CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY,
     site TEXT NOT NULL,
@@ -72,6 +80,7 @@ def check_password(password: str, stored: str | None) -> bool:
     return hmac.compare_digest(got.hex(), digest)
 
 
+
 class AccountsMixin:
     """Account methods for SmsStore (uses its tx/one/all helpers)."""
 
@@ -91,6 +100,24 @@ class AccountsMixin:
         if "tokens_in" not in jcols:  # Gemini usage of the job, for per-user cost tracking
             c.execute("ALTER TABLE jobs ADD COLUMN tokens_in INTEGER NOT NULL DEFAULT 0")
             c.execute("ALTER TABLE jobs ADD COLUMN tokens_out INTEGER NOT NULL DEFAULT 0")
+
+    # ---------- Google Stitch ----------
+    def save_stitch_link(self, account_id: int, email: str | None, refresh_token: str) -> None:
+        with self.tx() as c:
+            c.execute("DELETE FROM stitch_links WHERE account_id = ?", (account_id,))
+            c.execute("INSERT INTO stitch_links (account_id, email, refresh_token, connected_at) VALUES (?, ?, ?, ?)",
+                      (account_id, email, refresh_token, time.time()))
+
+    def stitch_link(self, account_id: int) -> dict | None:
+        return self.one("SELECT * FROM stitch_links WHERE account_id = ?", (account_id,))
+
+    def mark_stitch_link(self, account_id: int, error: str | None) -> None:
+        with self.tx() as c:
+            c.execute("UPDATE stitch_links SET error = ?, used_at = ? WHERE account_id = ?", (error, time.time(), account_id))
+
+    def delete_stitch_link(self, account_id: int) -> None:
+        with self.tx() as c:
+            c.execute("DELETE FROM stitch_links WHERE account_id = ?", (account_id,))
 
     # ---------- accounts ----------
     def create_account(self, *, username: str, call_sign: str, email: str | None = None, password: str | None = None,

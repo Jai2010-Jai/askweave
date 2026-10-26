@@ -129,6 +129,9 @@ class WebsiteBuilder:
         self._slots = threading.BoundedSemaphore(settings.website_workers)
         self._cancel: dict[str, threading.Event] = {}
         self._listeners: dict[str, Listener] = {}
+        # account_id -> what the bridge needs to design in that person's own Google Stitch account, or None
+        # (set by the server; see genesis/site/stitch.py).
+        self.design_credentials: Callable[[int], dict | None] | None = None
         self.store.mark_interrupted()
 
     def problem(self) -> str:
@@ -136,11 +139,11 @@ class WebsiteBuilder:
 
     # ---------- public ----------
     def create_job(self, req: BuildRequest, *, base_job_id: str | None = None, change_request: str | None = None,
-                   source: str = "sms") -> dict:
+                   source: str = "sms", account_id: int | None = None) -> dict:
         if base_job_id is not None and not self.site_ok(base_job_id):
             raise ValueError("a change build needs a successful base website")
         job = self.store.create(req, base_job_id=base_job_id, change_request=change_request, source=source)
-        job.update(kind="website", site=None, research=None)
+        job.update(kind="website", site=None, research=None, account_id=account_id)
         self.store.save(job)
         return job
 
@@ -232,6 +235,16 @@ class WebsiteBuilder:
         else:
             request.update(op="generate", prompt=job["prompt"], variants=self.s.website_variants,
                            extra_pages=self.s.website_pages)
+            creds = None
+            if self.design_credentials and job.get("account_id"):
+                try:
+                    creds = self.design_credentials(job["account_id"])
+                except Exception as e:  # noqa: BLE001 - the GLM design still works
+                    log.warning("stitch credentials failed: %s", type(e).__name__)
+            if creds:
+                # Goes to the bridge on stdin for this one build; never saved with the job.
+                request["stitch"] = creds
+                self._log(job, "Designing the home page in the owner's Google Stitch account")
             self._stage(job, "generating", "Researching a design direction and writing the website")
         self._log(job, f"== Website engine: {request['op']} (model {self._model()}) ==")
         started = time.monotonic()
@@ -261,6 +274,10 @@ class WebsiteBuilder:
             return self._fail(job, f"Website generation failed: {result.get('error') or 'unknown error'}")
         if result.get("research") == "fallback":
             self._log(job, "Note: design research used weave's built-in directions (the research AI call failed).")
+        if result.get("designer") == "stitch":
+            self._log(job, "Home page designed in Google Stitch and coded by the AI.")
+        if result.get("stitch_error"):
+            self._log(job, f"Note: Stitch didn't design this one ({result['stitch_error']}); the AI designed it instead.")
         self._stage(job, "validating", "Checking the generated website")
         self._drop_bad_extra_pages(job, site)
         try:
@@ -272,7 +289,7 @@ class WebsiteBuilder:
         name = (result.get("brand_name") if result.get("research") == "ai" or base_id else "") or \
             page_title(site / "index.html") or result.get("brand_name") or job.get("app_name") or ""
         name = name.strip()[:30] or None
-        job.update(app_name=name, research=result.get("research"),
+        job.update(app_name=name, research=result.get("research"), designer=result.get("designer"),
                    site={"files": files, "pages": result.get("pages") or [], "entry": "index.html",
                          "truncated_input": bool(result.get("truncated_input"))})
         if result.get("truncated_input"):

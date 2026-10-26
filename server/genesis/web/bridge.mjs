@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import * as nodeModule from 'node:module';
+import { designHomePage, stitchPrompt } from './stitch.mjs';
 
 const STUB_DOTENV = 'data:text/javascript,' + encodeURIComponent(
   'export function config() { return { parsed: {} }; } export default { config };');
@@ -396,9 +397,47 @@ async function generate(req, engine) {
   const inspirations = (research.inspirations || []).slice(0, 3);
   const count = Math.max(1, Math.min(3, Number(req.variants) || 1));
   const pages = [];
+  // With the owner's Stitch account connected, Stitch designs the home page (on their credits) and the AI codes
+  // the final page from that design. Any Stitch problem falls back to the AI designing it alone.
+  let designer = 'ai';
+  let stitchError = '';
+  let stitchHtml = '';
+  if (req.stitch?.access_token) {
+    const budget = Number(req.stitch.timeout_ms) || 240_000;
+    if (timeLeft() < budget + 180_000) {
+      stitchError = 'not enough time left';
+    } else {
+      phase = 'stitch';
+      const started = Date.now();
+      try {
+        const design = await designHomePage({ token: req.stitch.access_token, quotaProject: req.stitch.quota_project,
+          timeoutMs: budget, title: topic.brandName || req.prompt,
+          prompt: stitchPrompt(req.prompt, topic, inspirations[0]) });
+        stitchHtml = design.html;
+        calls.push({ phase, model: 'stitch', ok: true, ms: Date.now() - started });
+      } catch (e) {
+        stitchError = sanitize(e?.message || e);
+        calls.push({ phase, model: 'stitch', ok: false, ms: Date.now() - started, error: stitchError });
+        log(`Stitch design failed; the AI designs it instead: ${stitchError}`);
+      }
+    }
+  }
   for (let i = 0; i < count && i < inspirations.length; i++) {
     phase = `html-${i + 1}`;
-    const html = await engine.bespoke.generateBespokeHtml({ prompt: req.prompt, topicAnalysis: topic, inspiration: inspirations[i] });
+    let html = '';
+    if (i === 0 && stitchHtml) {
+      html = await codeFromDesign(req, engine, topic, stitchHtml).catch((e) => {
+        stitchError = sanitize(e?.message || e);
+        return '';
+      });
+      if (fromModel(phase, html)) designer = 'stitch';
+      else {
+        stitchError ||= 'the AI could not code the Stitch design';
+        log(`coding the Stitch design failed; the AI designs it instead: ${stitchError}`);
+        html = '';
+      }
+    }
+    if (!html) html = await engine.bespoke.generateBespokeHtml({ prompt: req.prompt, topicAnalysis: topic, inspiration: inspirations[i] });
     if (!fromModel(phase, html)) {
       if (i === 0) return { ok: false, error: failure(phase, 'The AI did not produce the website page') };
       break; // extra design options are optional
@@ -426,8 +465,24 @@ async function generate(req, engine) {
     headline: String(topic.headline || '').slice(0, 200),
     research: researchFromModel ? 'ai' : 'fallback',
     brand_from_research: researchFromModel,
+    designer,
+    ...(stitchError ? { stitch_error: stitchError } : {}),
     pages,
   };
+}
+
+// The AI turns Stitch's design into the finished page: same look, real content, working links and no unsafe forms.
+async function codeFromDesign(req, engine, topic, design) {
+  const res = await engine.gemini.generateContent(
+    `Website request: ${req.prompt}\nBrand: ${topic.brandName || ''}\n${topic.tagline ? `Tagline: ${topic.tagline}\n` : ''}\n` +
+    'Below is the home page design made in Google Stitch. Turn it into the finished, production-ready home page: ' +
+    'keep its layout, colours, fonts, spacing and imagery exactly; replace placeholder text with real, specific ' +
+    'content for this business; make every navigation link point to an in-page section (#id); make it responsive; ' +
+    'forms must use action="#"; remove any login, sign-up or payment UI. Return one complete HTML document only.\n\n' +
+    `STITCH DESIGN:\n${design.slice(0, 40000)}`,
+    'You are a senior front-end developer who turns approved designs into clean, finished HTML. Reply with HTML only.');
+  const html = stripFences(res?.text);
+  return /<html[\s>]/i.test(html) && /<\/html>/i.test(html) ? html : '';
 }
 
 // ---------- multi-page sites (Genesis addition; weave itself writes one page) ----------

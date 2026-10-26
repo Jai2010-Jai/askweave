@@ -25,8 +25,26 @@
       if (waBase) $("#wa-open").href = waBase; else $("#wa-open").hidden = true;
     }
     if (me.invite) { $("#invite-line").hidden = false; $("#invite").textContent = me.invite; }
+    renderStitch();
     renderProjects();
     renderStats();
+  }
+
+  const STITCH_RESULT = { connected: "Google Stitch is connected.", cancelled: "Stitch wasn't connected (you cancelled).",
+    missing: "Google didn't grant Stitch access. Tick the permission and try again.",
+    failed: "Connecting Stitch didn't work. Try again.", off: "Stitch isn't available right now." };
+
+  function renderStitch() {
+    const st = me.stitch || {};
+    $("#stitch").hidden = !st.available && !st.connected;
+    $("#stitch-state").textContent = st.connected ? (st.problem ? "needs reconnecting" : "connected") : "not connected";
+    $("#stitch-connect").hidden = st.connected && !st.problem;
+    $("#stitch-connect").textContent = st.connected ? "Reconnect" : "Connect Stitch";
+    $("#stitch-disconnect").hidden = !st.connected;
+    const result = new URLSearchParams(location.search).get("stitch");
+    $("#stitch-text").textContent = STITCH_RESULT[result] || (st.problem ? st.problem
+      : st.connected ? `Weave designs your websites in Stitch as ${st.email || "you"}, using your own Stitch credits.`
+      : "One click: Weave then designs your websites in your own Google Stitch account.");
   }
 
   function project(p, deleted) {
@@ -147,6 +165,12 @@
       $("#call-hint").textContent = `Saved. Weave will call you ${r.call_sign}.`;
       $("#hello").textContent = `Hi ${r.call_sign}`;
     } catch (err) { $("#call-hint").className = "hint bad"; $("#call-hint").textContent = err.message; }
+  });
+  $("#stitch-disconnect").addEventListener("click", async () => {
+    if (!confirm("Disconnect Google Stitch? Weave will design websites with its own AI instead.")) return;
+    await api("/api/account/stitch/disconnect", {}).catch(() => null);
+    history.replaceState(null, "", "/dashboard");
+    load();
   });
   $("#logout").addEventListener("click", async () => {
     await api("/api/account/logout", {}).catch(() => {});

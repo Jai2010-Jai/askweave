@@ -22,6 +22,8 @@
   <section class="card" id="signup">
     <div id="google-box" hidden>
       <a class="btn ghost wide" id="google-btn" href="/auth/google">Continue with Google</a>
+      <div class="hint" id="google-stitch-note" hidden>Also connects your Google Stitch account, so Weave designs your
+        websites with your own Stitch credits.</div>
       <div class="or">or with email</div>
     </div>
     <p class="notice" id="google-pending" hidden></p>
@@ -40,6 +42,9 @@
         <label for="password">Password</label>
         <input id="password" type="password" autocomplete="new-password" minlength="8" required>
       </div>
+
+      <label class="check" id="stitch-row" hidden><input id="stitch-connect" type="checkbox" checked> <span>Connect
+        Google Stitch next (recommended): Weave designs your websites in your own Stitch account.</span></label>
 
       <label for="invite">Invite code (optional)</label>
       <input id="invite" type="text" maxlength="16" autocapitalize="characters" spellcheck="false">

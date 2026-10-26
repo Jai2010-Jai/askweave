@@ -197,13 +197,15 @@ class SmsWorker:
                 base_id = None
             if not base_id:
                 change_request = None
+        # Websites are designed in the owner's own Google Stitch account when they connected one.
+        owner = {"account_id": user.get("account_id")} if engine is self.websites else {}
         try:
             build = engine.create_job(BuildRequest(prompt=job["prompt"]), base_job_id=base_id,
-                                      change_request=change_request, source="sms")
+                                      change_request=change_request, source="sms", **owner)
         except (KeyError, ValueError) as e:
             # The base version vanished: rebuild from the full project description instead.
             event("sms.base_missing", logging.WARNING, ref=ref, error=type(e).__name__)
-            build = engine.create_job(BuildRequest(prompt=job["prompt"]), source="sms")
+            build = engine.create_job(BuildRequest(prompt=job["prompt"]), source="sms", **owner)
         self.store.update_job(job["id"], build_id=build["id"], error=None)
 
         done = threading.Event()

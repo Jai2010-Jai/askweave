@@ -202,6 +202,14 @@ class Settings:
     # Accounts (askweave.xyz sign-up). Google sign-in shows only when both are set.
     google_client_id: str = field(default_factory=lambda: _str_env("GOOGLE_CLIENT_ID"))
     google_client_secret: str = field(default_factory=lambda: _str_env("GOOGLE_CLIENT_SECRET"), repr=False)
+    # Google Stitch designs each new website's home page in the customer's own Stitch account (their own credits),
+    # connected with one Google consent at sign-up. Needs the Google sign-in client above, with the Stitch API
+    # enabled in its Google Cloud project and the cloud-platform scope on its consent screen. off = GLM designs only.
+    stitch: bool = field(default_factory=lambda: _choice_env("GENESIS_STITCH", "on", {"on", "off"}) == "on")
+    # Sent as x-goog-user-project when set (some Google setups need a quota project); empty = Google's default.
+    stitch_quota_project: str = field(default_factory=lambda: _str_env("STITCH_QUOTA_PROJECT"))
+    # A Stitch design that takes longer than this is abandoned and the build continues with the GLM design.
+    stitch_timeout: int = field(default_factory=lambda: _int_env("GENESIS_STITCH_TIMEOUT_SECONDS", 240, 30, 900))
     user_storage_mb: int = field(default_factory=lambda: _int_env("GENESIS_USER_STORAGE_MB", 50, 1, 10_000))
     max_projects: int = field(default_factory=lambda: _int_env("GENESIS_MAX_PROJECTS", 25, 1, 1000))
     trash_days: int = field(default_factory=lambda: _int_env("GENESIS_TRASH_DAYS", 30, 1, 365))

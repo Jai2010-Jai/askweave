@@ -335,7 +335,13 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
                                         websites=sms.service.web))
         app.include_router(build_chat_router(s, sms.store, sms.service, orch.store))
         from .site.routes import build_site_router
-        app.include_router(build_site_router(s, sms.store, sms.service, orch.store))
+        from .site.stitch import StitchLinks
+
+        stitch = StitchLinks(s, sms.store)
+        if hasattr(sms.service.web, "design_credentials"):
+            # New websites are designed in the owner's own Stitch account when they've connected it.
+            sms.service.web.design_credentials = stitch.credentials
+        app.include_router(build_site_router(s, sms.store, sms.service, orch.store, stitch=stitch))
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     app.state.orchestrator = orch

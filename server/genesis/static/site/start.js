@@ -4,6 +4,7 @@
   const errors = { google: "Google sign-in didn't work. Try again or use email.", google_off: "Google sign-in isn't set up yet. Use email.",
     closed: "That account is closed." };
   let googlePending = false;
+  let stitchOn = false;
 
   function tab(name) {
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
@@ -25,12 +26,21 @@
       $("#google-login").hidden = false;
       $("#login-or").hidden = false;
     }
+    if (cfg.stitch) {
+      // One Google consent covers sign-in and Stitch; email sign-ups get one more click right after.
+      stitchOn = true;
+      $("#google-btn").href = "/auth/google?stitch=1";
+      $("#google-stitch-note").hidden = false;
+      $("#stitch-row").hidden = false;
+    }
     if (cfg.google_pending) {
       googlePending = true;
       $("#google-box").hidden = true;
       $("#email-fields").hidden = true;
       $("#google-pending").hidden = false;
-      $("#google-pending").textContent = `Signed in with Google as ${cfg.google_pending.email}. Pick your username to finish.`;
+      $("#stitch-row").hidden = true;
+      $("#google-pending").textContent = `Signed in with Google as ${cfg.google_pending.email}` +
+        (cfg.google_pending.stitch ? " (Google Stitch connected)" : "") + ". Pick your username to finish.";
       const first = (cfg.google_pending.name || "").split(" ")[0];
       if (first && !$("#call-sign").value) $("#call-sign").value = first;
     }
@@ -63,7 +73,7 @@
         email: googlePending ? undefined : $("#email").value.trim(), password: googlePending ? undefined : $("#password").value,
         invite: $("#invite").value.trim(), terms: $("#terms").checked,
       });
-      location.replace("/dashboard?welcome=1");
+      location.replace(stitchOn && !googlePending && $("#stitch-connect").checked ? "/auth/stitch" : "/dashboard?welcome=1");
     } catch (err) {
       $("#signup-error").textContent = err.message;
       btn.disabled = false;

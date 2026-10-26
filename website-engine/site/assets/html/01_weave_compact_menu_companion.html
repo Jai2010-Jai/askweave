@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weave Companion</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+            mono: ['"Geist Mono"', 'JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            companion: {
+              bg: '#111215',
+              surface: '#17181d',
+              surfaceHover: '#1c1e24',
+              border: '#24262e',
+              borderSubtle: '#1b1c22',
+              primary: '#f3f4f6',
+              secondary: '#9ca3af',
+              muted: '#6b7280',
+              accent: '#10b981',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Sleek custom micro-scrollbar */
+    ::-webkit-scrollbar {
+      width: 3px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #24262e;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body class="bg-[#090a0d] text-companion-primary font-sans antialiased min-h-screen flex items-center justify-center p-4 selection:bg-white/10 selection:text-white">
+<!-- Floating Menu Bar / System Tray Companion Widget -->
+<div class="w-full max-w-[430px] bg-companion-bg border border-companion-border rounded-xl shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden backdrop-blur-xl relative">
+<!-- 1. Compact Header -->
+<header class="px-3.5 py-2.5 border-b border-companion-borderSubtle bg-companion-bg/90 flex items-center justify-between select-none">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-md bg-white text-black flex items-center justify-center font-bold">
+<i class="fa-solid fa-code-merge text-[10px]"></i>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="text-[13px] font-semibold text-white tracking-tight">Weave</span>
+<span class="text-[10px] text-companion-muted font-mono">v1.4</span>
+</div>
+<!-- WhatsApp Active Calm Status Badge -->
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium leading-none ml-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          WhatsApp Active
+        </span>
+</div>
+<!-- Header actions / profile -->
+<div class="flex items-center gap-1.5 text-companion-muted">
+<button class="w-6 h-6 rounded flex items-center justify-center hover:text-white hover:bg-companion-surface transition text-xs" title="Connected: alex@gmail.com">
+<div class="w-4 h-4 rounded-full bg-companion-surface border border-companion-border flex items-center justify-center text-[9px] font-mono text-companion-secondary font-bold">
+            A
+          </div>
+</button>
+<button class="w-6 h-6 rounded flex items-center justify-center hover:text-white hover:bg-companion-surface transition text-[11px]" title="Companion Preferences">
+<i class="fa-solid fa-gear"></i>
+</button>
+</div>
+</header>
+<div class="p-3 space-y-3 max-h-[580px] overflow-y-auto">
+<!-- 2. Fast Bot Anchor -->
+<div class="bg-companion-surface border border-companion-border rounded-lg p-2.5 flex items-center justify-between gap-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-md bg-companion-bg border border-companion-border flex items-center justify-center text-white/90 text-xs font-mono shrink-0">
+            @
+          </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-mono font-medium text-white truncate">@weave_alex</span>
+<i class="fa-solid fa-circle-check text-white/50 text-[10px]"></i>
+</div>
+<p class="text-[11px] text-companion-muted truncate">Direct mentions &amp; group chats</p>
+</div>
+</div>
+<button class="px-2.5 py-1 text-[11px] font-mono font-medium rounded bg-white text-black hover:bg-white/90 transition shrink-0 active:scale-95 shadow-sm" id="copyBtn" onclick="navigator.clipboard.writeText('@weave_alex'); this.innerHTML='&lt;i class=\'fa-solid fa-check text-emerald-400 text-[10px]\'&gt;&lt;/i&gt;'; setTimeout(() =&gt; this.innerHTML='Copy', 1500);">
+          Copy
+        </button>
+</div>
+<!-- 3. Mounted Folders -->
+<section class="space-y-1.5">
+<div class="flex items-center justify-between px-1">
+<span class="text-[10px] font-mono uppercase tracking-wider text-companion-muted">Mounted Folders</span>
+<span class="text-[10px] font-mono text-companion-muted">2 indexed</span>
+</div>
+<div class="space-y-1">
+<!-- Folder 1 -->
+<div class="group flex items-center justify-between px-2.5 py-1.5 rounded-md bg-companion-surface/70 hover:bg-companion-surface border border-companion-border/70 hover:border-companion-border transition cursor-default">
+<div class="flex items-center gap-2 min-w-0">
+<i class="fa-regular fa-folder text-companion-secondary text-xs shrink-0"></i>
+<span class="text-xs text-companion-primary font-medium truncate">Portfolio Site</span>
+<span class="text-[9px] font-mono px-1 py-0.2 rounded bg-companion-bg text-companion-muted border border-companion-border/60">Team</span>
+</div>
+<span class="text-[10px] font-mono text-companion-muted group-hover:text-companion-secondary transition">~/portfolio</span>
+</div>
+<!-- Folder 2 -->
+<div class="group flex items-center justify-between px-2.5 py-1.5 rounded-md bg-companion-surface/70 hover:bg-companion-surface border border-companion-border/70 hover:border-companion-border transition cursor-default">
+<div class="flex items-center gap-2 min-w-0">
+<i class="fa-regular fa-folder text-companion-secondary text-xs shrink-0"></i>
+<span class="text-xs text-companion-primary font-medium truncate">Docs &amp; Resumes</span>
+<span class="text-[9px] font-mono px-1 py-0.2 rounded bg-companion-bg text-companion-muted border border-companion-border/60">Private</span>
+</div>
+<span class="text-[10px] font-mono text-companion-muted group-hover:text-companion-secondary transition">~/Documents</span>
+</div>
+<!-- Add Folder Action -->
+<button class="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-mono text-companion-muted hover:text-companion-primary border border-dashed border-companion-border hover:border-companion-muted/60 rounded-md transition hover:bg-companion-surface/40" onclick="const el=document.getElementById('nativeFeedback'); el.classList.remove('hidden'); setTimeout(()=&gt;el.classList.add('hidden'), 2000)">
+<i class="fa-solid fa-plus text-[9px]"></i>
+<span>Add folder</span>
+</button>
+<div class="hidden text-center py-1 text-[10px] font-mono text-companion-secondary bg-companion-surface rounded border border-companion-border" id="nativeFeedback">
+            Opening native file selector…
+          </div>
+</div>
+</section>
+<!-- 4. Recent Handled Requests (Activity) -->
+<section class="space-y-1.5">
+<div class="flex items-center justify-between px-1">
+<span class="text-[10px] font-mono uppercase tracking-wider text-companion-muted">Recent Requests</span>
+<span class="text-[10px] font-mono text-companion-muted">Live Stream</span>
+</div>
+<div class="space-y-1.5">
+<!-- Event 1 -->
+<div class="p-2 rounded-md bg-companion-surface/60 border border-companion-borderSubtle hover:border-companion-border transition">
+<div class="flex items-center justify-between text-[11px] mb-1">
+<div class="flex items-center gap-1.5 truncate">
+<span class="font-medium text-white">Sarah:</span>
+<span class="text-companion-secondary font-mono truncate">“fix navbar bug”</span>
+</div>
+<span class="text-[10px] text-companion-muted shrink-0 ml-1">2m ago</span>
+</div>
+<div class="flex items-center justify-between text-[10px] text-companion-muted pt-1 border-t border-companion-borderSubtle">
+<span class="flex items-center gap-1 text-companion-secondary">
+<i class="fa-solid fa-code-commit text-[9px] text-emerald-400"></i>
+                3 files modified
+              </span>
+<button class="font-mono text-white/70 hover:text-white transition">Diff</button>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="p-2 rounded-md bg-companion-surface/60 border border-companion-borderSubtle hover:border-companion-border transition">
+<div class="flex items-center justify-between text-[11px] mb-1">
+<div class="flex items-center gap-1.5 truncate">
+<span class="font-medium text-white">Alex:</span>
+<span class="text-companion-secondary font-mono truncate">“Schedule meeting with Liam”</span>
+</div>
+<span class="text-[10px] text-companion-muted shrink-0 ml-1">12m ago</span>
+</div>
+<div class="flex items-center justify-between text-[10px] text-companion-muted pt-1 border-t border-companion-borderSubtle">
+<span class="flex items-center gap-1 text-companion-secondary">
+<i class="fa-regular fa-calendar-check text-[9px] text-emerald-400"></i>
+                Synced to Calendar
+              </span>
+<span class="font-mono text-emerald-400/90 text-[9px]">Tomorrow 3pm</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- 5. Bottom Bar / Micro-Actions -->
+<footer class="px-3.5 py-2.5 bg-companion-surface/90 border-t border-companion-borderSubtle flex items-center justify-between text-xs select-none">
+<!-- Micro-toggles -->
+<div class="flex items-center gap-3">
+<!-- Toggle: Team edits -->
+<label class="flex items-center gap-1.5 cursor-pointer group">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-6 h-3 bg-companion-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:bg-black after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-companion-secondary after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-white relative"></div>
+<span class="text-[11px] text-companion-secondary group-hover:text-companion-primary transition">Team edits</span>
+</label>
+<!-- Toggle: Voice notes -->
+<label class="flex items-center gap-1.5 cursor-pointer group">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-6 h-3 bg-companion-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:bg-black after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-companion-secondary after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-white relative"></div>
+<span class="text-[11px] text-companion-secondary group-hover:text-companion-primary transition">Voice notes</span>
+</label>
+</div>
+<!-- Quick Disconnect Action -->
+<button class="text-[11px] font-mono text-companion-muted hover:text-red-400 transition cursor-pointer flex items-center gap-1" onclick="this.innerText='Disconnected'; this.classList.add('text-red-400');">
+<i class="fa-solid fa-power-off text-[9px]"></i>
+<span>Disconnect</span>
+</button>
+</footer>
+</div>
+</body></html>
+

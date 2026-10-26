@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purrfect Match | Curated Companionship for Distinguished Cats</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#0B0E11',
+            obsidianCard: '#13181E',
+            jade: '#00F5A0',
+            amberLaser: '#FFB703',
+            obsidianBorder: '#1F2937',
+            textPrimary: '#F3F4F6',
+            textMuted: '#9CA3AF',
+          },
+          fontFamily: {
+            sans: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"Space Mono"', 'monospace'],
+          },
+          boxShadow: {
+            'glow-jade': '0 0 25px -5px rgba(0, 245, 160, 0.35)',
+            'glow-amber': '0 0 25px -5px rgba(255, 183, 3, 0.35)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar & Grid Canvas Background */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #0B0E11; }
+    ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00F5A0; }
+
+    .grid-bg {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(31, 41, 55, 0.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(31, 41, 55, 0.35) 1px, transparent 1px);
+    }
+
+    .pulse-glow {
+      animation: pulseGlow 2.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0% { filter: drop-shadow(0 0 4px rgba(0,245,160,0.4)); }
+      100% { filter: drop-shadow(0 0 16px rgba(0,245,160,0.95)); }
+    }
+
+    .scanline {
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 100%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(0, 245, 160, 0.04) 50%, rgba(255,255,255,0));
+      background-size: 100% 8px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body class="bg-obsidian text-textPrimary font-mono antialiased relative min-h-screen grid-bg selection:bg-jade selection:text-obsidian overflow-x-hidden">
+
+<div id="stitch-preview-bar" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 99999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; font-size: 13px;">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <span style="background: #10b981; color: #000; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.05em;">DESIGN PREVIEW</span>
+    <span style="color: #cbd5e1;">Viewing: <strong style="color: #fff;">Option 2: Bioluminescent Prowl & Telemetry Lab</strong></span>
+  </div>
+  <div style="display: flex; gap: 6px;">
+    
+      <a href="/option1.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: rgba(255,255,255,0.1); color: #fff;">Option 1</a>
+      <a href="/option2.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: #10b981; color: #000;">Option 2</a>
+      <a href="/option3.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: rgba(255,255,255,0.1); color: #fff;">Option 3</a>
+  </div>
+</div>
+
+  <!-- Top Real-time Telemetry Ticker -->
+  <aside class="w-full bg-[#080a0d] border-b border-obsidianBorder text-[11px] py-1.5 px-4 font-mono flex items-center justify-between text-textMuted z-50">
+    <div class="flex items-center space-x-6 overflow-hidden whitespace-nowrap">
+      <span class="flex items-center gap-2 text-jade font-semibold">
+        <span class="w-2 h-2 rounded-full bg-jade animate-ping"></span>
+        BIOLUMINESCENT TELEMETRY HUB [ONLINE]
+      </span>
+      <span class="hidden md:inline">FREQ: <span class="text-textPrimary">44.2 kHz (Feline Ultrasonic Range)</span></span>
+      <span class="hidden lg:inline">HARMONIOUS INTRODUCTIONS: <span class="text-jade font-bold">98.4%</span></span>
+      <span class="hidden sm:inline">PHEROMONE MATRIX: <span class="text-amberLaser">OPTIMAL F3/F4 SATURATION</span></span>
+    </div>
+    <div class="flex items-center space-x-4 shrink-0 text-xs">
+      <span class="text-textMuted">SYS TIME: <span id="telemetry-time" class="text-textPrimary">21:20:45 UTC</span></span>
+      <span class="bg-obsidianCard border border-jade/40 text-jade px-2 py-0.5 rounded text-[10px] tracking-wider uppercase font-bold">VERIFIED LABS</span>
+    </div>
+  </aside>
+
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-obsidian/85 border-b border-obsidianBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-obsidianCard border border-jade/60 flex items-center justify-center text-jade shadow-glow-jade">
+          <svg class="w-6 h-6 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-.778.099-1.533.284-2.253" />
+          </svg>
+        </div>
+        <div>
+          <span class="font-sans text-xl font-bold tracking-tight text-textPrimary flex items-center gap-1.5">
+            PURRFECT<span class="text-jade">MATCH</span>
+          </span>
+          <p class="text-[10px] text-textMuted tracking-widest font-mono uppercase">High-Born Feline Bio-Telemetry</p>
+        </div>
+      </div>
+
+      <nav class="hidden md:flex items-center space-x-8 text-xs font-mono uppercase tracking-wider">
+        <a href="#biometrics" class="text-textMuted hover:text-jade transition-colors">Telemetry Matrix</a>
+        <a href="#dossiers" class="text-textMuted hover:text-jade transition-colors">Curated Dossiers</a>
+        <a href="#circadian" class="text-textMuted hover:text-jade transition-colors">Circadian Zoomies</a>
+        <a href="#concierge" class="text-textMuted hover:text-jade transition-colors">Neutral Territory</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <button onclick="openConsoleModal()" class="relative group bg-obsidianCard hover:bg-jade/10 text-jade border border-jade/50 hover:border-jade px-4 py-2 rounded text-xs font-mono tracking-wider transition-all duration-300 flex items-center gap-2 shadow-glow-jade">
+          <span class="w-2 h-2 rounded-full bg-jade animate-pulse"></span>
+          ACCESS DOSSIER LAB
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative pt-16 pb-24 border-b border-obsidianBorder overflow-hidden">
+    <div class="scanline"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-12">
+        <div class="max-w-3xl space-y-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-jade/30 bg-jade/5 text-jade text-xs font-mono">
+            <span class="h-1.5 w-1.5 rounded-full bg-jade animate-ping"></span>
+            AESTHETIC SPECIFICATION: BIOLUMINESCENT SENSORY LAB
+          </div>
+          
+          <h1 class="font-sans text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-textPrimary leading-none">
+            Curated Companionship for <span class="text-transparent bg-clip-text bg-gradient-to-r from-jade via-[#68ffd2] to-amberLaser">Distinguished Cats</span>
+          </h1>
+
+          <p class="text-textMuted text-base sm:text-lg font-mono leading-relaxed max-w-2xl">
+            Courtship for high-born felines and the devoted guardians who serve them. Driven by multi-axis circadian telemetry, acoustic purr-resonance analysis, and verified veterinary clearances.
+          </p>
+
+          <!-- Realtime KPI Micro-counters -->
+          <div class="grid grid-cols-3 gap-4 pt-4 border-t border-obsidianBorder/70">
+            <div>
+              <div class="text-2xl sm:text-3xl font-bold font-sans text-jade">98.4%</div>
+              <div class="text-[11px] text-textMuted font-mono uppercase mt-0.5">Harmonious Introductions</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-bold font-sans text-amberLaser">14,200+</div>
+              <div class="text-[11px] text-textMuted font-mono uppercase mt-0.5">Neutral Playdates Booked</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-bold font-sans text-textPrimary">100%</div>
+              <div class="text-[11px] text-textMuted font-mono uppercase mt-0.5">Cryptographic Health Dossiers</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-4 pt-4">
+            <a href="#dossiers" class="px-6 py-3.5 bg-jade hover:bg-[#00d88d] text-obsidian font-sans font-bold tracking-tight text-sm rounded transition-all shadow-glow-jade flex items-center gap-2">
+              BROWSE VERIFIED CANDIDATES
+              <svg class="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </a>
+            <a href="#circadian" class="px-6 py-3.5 bg-obsidianCard hover:border-textMuted border border-obsidianBorder text-textPrimary font-mono text-xs rounded transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4 text-amberLaser fill-none stroke-current" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              VIEW 24H ZOOMIES RADAR
+            </a>
+          </div>
+        </div>
+
+        <!-- Hero Dynamic Radar / Biometric Scope Widget -->
+        <div class="w-full lg:w-[460px] bg-obsidianCard border border-obsidianBorder rounded-xl p-5 relative overflow-hidden shadow-2xl">
+          <div class="flex items-center justify-between border-b border-obsidianBorder pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-jade pulse-glow"></span>
+              <span class="text-xs uppercase tracking-wider font-bold text-textPrimary">LIVE SPECIMEN SENSORY FEED</span>
+            </div>
+            <span class="text-[10px] bg-jade/10 text-jade px-2 py-0.5 border border-jade/30 rounded font-mono">CH-09 TELEMETRY</span>
+          </div>
+
+          <!-- Radar Canvas Circle with SVG waves -->
+          <div class="relative w-full aspect-square bg-[#0c1015] rounded-lg border border-obsidianBorder/80 flex items-center justify-center overflow-hidden">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+              <div class="w-72 h-72 rounded-full border border-jade"></div>
+              <div class="w-52 h-52 rounded-full border border-jade"></div>
+              <div class="w-32 h-32 rounded-full border border-jade"></div>
+              <div class="absolute w-full h-[1px] bg-jade"></div>
+              <div class="absolute h-full w-[1px] bg-jade"></div>
+            </div>
+
+            <!-- Rotating Radar Sweep Line -->
+            <div class="absolute w-full h-full rounded-full origin-center animate-spin" style="animation-duration: 4.8s; background: conic-gradient(from 0deg at 50% 50%, rgba(0, 245, 160, 0.28) 0deg, transparent 75deg);"></div>
+
+            <!-- Subject Overlay Visual -->
+            <div class="relative z-10 flex flex-col items-center">
+              <div class="w-32 h-32 rounded-full border-2 border-jade/70 p-1 bg-obsidian/80 backdrop-blur-sm relative">
+                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80" alt="Sir Barnaby Sterling" class="w-full h-full object-cover rounded-full grayscale contrast-125">
+                <span class="absolute bottom-0 right-0 bg-amberLaser text-obsidian text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-obsidian">98.9% SYNC</span>
+              </div>
+              <span class="mt-3 font-sans font-bold text-sm text-textPrimary">Sir Barnaby Sterling, IV</span>
+              <span class="text-[11px] text-textMuted font-mono">Russian Blue • 3.4 yrs • Royal Lineage</span>
+            </div>
+          </div>
+
+          <!-- Live Biometric Data Barometer -->
+          <div class="mt-4 space-y-2 text-xs">
+            <div class="flex justify-between text-textMuted text-[11px]">
+              <span>Purr Frequency Harmonic:</span>
+              <span class="text-jade font-bold">26.8 Hz [Theta Resonance]</span>
+            </div>
+            <div class="w-full bg-obsidian rounded-full h-1.5 overflow-hidden border border-obsidianBorder">
+              <div class="bg-gradient-to-r from-jade to-amberLaser h-full rounded-full" style="width: 88%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-textMuted pt-1">
+              <span>Nap Endurance: <b class="text-textPrimary">16.4 hrs/day</b></span>
+              <span>Lap Tolerance: <b class="text-jade">94% High</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Telemetry Matrix & Heatmap Barometer -->
+  <section id="biometrics" class="py-20 border-b border-obsidianBorder relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-jade font-mono mb-2">// BIOLUMINESCENT MATCH COMPATIBILITY HEATMAP</div>
+          <h2 class="font-sans text-3xl sm:text-4xl font-bold text-textPrimary">Temperament & Sensory Telemetry</h2>
+        </div>
+        <p class="text-textMuted text-xs font-mono max-w-md mt-4 md:mt-0">
+          Cross-calibrated feline behavioral data points gathered through microchip monitors, optical movement sensors, and ultrasonic audio decoders.
+        </p>
+      </div>
+
+      <!-- Live Interactive Formula & Filter Console -->
+      <div class="bg-obsidianCard border border-obsidianBorder rounded-xl p-6 mb-8">
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-obsidianBorder text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-jade font-bold font-mono">fx RECONCILIATION_FORMULA:</span>
+            <code class="bg-obsidian border border-obsidianBorder px-3 py-1 rounded text-textMuted font-mono text-[11px]">
+              CompatIndex = (ZoomiesSync * 0.35) + (SunbeamAffinity * 0.25) + (PurrHarmonicDelta * 0.40)
+            </code>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-textMuted text-[11px]">DYNAMIC SENSOR SIMULATION:</span>
+            <button onclick="simulateHarmonics()" class="px-3 py-1 bg-jade/10 hover:bg-jade/20 border border-jade/40 text-jade rounded text-[11px] font-mono transition-colors">
+              RE-SYNC TELEMETRY
+            </button>
+          </div>
+        </div>
+
+        <!-- 4-Axis Telemetry Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
+          
+          <!-- Axis 1 -->
+          <div class="bg-[#0e1318] p-4 rounded-lg border border-obsidianBorder relative">
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-xs text-textMuted font-mono">01 // VELOCITY</span>
+              <span class="text-[10px] text-jade bg-jade/10 px-1.5 py-0.5 rounded border border-jade/20">PEAK 24.2 KM/H</span>
+            </div>
+            <div class="text-lg font-bold font-sans text-textPrimary">Prowl Velocity</div>
+            <div class="mt-4 flex items-end gap-1.5 h-12">
+              <div class="flex-1 bg-jade/20 rounded-t h-[40%]"></div>
+              <div class="flex-1 bg-jade/40 rounded-t h-[65%]"></div>
+              <div class="flex-1 bg-jade/30 rounded-t h-[30%]"></div>
+              <div class="flex-1 bg-jade rounded-t h-[95%]"></div>
+              <div class="flex-1 bg-jade/60 rounded-t h-[75%]"></div>
+              <div class="flex-1 bg-jade/40 rounded-t h-[50%]"></div>
+            </div>
+            <div class="mt-3 text-[11px] text-textMuted flex justify-between">
+              <span>Corridor Sprint</span>
+              <span class="text-jade font-mono">HIGH-AGILITY</span>
+            </div>
+          </div>
+
+          <!-- Axis 2 -->
+          <div class="bg-[#0e1318] p-4 rounded-lg border border-obsidianBorder relative">
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-xs text-textMuted font-mono">02 // ACOUSTIC</span>
+              <span class="text-[10px] text-amberLaser bg-amberLaser/10 px-1.5 py-0.5 rounded border border-amberLaser/20">26.4 kHz</span>
+            </div>
+            <div class="text-lg font-bold font-sans text-textPrimary">Purr Resonance</div>
+            <div class="mt-4 flex items-end gap-1.5 h-12">
+              <div class="flex-1 bg-amberLaser/30 rounded-t h-[80%]"></div>
+              <div class="flex-1 bg-amberLaser/50 rounded-t h-[90%]"></div>
+              <div class="flex-1 bg-amberLaser rounded-t h-[100%]"></div>
+              <div class="flex-1 bg-amberLaser/70 rounded-t h-[85%]"></div>
+              <div class="flex-1 bg-amberLaser/40 rounded-t h-[60%]"></div>
+              <div class="flex-1 bg-amberLaser/20 rounded-t h-[40%]"></div>
+            </div>
+            <div class="mt-3 text-[11px] text-textMuted flex justify-between">
+              <span>Calming Frequency</span>
+              <span class="text-amberLaser font-mono">DEEP VIBE</span>
+            </div>
+          </div>
+
+          <!-- Axis 3 -->
+          <div class="bg-[#0e1318] p-4 rounded-lg border border-obsidianBorder relative">
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-xs text-textMuted font-mono">03 // TERRITORY</span>
+              <span class="text-[10px] text-jade bg-jade/10 px-1.5 py-0.5 rounded border border-jade/20">GRADE A+</span>
+            </div>
+            <div class="text-lg font-bold font-sans text-textPrimary">Neutrality Ratio</div>
+            <div class="mt-4 flex items-end gap-1.5 h-12">
+              <div class="flex-1 bg-jade/30 rounded-t h-[50%]"></div>
+              <div class="flex-1 bg-jade/40 rounded-t h-[60%]"></div>
+              <div class="flex-1 bg-jade/60 rounded-t h-[75%]"></div>
+              <div class="flex-1 bg-jade/80 rounded-t h-[85%]"></div>
+              <div class="flex-1 bg-jade rounded-t h-[98%]"></div>
+              <div class="flex-1 bg-jade/90 rounded-t h-[92%]"></div>
+            </div>
+            <div class="mt-3 text-[11px] text-textMuted flex justify-between">
+              <span>Resource Sharing</span>
+              <span class="text-jade font-mono">SOVEREIGN CHILL</span>
+            </div>
+          </div>
+
+          <!-- Axis 4 -->
+          <div class="bg-[#0e1318] p-4 rounded-lg border border-obsidianBorder relative">
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-xs text-textMuted font-mono">04 // PHOTOTAXIS</span>
+              <span class="text-[10px] text-amberLaser bg-amberLaser/10 px-1.5 py-0.5 rounded border border-amberLaser/20">6.8 HRS</span>
+            </div>
+            <div class="text-lg font-bold font-sans text-textPrimary">Sunbeam Tracking</div>
+            <div class="mt-4 flex items-end gap-1.5 h-12">
+              <div class="flex-1 bg-amberLaser/20 rounded-t h-[30%]"></div>
+              <div class="flex-1 bg-amberLaser/40 rounded-t h-[50%]"></div>
+              <div class="flex-1 bg-amberLaser/70 rounded-t h-[70%]"></div>
+              <div class="flex-1 bg-amberLaser rounded-t h-[90%]"></div>
+              <div class="flex-1 bg-amberLaser/60 rounded-t h-[65%]"></div>
+              <div class="flex-1 bg-amberLaser/30 rounded-t h-[40%]"></div>
+            </div>
+            <div class="mt-3 text-[11px] text-textMuted flex justify-between">
+              <span>Solar Nap Sync</span>
+              <span class="text-amberLaser font-mono">SYNCHRONIZED</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Circadian Zoomies 24-Hour Waveform Radar Section -->
+  <section id="circadian" class="py-20 border-b border-obsidianBorder bg-[#080b0e] relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div>
+          <span class="text-xs uppercase tracking-widest text-amberLaser font-mono">// 24-HOUR CIRCADIAN TELEMETRY WAVEFORM</span>
+          <h2 class="font-sans text-3xl sm:text-4xl font-bold text-textPrimary mt-1">Circadian Zoomies Correlation Stream</h2>
+        </div>
+        <div class="mt-4 md:mt-0 flex items-center gap-4 text-xs font-mono">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-1 bg-jade"></span>
+            <span class="text-textMuted">Subject A (Zoomies Index)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-1 bg-amberLaser"></span>
+            <span class="text-textMuted">Candidate B (Predicted Overlap)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waveform Visualizer Screen with Timeline -->
+      <div class="bg-obsidianCard border border-obsidianBorder rounded-xl p-6 relative overflow-hidden">
+        
+        <!-- Live Waveform SVG -->
+        <div class="w-full h-64 relative bg-[#090d11] rounded-lg border border-obsidianBorder/70 p-4 flex flex-col justify-between overflow-hidden">
+          
+          <div class="absolute inset-0 flex flex-col justify-between opacity-15 pointer-events-none p-4">
+            <div class="border-b border-jade w-full"></div>
+            <div class="border-b border-jade w-full"></div>
+            <div class="border-b border-jade w-full"></div>
+            <div class="border-b border-jade w-full"></div>
+          </div>
+
+          <!-- SVG Wave Paths -->
+          <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 1000 200">
+            <!-- Subject A Waveform -->
+            <path d="M0,160 Q120,180 200,60 T400,170 T600,40 T800,165 L1000,70" fill="none" stroke="#00F5A0" stroke-width="2.5" class="pulse-glow"/>
+            <!-- Subject B Waveform -->
+            <path d="M0,170 Q130,160 210,80 T410,160 T610,35 T790,150 L1000,90" fill="none" stroke="#FFB703" stroke-width="2" stroke-dasharray="4 4" opacity="0.85"/>
+            
+            <!-- Peak Zoomies Hotspots Indicators -->
+            <circle cx="200" cy="60" r="5" fill="#00F5A0" class="animate-ping"/>
+            <circle cx="200" cy="60" r="4" fill="#00F5A0"/>
+            <circle cx="600" cy="40" r="5" fill="#00F5A0" class="animate-ping"/>
+            <circle cx="600" cy="40" r="4" fill="#00F5A0"/>
+          </svg>
+
+          <!-- 24H Timeline X-Axis markers -->
+          <div class="flex justify-between text-[11px] text-textMuted font-mono pt-3 border-t border-obsidianBorder/60 z-10">
+            <span>00:00 [Midnight Stalk]</span>
+            <span>03:15 [Apex Zoomies]</span>
+            <span>08:00 [Sunbeam Dormancy]</span>
+            <span>12:00 [Midday Grooming]</span>
+            <span>17:30 [Pre-Supper Prowl]</span>
+            <span>21:00 [Twilight Sprint]</span>
+            <span>23:59 [Bed Rest]</span>
+          </div>
+        </div>
+
+        <!-- Waveform Analysis Annotation Footer -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+          <div class="bg-obsidian/70 p-3 rounded border border-obsidianBorder">
+            <span class="text-textMuted block text-[10px] uppercase">03:15 AM Resonance Peak:</span>
+            <span class="text-jade font-bold">Synchronized Hallway Velocity (+97.2%)</span>
+          </div>
+          <div class="bg-obsidian/70 p-3 rounded border border-obsidianBorder">
+            <span class="text-textMuted block text-[10px] uppercase">Sleep Cycle Divergence:</span>
+            <span class="text-amberLaser font-bold">&lt; 14 Minutes Total Asymmetry</span>
+          </div>
+          <div class="bg-obsidian/70 p-3 rounded border border-obsidianBorder">
+            <span class="text-textMuted block text-[10px] uppercase">Acoustic Chirp Harmonization:</span>
+            <span class="text-textPrimary font-bold">Compliant Duet Envelope (Grade S)</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Curated Dossiers Section -->
+  <section id="dossiers" class="py-20 border-b border-obsidianBorder relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between mb-12">
+        <div>
+          <span class="text-xs uppercase tracking-widest text-jade font-mono">// PEDIGREE & RESCUE VERIFIED DOSSIERS</span>
+          <h2 class="font-sans text-3xl sm:text-4xl font-bold text-textPrimary mt-1">Distinguished Candidates On-Call</h2>
+        </div>
+        
+        <!-- Filter Tabs -->
+        <div class="mt-6 lg:mt-0 flex flex-wrap gap-2 text-xs font-mono">
+          <button onclick="filterDossiers('all')" class="dossier-filter-btn px-3 py-1.5 rounded bg-jade text-obsidian font-bold">ALL CANDIDATES</button>
+          <button onclick="filterDossiers('high-energy')" class="dossier-filter-btn px-3 py-1.5 rounded bg-obsidianCard border border-obsidianBorder text-textMuted hover:text-textPrimary">APEX ZOOMIES</button>
+          <button onclick="filterDossiers('zen-lap')" class="dossier-filter-btn px-3 py-1.5 rounded bg-obsidianCard border border-obsidianBorder text-textMuted hover:text-textPrimary">ZEN & LAP-BONDED</button>
+          <button onclick="filterDossiers('verified')" class="dossier-filter-btn px-3 py-1.5 rounded bg-obsidianCard border border-obsidianBorder text-textMuted hover:text-textPrimary">100% HEALTH SIGNED</button>
+        </div>
+      </div>
+
+      <!-- Dossier Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="dossiers-grid">
+        
+        <!-- Dossier Card 1 -->
+        <div class="dossier-card bg-obsidianCard border border-obsidianBorder rounded-xl overflow-hidden hover:border-jade/60 transition-all duration-300 group shadow-lg flex flex-col justify-between" data-category="zen-lap verified">
+          <div>
+            <div class="relative h-64 overflow-hidden bg-obsidian">
+              <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=700&q=80" alt="Duchess Genevieve" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-obsidianCard via-transparent to-transparent"></div>
+              <div class="absolute top-3 left-3 bg-obsidian/80 backdrop-blur-md border border-jade/40 text-jade text-[10px] font-mono px-2.5 py-1 rounded">
+                MICROCHIP: 985141002348821
+              </div>
+              <div class="absolute top-3 right-3 bg-amberLaser text-obsidian text-[11px] font-sans font-bold px-2 py-0.5 rounded shadow">
+                99.1% MATCH
+              </div>
+            </div>
+
+            <div class="p-6">
+              <div class="flex justify-between items-baseline mb-1">
+                <h3 class="font-sans text-xl font-bold text-textPrimary group-hover:text-jade transition-colors">Duchess Genevieve</h3>
+                <span class="text-xs text-textMuted font-mono">2.8 Years</span>
+              </div>
+              <p class="text-xs text-jade font-mono mb-4">Siberian Forest Cat • Hypoallergenic Bloodline</p>
+
+              <!-- Telemetry Metrics Barometer -->
+              <div class="space-y-2.5 text-xs font-mono border-t border-b border-obsidianBorder/70 py-4 my-4">
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Nap Endurance:</span>
+                  <span class="text-textPrimary font-bold">18.5 hrs (Ultra-Zen)</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Laser Pointer React:</span>
+                  <span class="text-amberLaser font-bold">Measured & Tactical</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Catnip Responsiveness:</span>
+                  <span class="text-jade font-bold">Mild Euphoric Purr</span>
+                </div>
+              </div>
+
+              <p class="text-textMuted text-xs font-mono line-clamp-2">
+                Prefers low-decibel salons, velvet throw pillows, and synchronous window birdwatching sessions. Gentle with quiet companions.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-6 pt-0">
+            <button onclick="requestIntroduction('Duchess Genevieve')" class="w-full py-2.5 bg-obsidian hover:bg-jade/10 border border-obsidianBorder hover:border-jade text-textPrimary hover:text-jade text-xs font-mono rounded transition-colors flex items-center justify-center gap-2">
+              <span>PROPOSE NEUTRAL PLAYDATE</span>
+              <span class="text-jade">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dossier Card 2 -->
+        <div class="dossier-card bg-obsidianCard border border-obsidianBorder rounded-xl overflow-hidden hover:border-jade/60 transition-all duration-300 group shadow-lg flex flex-col justify-between" data-category="high-energy verified">
+          <div>
+            <div class="relative h-64 overflow-hidden bg-obsidian">
+              <img src="https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=700&q=80" alt="Captain Tiberius" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-obsidianCard via-transparent to-transparent"></div>
+              <div class="absolute top-3 left-3 bg-obsidian/80 backdrop-blur-md border border-jade/40 text-jade text-[10px] font-mono px-2.5 py-1 rounded">
+                MICROCHIP: 941000028810293
+              </div>
+              <div class="absolute top-3 right-3 bg-amberLaser text-obsidian text-[11px] font-sans font-bold px-2 py-0.5 rounded shadow">
+                96.8% MATCH
+              </div>
+            </div>
+
+            <div class="p-6">
+              <div class="flex justify-between items-baseline mb-1">
+                <h3 class="font-sans text-xl font-bold text-textPrimary group-hover:text-jade transition-colors">Captain Tiberius</h3>
+                <span class="text-xs text-textMuted font-mono">1.9 Years</span>
+              </div>
+              <p class="text-xs text-amberLaser font-mono mb-4">Bengal Hybrid • Verified Rescued Aristocrat</p>
+
+              <!-- Telemetry Metrics Barometer -->
+              <div class="space-y-2.5 text-xs font-mono border-t border-b border-obsidianBorder/70 py-4 my-4">
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Zoomies Velocity:</span>
+                  <span class="text-jade font-bold">28.4 km/h (Hypersonic)</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Climbing Altitude:</span>
+                  <span class="text-textPrimary font-bold">Ceiling Crown Molding</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Feather Wand Focus:</span>
+                  <span class="text-amberLaser font-bold">100% Locked-On</span>
+                </div>
+              </div>
+
+              <p class="text-textMuted text-xs font-mono line-clamp-2">
+                High-energy parkour master seeking an equally energetic partner for multi-level cat tree agility races and midnight synchronized sprints.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-6 pt-0">
+            <button onclick="requestIntroduction('Captain Tiberius')" class="w-full py-2.5 bg-obsidian hover:bg-jade/10 border border-obsidianBorder hover:border-jade text-textPrimary hover:text-jade text-xs font-mono rounded transition-colors flex items-center justify-center gap-2">
+              <span>PROPOSE NEUTRAL PLAYDATE</span>
+              <span class="text-jade">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dossier Card 3 -->
+        <div class="dossier-card bg-obsidianCard border border-obsidianBorder rounded-xl overflow-hidden hover:border-jade/60 transition-all duration-300 group shadow-lg flex flex-col justify-between" data-category="zen-lap verified">
+          <div>
+            <div class="relative h-64 overflow-hidden bg-obsidian">
+              <img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=700&q=80" alt="Lord Archimedes" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-obsidianCard via-transparent to-transparent"></div>
+              <div class="absolute top-3 left-3 bg-obsidian/80 backdrop-blur-md border border-jade/40 text-jade text-[10px] font-mono px-2.5 py-1 rounded">
+                MICROCHIP: 981098234710091
+              </div>
+              <div class="absolute top-3 right-3 bg-amberLaser text-obsidian text-[11px] font-sans font-bold px-2 py-0.5 rounded shadow">
+                98.4% MATCH
+              </div>
+            </div>
+
+            <div class="p-6">
+              <div class="flex justify-between items-baseline mb-1">
+                <h3 class="font-sans text-xl font-bold text-textPrimary group-hover:text-jade transition-colors">Lord Archimedes</h3>
+                <span class="text-xs text-textMuted font-mono">4.1 Years</span>
+              </div>
+              <p class="text-xs text-jade font-mono mb-4">Scottish Fold • Philosophical Stoic</p>
+
+              <!-- Telemetry Metrics Barometer -->
+              <div class="space-y-2.5 text-xs font-mono border-t border-b border-obsidianBorder/70 py-4 my-4">
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Lap Tolerance:</span>
+                  <span class="text-jade font-bold">Infinite (Perpetual Warmth)</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Purr Frequency:</span>
+                  <span class="text-textPrimary font-bold">24.2 Hz Acoustic Balm</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-textMuted">Treat Discrimination:</span>
+                  <span class="text-amberLaser font-bold">Freeze-Dried Duck Only</span>
+                </div>
+              </div>
+
+              <p class="text-textMuted text-xs font-mono line-clamp-2">
+                Distinguished gentleman cat seeking companionship for quiet fireplace companionship, mutual slow-blinking, and synchronized afternoon naps.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-6 pt-0">
+            <button onclick="requestIntroduction('Lord Archimedes')" class="w-full py-2.5 bg-obsidian hover:bg-jade/10 border border-obsidianBorder hover:border-jade text-textPrimary hover:text-jade text-xs font-mono rounded transition-colors flex items-center justify-center gap-2">
+              <span>PROPOSE NEUTRAL PLAYDATE</span>
+              <span class="text-jade">→</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Veterinary Microchip & Cryptographic Vaccination Telemetry Feed -->
+  <section class="py-20 border-b border-obsidianBorder bg-[#080a0d] relative font-mono text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-obsidianBorder">
+        <div>
+          <span class="text-xs uppercase tracking-widest text-jade font-mono">// VETERINARY CRYPTOGRAPHIC LEDGER</span>
+          <h2 class="font-sans text-3xl font-bold text-textPrimary mt-1">100% Health & Temperament Verification</h2>
+        </div>
+        <div class="mt-4 md:mt-0 flex items-center gap-2">
+          <span class="h-2.5 w-2.5 rounded-full bg-jade animate-pulse"></span>
+          <span class="text-textMuted">ISO 11784/11785 FDX-B RF TELEMETRY STREAM</span>
+        </div>
+      </div>
+
+      <!-- Ledger Table -->
+      <div class="bg-obsidianCard border border-obsidianBorder rounded-xl overflow-x-auto shadow-xl">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-obsidianBorder bg-[#0f141a] text-textMuted uppercase text-[10px] tracking-wider">
+              <th class="py-3 px-4">Subject Chip ID</th>
+              <th class="py-3 px-4">Candidate Specimen</th>
+              <th class="py-3 px-4">Rabies / FVRCP Hash</th>
+              <th class="py-3 px-4">FeLV/FIV Test Status</th>
+              <th class="py-3 px-4">Vet Temperament Clearance</th>
+              <th class="py-3 px-4 text-right">Verification Node</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-obsidianBorder/60 text-[11px]">
+            <tr class="hover:bg-obsidian/50 transition-colors">
+              <td class="py-3.5 px-4 text-jade font-mono font-bold">#985-1410-0234-8821</td>
+              <td class="py-3.5 px-4 font-sans font-bold text-textPrimary">Duchess Genevieve</td>
+              <td class="py-3.5 px-4 text-textMuted font-mono">0x7F9A...B32C [SIGNED]</td>
+              <td class="py-3.5 px-4 text-jade">NEGATIVE (02/2026)</td>
+              <td class="py-3.5 px-4"><span class="bg-jade/10 text-jade border border-jade/30 px-2 py-0.5 rounded text-[10px]">CLASS 1: PLACID</span></td>
+              <td class="py-3.5 px-4 text-right text-textMuted">Harley St. Feline Clinic</td>
+            </tr>
+            <tr class="hover:bg-obsidian/50 transition-colors">
+              <td class="py-3.5 px-4 text-jade font-mono font-bold">#941-0000-2881-0293</td>
+              <td class="py-3.5 px-4 font-sans font-bold text-textPrimary">Captain Tiberius</td>
+              <td class="py-3.5 px-4 text-textMuted font-mono">0x4E21...98A1 [SIGNED]</td>
+              <td class="py-3.5 px-4 text-jade">NEGATIVE (01/2026)</td>
+              <td class="py-3.5 px-4"><span class="bg-amberLaser/10 text-amberLaser border border-amberLaser/30 px-2 py-0.5 rounded text-[10px]">CLASS 2: PLAY-DRIVEN</span></td>
+              <td class="py-3.5 px-4 text-right text-textMuted">Zurich Bio-Feline Hospital</td>
+            </tr>
+            <tr class="hover:bg-obsidian/50 transition-colors">
+              <td class="py-3.5 px-4 text-jade font-mono font-bold">#981-0982-3471-0091</td>
+              <td class="py-3.5 px-4 font-sans font-bold text-textPrimary">Lord Archimedes</td>
+              <td class="py-3.5 px-4 text-textMuted font-mono">0x11C9...89E4 [SIGNED]</td>
+              <td class="py-3.5 px-4 text-jade">NEGATIVE (03/2026)</td>
+              <td class="py-3.5 px-4"><span class="bg-jade/10 text-jade border border-jade/30 px-2 py-0.5 rounded text-[10px]">CLASS 1: SERENE</span></td>
+              <td class="py-3.5 px-4 text-right text-textMuted">Kyoto Imperial Vet Guild</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Supervised Neutral-Territory Playdates (Concierge Lounge) -->
+  <section id="concierge" class="py-20 border-b border-obsidianBorder relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="text-xs uppercase tracking-widest text-amberLaser font-mono">// CONCIERGE PROTOCOL</span>
+          <h2 class="font-sans text-3xl sm:text-4xl font-bold text-textPrimary mt-1 mb-6">Supervised Neutral-Territory Cat Lounges</h2>
+          
+          <p class="text-textMuted font-mono text-sm leading-relaxed mb-6">
+            Cats are notoriously territorial monarchs. Never force an encounter in an existing kingdom. Purrfect Match orchestrates introductions in acoustically damped, pheromone-diffused neutral sanctuaries.
+          </p>
+
+          <div class="space-y-4 font-mono text-xs">
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded bg-jade/10 border border-jade/30 flex items-center justify-center text-jade shrink-0 mt-0.5">✓</div>
+              <div>
+                <strong class="text-textPrimary block font-sans text-sm">Feliway Optimum Multi-Zone Pheromone Saturation</strong>
+                <span class="text-textMuted">Continuous ultrasonic vaporizers calming instinctual territory anxiety before visual contact.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded bg-jade/10 border border-jade/30 flex items-center justify-center text-jade shrink-0 mt-0.5">✓</div>
+              <div>
+                <strong class="text-textPrimary block font-sans text-sm">Bi-Level Vertical Glass Observation Partitions</strong>
+                <span class="text-textMuted">Safe initial scent-mesh exchange allowing full feline body language calibration without physical tension.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded bg-jade/10 border border-jade/30 flex items-center justify-center text-jade shrink-0 mt-0.5">✓</div>
+              <div>
+                <strong class="text-textPrimary block font-sans text-sm">Veterinary Behavioral Concierge On-Duty</strong>
+                <span class="text-textMuted">Dedicated feline certified behaviorist present at every second of the 60-minute trial session.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-8">
+            <button onclick="openBookingModal()" class="px-6 py-3 bg-obsidianCard hover:bg-jade hover:text-obsidian border border-jade text-jade font-sans font-bold text-xs uppercase tracking-wider rounded transition-all shadow-glow-jade flex items-center gap-2">
+              RESERVE CONCIERGE ENCOUNTER SUITE
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <div class="bg-obsidianCard border border-obsidianBorder rounded-xl p-4 relative shadow-2xl">
+            <img src="https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=800&q=80" alt="Cat Encounter Suite" class="rounded-lg w-full h-[380px] object-cover grayscale contrast-125">
+            <div class="absolute bottom-8 left-8 right-8 bg-obsidian/90 backdrop-blur-md p-4 rounded-lg border border-obsidianBorder text-xs font-mono">
+              <div class="flex justify-between items-center text-jade font-bold mb-1">
+                <span>SANCTUARY SUITE #04 [RESERVED]</span>
+                <span class="text-amberLaser">HEPA-13 FILTERED</span>
+              </div>
+              <p class="text-textMuted text-[11px]">
+                Configured for simultaneous high-perch lounging and laser pointer mediation. Ambient humidity: 48%. Temperature: 22.4°C.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Concierge Playdate Booking Modal -->
+  <div id="bookingModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-obsidianCard border border-jade/40 rounded-xl max-w-lg w-full p-6 relative font-mono text-xs shadow-glow-jade">
+      <button onclick="closeBookingModal()" class="absolute top-4 right-4 text-textMuted hover:text-textPrimary text-lg font-bold">✕</button>
+      
+      <div class="flex items-center gap-2 text-jade text-xs font-bold mb-2">
+        <span class="w-2 h-2 rounded-full bg-jade animate-ping"></span>
+        CONCIERGE SANCTUARY RESERVATION
+      </div>
+      <h3 class="font-sans text-xl font-bold text-textPrimary mb-4">Book Neutral-Territory Playdate</h3>
+
+      <form onsubmit="handleBookingSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-textMuted mb-1">GUARDIAN'S NAME & TITLE</label>
+          <input type="text" required placeholder="e.g. Lady Vivienne & Cat Sire Arthur" class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary focus:border-jade outline-none font-mono">
+        </div>
+        <div>
+          <label class="block text-textMuted mb-1">YOUR CAT'S VERIFIED CHIP / DOSSIER ID</label>
+          <input type="text" required placeholder="e.g. #982-0192-4910-2911" class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary focus:border-jade outline-none font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-textMuted mb-1">PREFERRED LOUNGE SUITE</label>
+            <select class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary focus:border-jade outline-none font-mono">
+              <option>The High-Perch Atrium</option>
+              <option>Zen Velvet Salon</option>
+              <option>Sunbeam Corridor Lab</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-textMuted mb-1">PHEROMONE PROTOCOL</label>
+            <select class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary focus:border-jade outline-none font-mono">
+              <option>Feliway Optimum (Standard)</option>
+              <option>Organic Silvervine Mist</option>
+              <option>Valerian Root Extraction</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-jade hover:bg-[#00d88d] text-obsidian font-sans font-bold text-xs uppercase tracking-wider rounded transition-colors mt-2">
+          TRANSMIT CONCIERGE DISPATCH
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Interactive Telemetry Console / Dossier Lab Modal -->
+  <div id="consoleModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-obsidianCard border border-jade/50 rounded-xl max-w-2xl w-full p-6 relative font-mono text-xs shadow-glow-jade max-h-[90vh] overflow-y-auto">
+      <button onclick="closeConsoleModal()" class="absolute top-4 right-4 text-textMuted hover:text-textPrimary text-lg font-bold">✕</button>
+      
+      <div class="flex items-center gap-2 text-jade text-xs font-bold mb-2">
+        <span class="w-2 h-2 rounded-full bg-jade animate-pulse"></span>
+        BIOLUMINESCENT TELEMETRY DOSSIER LAB
+      </div>
+      <h3 class="font-sans text-2xl font-bold text-textPrimary mb-4">Guardian Feline Registration Engine</h3>
+
+      <div class="space-y-4">
+        <p class="text-textMuted">Submit your distinguished cat's sensory profile to match against worldwide accredited aristocrats.</p>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-textMuted mb-1">FELINE FULL FORMAL NAME</label>
+            <input type="text" id="reg-name" placeholder="e.g. Sir Alistair of Kensington" class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary outline-none focus:border-jade">
+          </div>
+          <div>
+            <label class="block text-textMuted mb-1">BREED / HERITAGE</label>
+            <input type="text" id="reg-breed" placeholder="e.g. British Shorthair or Royal Rescue" class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary outline-none focus:border-jade">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-textMuted mb-1">ZOOMIES VELOCITY INDEX (KM/H ESTIMATE)</label>
+          <input type="range" min="5" max="35" value="18" class="w-full accent-jade" id="reg-zoomies" oninput="updateZoomiesVal(this.value)">
+          <div class="flex justify-between text-[11px] text-textMuted mt-1">
+            <span>Dignified Stroll (5 km/h)</span>
+            <span id="zoomies-display" class="text-jade font-bold">18 km/h</span>
+            <span>Galactic Blur (35 km/h)</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-textMuted mb-1">DAILY SUNBEAM ACCUMULATION TOLERANCE</label>
+          <select id="reg-sun" class="w-full bg-obsidian border border-obsidianBorder rounded px-3 py-2 text-textPrimary outline-none focus:border-jade">
+            <option>4 - 6 Hours (Moderate Basker)</option>
+            <option>7 - 10 Hours (Solarium Champion)</option>
+            <option>12+ Hours (Solar Panel Reincarnation)</option>
+          </select>
+        </div>
+
+        <button onclick="generateCustomDossier()" class="w-full py-3 bg-jade hover:bg-[#00d88d] text-obsidian font-sans font-bold text-xs uppercase tracking-wider rounded transition-colors mt-2">
+          COMPUTE COMPATIBILITY MATRIX
+        </button>
+
+        <div id="registration-feedback" class="hidden p-3 bg-jade/10 border border-jade/30 text-jade rounded text-xs font-mono">
+          ✓ Profile synthesized. Cryptographic signature generated: <span class="underline">0x89D2...FA09</span>. Live candidates matching at 98.2% compatibility.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-32 transition-transform duration-300 bg-obsidianCard border border-jade text-textPrimary px-4 py-3 rounded-lg shadow-glow-jade flex items-center gap-3 font-mono text-xs">
+    <span class="w-2 h-2 rounded-full bg-jade animate-ping"></span>
+    <span id="toast-message">Neutral Playdate Invitation Dispatched!</span>
+  </div>
+
+  <!-- Footer Section -->
+  <footer class="bg-[#07090b] border-t border-obsidianBorder py-12 text-xs font-mono text-textMuted">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded bg-obsidianCard border border-jade/50 flex items-center justify-center text-jade">
+          <svg class="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/></svg>
+        </div>
+        <div>
+          <span class="font-sans font-bold text-textPrimary text-sm">PURRFECT MATCH</span>
+          <p class="text-[10px] text-textMuted">The Standard in Distinguished Feline Courtship</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-6 text-[11px]">
+        <a href="#biometrics" class="hover:text-jade transition-colors">Telemetry Matrix</a>
+        <a href="#dossiers" class="hover:text-jade transition-colors">Candidate Vault</a>
+        <a href="#circadian" class="hover:text-jade transition-colors">Circadian Radar</a>
+        <a href="#concierge" class="hover:text-jade transition-colors">Lounge Sanctuaries</a>
+      </div>
+
+      <div class="text-[10px] text-textMuted">
+        © 2026 PURRFECT MATCH INC. CRYPTOGRAPHIC FELINE BIOSYSTEMS. ALL RIGHTS RESERVED.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    // System Time Clock
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0] + ' UTC';
+      const el = document.getElementById('telemetry-time');
+      if (el) el.innerText = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Modals
+    function openBookingModal() {
+      document.getElementById('bookingModal').classList.remove('hidden');
+    }
+    function closeBookingModal() {
+      document.getElementById('bookingModal').classList.add('hidden');
+    }
+
+    function openConsoleModal() {
+      document.getElementById('consoleModal').classList.remove('hidden');
+    }
+    function closeConsoleModal() {
+      document.getElementById('consoleModal').classList.add('hidden');
+    }
+
+    // Toast Notification helper
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.innerText = message;
+      toast.classList.remove('translate-y-32');
+      setTimeout(() => {
+        toast.classList.add('translate-y-32');
+      }, 3500);
+    }
+
+    // Filter Dossiers
+    function filterDossiers(category) {
+      const buttons = document.querySelectorAll('.dossier-filter-btn');
+      buttons.forEach(btn => {
+        btn.classList.remove('bg-jade', 'text-obsidian', 'font-bold');
+        btn.classList.add('bg-obsidianCard', 'border', 'border-obsidianBorder', 'text-textMuted');
+      });
+      event.target.classList.add('bg-jade', 'text-obsidian', 'font-bold');
+      event.target.classList.remove('bg-obsidianCard', 'border', 'border-obsidianBorder', 'text-textMuted');
+
+      const cards = document.querySelectorAll('.dossier-card');
+      cards.forEach(card => {
+        if (category === 'all') {
+          card.style.display = 'flex';
+        } else {
+          const cardCat = card.getAttribute('data-category');
+          if (cardCat && cardCat.includes(category)) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        }
+      });
+    }
+
+    // Handle Proposing Playdate
+    function requestIntroduction(candidateName) {
+      showToast(`Neutral playdate proposed for ${candidateName}. Concierge notified!`);
+    }
+
+    // Booking Submission
+    function handleBookingSubmit(e) {
+      e.preventDefault();
+      closeBookingModal();
+      showToast("Sanctuary reservation confirmed with vet pheromone diffusers activated.");
+    }
+
+    // Realtime Harmonics Simulation Trigger
+    function simulateHarmonics() {
+      showToast("Re-calibrating 44.2 kHz feline acoustic waveforms across active sensors...");
+    }
+
+    // Dossier Registration Range
+    function updateZoomiesVal(val) {
+      document.getElementById('zoomies-display').innerText = val + ' km/h';
+    }
+
+    function generateCustomDossier() {
+      const name = document.getElementById('reg-name').value || "Distinguished Feline";
+      const feedback = document.getElementById('registration-feedback');
+      feedback.classList.remove('hidden');
+      feedback.innerText = `✓ Dossier for ${name} synthesized! Telemetry matched with Duchess Genevieve (99.1% Sync).`;
+      showToast(`Telemetry Profile for ${name} locked in ledger!`);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weave Desktop App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+            mono: ['"Geist Mono"', 'JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            app: {
+              canvas: '#09090b',
+              window: '#0d0d0f',
+              surface: '#121214',
+              surfaceHover: '#18181b',
+              subtle: '#1f1f23',
+              border: '#27272a',
+              borderSubtle: '#1c1c1f',
+              primary: '#ffffff',
+              secondary: '#a1a1aa',
+              tertiary: '#71717a',
+              dim: '#52525b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body class="bg-[#050506] text-app-primary font-sans antialiased min-h-screen flex flex-col select-none overflow-hidden">
+
+  <!-- Desktop App Window Shell (Monochrome, precision native desktop frame) -->
+  <div class="flex-1 flex flex-col h-screen w-screen bg-app-window border border-app-border overflow-hidden relative">
+
+    <!-- Top Native Title Bar / Header Window Chrome -->
+    <header class="h-11 bg-app-canvas border-b border-app-border flex items-center justify-between px-3.5 z-50 shrink-0 draggable">
+      <!-- Left: Window controls & branding -->
+      <div class="flex items-center gap-3 no-drag">
+        <!-- Visible window controls (Left) -->
+        <div class="flex items-center gap-1.5 mr-1">
+          <button id="btn-close" class="w-3.5 h-3.5 rounded-full bg-zinc-700 hover:bg-red-500 text-zinc-300 hover:text-white border border-zinc-600 flex items-center justify-center text-[8px] leading-none transition-colors cursor-pointer" title="Close">✕</button>
+          <button id="btn-minimize" class="w-3.5 h-3.5 rounded-full bg-zinc-700 hover:bg-amber-400 text-zinc-300 hover:text-black border border-zinc-600 flex items-center justify-center text-[8px] leading-none transition-colors cursor-pointer" title="Minimize">—</button>
+          <button id="btn-maximize" class="w-3.5 h-3.5 rounded-full bg-zinc-700 hover:bg-emerald-400 text-zinc-300 hover:text-black border border-zinc-600 flex items-center justify-center text-[8px] leading-none transition-colors cursor-pointer" title="Maximize / Full Screen">□</button>
+        </div>
+        <div class="h-3.5 w-px bg-app-border"></div>
+        <!-- App Brand & Title -->
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-app-surface border border-app-border flex items-center justify-center p-0.5">
+            <svg viewBox="48 92 416 328" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+              <path d="M 100.93 346.47 L 119.42 300.89 L 111.25 278.47 L 86.10 340.46 Z" fill="#a1a1aa"/>
+              <path d="M 145.21 237.31 L 171.90 171.54 L 157.07 165.53 L 137.04 214.89 Z" fill="#a1a1aa"/>
+              <path d="M 171.41 171.53 L 241.58 362.00 L 256.59 356.47 L 186.42 166.00 Z" fill="#a1a1aa"/>
+              <path d="M 270.42 362.00 L 290.97 306.23 L 282.73 282.30 L 255.41 356.47 Z" fill="#a1a1aa"/>
+              <path d="M 316.12 237.97 L 340.59 171.53 L 325.58 166.00 L 307.88 214.04 Z" fill="#a1a1aa"/>
+              <path d="M 340.10 171.54 L 411.07 346.47 L 425.90 340.46 L 354.93 165.53 Z" fill="#a1a1aa"/>
+              <path d="M 84.91 171.13 L 152.42 356.40 L 173.09 348.87 L 105.58 163.60 Z" fill="#ffffff"/>
+              <path d="M 191.19 356.05 L 208.29 306.37 L 196.27 273.72 L 170.39 348.89 Z" fill="#ffffff"/>
+              <path d="M 228.89 246.55 L 257.61 163.11 L 236.81 155.95 L 216.86 213.91 Z" fill="#ffffff"/>
+              <path d="M 254.39 163.11 L 320.81 356.05 L 341.61 348.89 L 275.19 155.95 Z" fill="#ffffff"/>
+              <path d="M 359.58 356.40 L 379.72 301.12 L 367.39 270.72 L 338.91 348.87 Z" fill="#ffffff"/>
+              <path d="M 400.15 245.07 L 427.09 171.13 L 406.42 163.60 L 387.81 214.66 Z" fill="#ffffff"/>
+              <circle cx="86.0" cy="362.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="86.0" cy="362.0" r="6.0" fill="#a1a1aa"/>
+              <circle cx="172.0" cy="150.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="172.0" cy="150.0" r="6.0" fill="#a1a1aa"/>
+              <circle cx="256.0" cy="378.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="256.0" cy="378.0" r="6.0" fill="#a1a1aa"/>
+              <circle cx="340.0" cy="150.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="340.0" cy="150.0" r="6.0" fill="#a1a1aa"/>
+              <circle cx="426.0" cy="362.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="426.0" cy="362.0" r="6.0" fill="#a1a1aa"/>
+              <circle cx="86.0" cy="142.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="86.0" cy="142.0" r="8.0" fill="#ffffff"/>
+              <circle cx="172.0" cy="378.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="172.0" cy="378.0" r="8.0" fill="#ffffff"/>
+              <circle cx="256.0" cy="134.0" r="29.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="256.0" cy="134.0" r="9.0" fill="#ffffff"/>
+              <circle cx="340.0" cy="378.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="340.0" cy="378.0" r="8.0" fill="#ffffff"/>
+              <circle cx="426.0" cy="142.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="426.0" cy="142.0" r="8.0" fill="#ffffff"/>
+            </svg>
+          </div>
+          <span class="font-medium text-xs tracking-tight text-white flex items-center gap-1.5 font-mono">
+            weave
+            <span id="ota-version-label" class="text-[10px] text-app-dim font-normal">v1.0.0</span>
+          </span>
+          <!-- Connected status tag -->
+          <div id="wa-header-pill" class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-app-surface border border-app-border text-[10px] font-mono tracking-wider text-app-secondary ml-1 uppercase">
+            <span id="wa-header-dot" class="w-1.5 h-1.5 rounded-full bg-app-dim inline-block"></span>
+            <span id="wa-header-text">Initializing JS Bridge</span>
+          </div>
+          <!-- Live OTA Update Button -->
+          <button id="btn-ota-update" class="flex items-center gap-1 px-2 py-0.5 rounded bg-app-surface hover:bg-zinc-800 border border-app-border hover:border-white/30 text-[10px] font-mono text-app-secondary hover:text-white transition cursor-pointer" title="Check &amp; pull live OTA updates without reinstalling">
+            <span id="ota-sync-icon" class="material-symbols-outlined text-[12px] text-emerald-400">bolt</span>
+            <span id="ota-sync-text">Live Sync</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center: View Switcher Tabs -->
+      <div class="flex items-center gap-2 no-drag">
+        <div class="flex items-center gap-1 bg-app-surface p-1 rounded-md border border-app-border text-xs font-mono">
+          <button id="tab-onboarding" class="px-2.5 py-0.5 rounded text-[11px] font-medium text-black bg-white transition-all flex items-center gap-1.5 cursor-pointer">
+            <span class="material-symbols-outlined text-[13px]">qr_code_2</span> Setup &amp; Link
+          </button>
+          <button id="tab-workspace" class="px-2.5 py-0.5 rounded text-[11px] font-medium text-app-dim opacity-50 cursor-not-allowed transition-all flex items-center gap-1.5" title="Link WhatsApp first to unlock Workspace">
+            <span id="tab-workspace-icon" class="material-symbols-outlined text-[13px]">lock</span> Workspace
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Google Account & Standard Window Control Buttons -->
+      <div class="flex items-center gap-2.5 no-drag">
+        <div id="runtime-pill" class="hidden md:flex items-center gap-1.5 text-[11px] text-app-tertiary font-mono">
+          <span class="text-white">OTA Auto-Update</span>
+          <span class="text-app-dim">/</span>
+          <span id="runtime-status-text" class="text-emerald-400">active</span>
+        </div>
+        <div id="google-pill" class="flex items-center gap-2 px-2.5 py-1 rounded bg-app-surface border border-app-border hover:border-app-secondary/40 transition cursor-pointer">
+          <div class="w-4 h-4 rounded-full bg-app-subtle border border-app-border flex items-center justify-center text-[9px] font-mono text-app-secondary font-bold">
+            <span id="google-avatar-letter">G</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="google-email" class="text-xs text-app-secondary font-mono max-w-[130px] truncate">Not Connected</span>
+          </div>
+        </div>
+        <div class="h-3.5 w-px bg-app-border"></div>
+        <!-- Standard Top-Right Desktop Window Controls -->
+        <div class="flex items-center gap-1">
+          <button id="btn-minimize-right" class="w-7 h-7 rounded hover:bg-app-subtle text-app-secondary hover:text-white flex items-center justify-center transition-colors cursor-pointer" title="Minimize">
+            <i class="fa-solid fa-minus text-[11px]"></i>
+          </button>
+          <button id="btn-maximize-right" class="w-7 h-7 rounded hover:bg-app-subtle text-app-secondary hover:text-white flex items-center justify-center transition-colors cursor-pointer" title="Maximize / Restore">
+            <i class="fa-regular fa-square text-[11px]"></i>
+          </button>
+          <button id="btn-close-right" class="w-7 h-7 rounded hover:bg-red-600 text-app-secondary hover:text-white flex items-center justify-center transition-colors cursor-pointer" title="Close App">
+            <i class="fa-solid fa-xmark text-[13px]"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT VIEWS -->
+    <div class="flex-1 min-h-0 overflow-hidden relative flex flex-col bg-app-canvas">
+
+      <!-- ================= VIEW 1: ONBOARDING / SETUP (Strict Chronology: JS Check -> WhatsApp QR -> Google PKCE) ================= -->
+      <div id="view-onboarding" class="flex-1 min-h-0 overflow-y-auto flex flex-col p-4 sm:p-6 bg-app-canvas">
+        <div class="w-full max-w-[620px] m-auto bg-app-window border border-app-border rounded-xl shadow-2xl p-6 sm:p-8 flex flex-col gap-5">
+
+          <!-- Top Brand Icon & Ambient Header -->
+          <div class="flex flex-col items-center text-center">
+            <div class="w-14 h-14 rounded-2xl bg-app-surface border border-app-border flex items-center justify-center shadow-md mb-3 p-2">
+              <svg viewBox="48 92 416 328" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                <path d="M 100.93 346.47 L 119.42 300.89 L 111.25 278.47 L 86.10 340.46 Z" fill="#a1a1aa"/>
+                <path d="M 145.21 237.31 L 171.90 171.54 L 157.07 165.53 L 137.04 214.89 Z" fill="#a1a1aa"/>
+                <path d="M 171.41 171.53 L 241.58 362.00 L 256.59 356.47 L 186.42 166.00 Z" fill="#a1a1aa"/>
+                <path d="M 270.42 362.00 L 290.97 306.23 L 282.73 282.30 L 255.41 356.47 Z" fill="#a1a1aa"/>
+                <path d="M 316.12 237.97 L 340.59 171.53 L 325.58 166.00 L 307.88 214.04 Z" fill="#a1a1aa"/>
+                <path d="M 340.10 171.54 L 411.07 346.47 L 425.90 340.46 L 354.93 165.53 Z" fill="#a1a1aa"/>
+                <path d="M 84.91 171.13 L 152.42 356.40 L 173.09 348.87 L 105.58 163.60 Z" fill="#ffffff"/>
+                <path d="M 191.19 356.05 L 208.29 306.37 L 196.27 273.72 L 170.39 348.89 Z" fill="#ffffff"/>
+                <path d="M 228.89 246.55 L 257.61 163.11 L 236.81 155.95 L 216.86 213.91 Z" fill="#ffffff"/>
+                <path d="M 254.39 163.11 L 320.81 356.05 L 341.61 348.89 L 275.19 155.95 Z" fill="#ffffff"/>
+                <path d="M 359.58 356.40 L 379.72 301.12 L 367.39 270.72 L 338.91 348.87 Z" fill="#ffffff"/>
+                <path d="M 400.15 245.07 L 427.09 171.13 L 406.42 163.60 L 387.81 214.66 Z" fill="#ffffff"/>
+                <circle cx="86.0" cy="362.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="86.0" cy="362.0" r="6.0" fill="#a1a1aa"/>
+                <circle cx="172.0" cy="150.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="172.0" cy="150.0" r="6.0" fill="#a1a1aa"/>
+                <circle cx="256.0" cy="378.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="256.0" cy="378.0" r="6.0" fill="#a1a1aa"/>
+                <circle cx="340.0" cy="150.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="340.0" cy="150.0" r="6.0" fill="#a1a1aa"/>
+                <circle cx="426.0" cy="362.0" r="20.0" fill="#09090b" stroke="#a1a1aa" stroke-width="8.0"/><circle cx="426.0" cy="362.0" r="6.0" fill="#a1a1aa"/>
+                <circle cx="86.0" cy="142.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="86.0" cy="142.0" r="8.0" fill="#ffffff"/>
+                <circle cx="172.0" cy="378.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="172.0" cy="378.0" r="8.0" fill="#ffffff"/>
+                <circle cx="256.0" cy="134.0" r="29.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="256.0" cy="134.0" r="9.0" fill="#ffffff"/>
+                <circle cx="340.0" cy="378.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="340.0" cy="378.0" r="8.0" fill="#ffffff"/>
+                <circle cx="426.0" cy="142.0" r="27.0" fill="#09090b" stroke="#ffffff" stroke-width="10.0"/><circle cx="426.0" cy="142.0" r="8.0" fill="#ffffff"/>
+              </svg>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-semibold text-white tracking-tight mb-1">
+              Meet your AI assistant on WhatsApp
+            </h1>
+            <p class="text-xs sm:text-sm text-app-secondary max-w-md leading-relaxed">
+              Scan WhatsApp QR to pair your device, then authorize Google Gemini PKCE for autonomous agent actions.
+            </p>
+          </div>
+
+          <!-- Chronological Stepper Progress Bar -->
+          <div class="grid grid-cols-3 gap-2 p-1.5 bg-app-surface rounded-lg border border-app-border font-mono text-xs">
+            <div id="step-btn-1" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded bg-white text-black font-semibold shadow-sm">
+              <span id="step-icon-1" class="material-symbols-outlined text-[15px] text-black">qr_code_scanner</span>
+              <span class="truncate">1. WhatsApp QR</span>
+            </div>
+            <div id="step-btn-2" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded bg-app-subtle border border-app-border text-app-secondary font-medium">
+              <span id="step-icon-2" class="material-symbols-outlined text-[15px] text-app-tertiary">login</span>
+              <span class="truncate">2. Google Auth</span>
+            </div>
+            <div id="step-btn-3" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded text-app-dim font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-app-dim"></span>
+              <span class="truncate">3. Bot Handle</span>
+            </div>
+          </div>
+
+          <!-- System Runtime Status Bar (Verifies Host JS/Node Engine) -->
+          <div id="js-runtime-bar" class="flex items-center justify-between p-3 rounded-lg bg-app-surface border border-app-border">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-7 h-7 rounded-full bg-app-subtle border border-app-border flex items-center justify-center text-white shrink-0 text-xs font-mono font-bold">
+                JS
+              </div>
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-semibold text-white truncate">Local JavaScript Runtime</span>
+                  <span class="material-symbols-outlined text-white text-[14px]">check_circle</span>
+                </div>
+                <span id="js-version-text" class="text-[11px] text-app-secondary font-mono truncate">Node.js Engine Active · Ready for Baileys Socket</span>
+              </div>
+            </div>
+            <span class="text-[10px] text-white font-mono uppercase font-semibold px-2 py-0.5 rounded bg-app-subtle border border-app-border shrink-0">Ready</span>
+          </div>
+
+          <!-- ================= STEP 1 (PRIMARY): WHATSAPP LINKING CANVAS ================= -->
+          <div class="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-xl bg-app-surface border border-app-border">
+            <!-- Scannable Ambient QR Element -->
+            <div class="relative shrink-0 flex items-center justify-center">
+              <div class="w-40 h-40 bg-app-window border border-app-border rounded-lg p-2 flex items-center justify-center shadow-lg relative">
+                <img id="qr-image" src="" alt="WhatsApp QR Code" class="w-full h-full object-contain hidden rounded"/>
+                <div id="qr-placeholder" class="flex flex-col items-center justify-center text-center p-3">
+                  <span class="material-symbols-outlined text-[32px] text-white animate-spin">progress_activity</span>
+                  <span class="text-[11px] text-app-secondary mt-2 font-mono">Generating QR...</span>
+                </div>
+                <div id="qr-connected-overlay" class="absolute inset-0 bg-app-window/95 rounded-lg flex flex-col items-center justify-center text-center p-3 hidden">
+                  <div class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center mb-1.5 shadow">
+                    <span class="material-symbols-outlined text-[22px]">check</span>
+                  </div>
+                  <span class="text-xs font-bold text-white font-mono">WhatsApp Linked</span>
+                  <span id="qr-connected-number" class="text-[11px] text-app-secondary font-mono mt-0.5">Active</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Practical 3-Step Scan Instructions -->
+            <div class="flex flex-col gap-2 flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-white font-mono uppercase tracking-wider">Step 1: Link Device</span>
+                <span id="qr-live-pulse" class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              </div>
+              <div class="flex flex-col gap-1.5 text-xs text-app-secondary">
+                <div class="flex items-start gap-2">
+                  <span class="w-4 h-4 rounded-full bg-app-subtle border border-app-border flex items-center justify-center text-white shrink-0 text-[10px] font-mono mt-0.5">1</span>
+                  <span>Open <strong class="text-white">WhatsApp</strong> on your mobile phone</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-4 h-4 rounded-full bg-app-subtle border border-app-border flex items-center justify-center text-white shrink-0 text-[10px] font-mono mt-0.5">2</span>
+                  <span>Go to <strong class="text-white">Settings</strong> &gt; <strong class="text-white">Linked Devices</strong></span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-4 h-4 rounded-full bg-app-subtle border border-app-border flex items-center justify-center text-white shrink-0 text-[10px] font-mono mt-0.5">3</span>
+                  <span>Point your camera at this QR code</span>
+                </div>
+              </div>
+              <div class="pt-2 flex flex-col gap-2 border-t border-app-border/60">
+                <span class="text-[10px] font-mono uppercase text-app-tertiary">Or link with 8-digit Pairing Code:</span>
+                <div id="pairing-code-box" class="flex flex-col gap-2 p-2.5 rounded bg-app-window border border-app-border">
+                  <div class="flex items-center gap-1.5">
+                    <input id="pairing-phone-input" type="text" placeholder="Phone with country code (e.g. 919876543210)" class="bg-app-surface border border-app-border rounded px-2.5 py-1.5 text-xs font-mono text-white placeholder:text-app-dim focus:outline-none focus:border-white w-full"/>
+                    <button id="btn-request-pairing-code" class="px-3 py-1.5 rounded bg-white hover:bg-neutral-200 text-black text-xs font-mono font-semibold shrink-0 cursor-pointer active:scale-95 transition">
+                      Get Code
+                    </button>
+                  </div>
+                  <!-- 8-digit code result display -->
+                  <div id="pairing-code-display" class="hidden flex items-center justify-between p-2.5 rounded bg-app-subtle border border-white/20">
+                    <span class="text-[10px] font-mono text-app-tertiary uppercase">Enter on phone:</span>
+                    <span id="pairing-code-digits" class="text-base font-mono font-bold tracking-widest text-white select-all"></span>
+                  </div>
+                </div>
+
+                <div class="text-[10px] font-mono text-app-dim">
+                  <span>Socket session saved securely in auth_info_baileys/</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= STEP 2: GOOGLE GEMINI PKCE AUTH ================= -->
+          <div id="step-2-card" class="flex items-center justify-between p-3.5 rounded-lg bg-app-surface border border-app-border opacity-45 transition-all">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full bg-app-subtle border border-app-border flex items-center justify-center shrink-0">
+                <!-- Monochrome Google Icon -->
+                <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+                </svg>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span id="google-status-title" class="text-xs font-semibold text-white truncate font-mono">Step 2: Connect Google Account (PKCE)</span>
+                  <span id="google-verified-icon" class="material-symbols-outlined text-white text-[15px] hidden">check_circle</span>
+                </div>
+                <span id="google-status-desc" class="text-[11px] text-app-secondary truncate">Link WhatsApp in Step 1 first to unlock Google PKCE Sign-In</span>
+              </div>
+            </div>
+            <button id="btn-google-login" class="text-xs font-mono font-medium px-3.5 py-1.5 rounded-lg bg-app-subtle text-app-dim border border-app-border transition-all shrink-0 cursor-not-allowed">
+              🔒 Locked
+            </button>
+          </div>
+
+          <!-- ================= STEP 3: BOT TRIGGER HANDLE ================= -->
+          <div id="step-3-card" class="flex flex-col gap-1.5 p-3 rounded-lg bg-app-surface border border-app-border transition-all">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-white flex items-center gap-1.5 font-mono" for="bot-tag-input">
+                <span class="material-symbols-outlined text-[15px] text-app-tertiary">alternate_email</span>
+                <span>Step 3: Unique Agent Call-Sign</span>
+              </label>
+              <span id="step-3-badge" class="text-[11px] text-app-secondary font-mono">Unique handle (@agent reserved)</span>
+            </div>
+            <div class="flex items-center rounded-lg bg-app-window border border-app-border px-3 py-1.5">
+              <span class="text-app-dim font-mono text-sm select-none">@</span>
+              <input id="bot-tag-input" class="bg-transparent border-none text-white font-mono text-xs focus:outline-none w-full px-1 tracking-tight" placeholder="weave" value="weave"/>
+              <button id="btn-save-handle" class="text-xs font-mono px-2.5 py-1 bg-white hover:bg-neutral-200 text-black font-semibold rounded transition-all cursor-pointer">Save</button>
+            </div>
+          </div>
+
+          <!-- ================= MASTER DIRECTORY (Workspace Root) ================= -->
+          <div id="master-dir-card-onboarding" class="flex flex-col gap-1.5 p-3 rounded-lg bg-app-surface border border-app-border transition-all">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-white flex items-center gap-1.5 font-mono" for="master-dir-input-onboarding">
+                <span class="material-symbols-outlined text-[15px] text-app-tertiary">folder_special</span>
+                <span>Master Directory (Projects Root)</span>
+              </label>
+              <span id="master-dir-badge-onboarding" class="text-[11px] text-app-secondary font-mono">Auto-discovers subprojects</span>
+            </div>
+            <div class="flex items-center gap-1.5 rounded-lg bg-app-window border border-app-border px-2 py-1.5">
+              <input id="master-dir-input-onboarding" class="bg-transparent border-none text-white font-mono text-xs focus:outline-none w-full px-1 tracking-tight" placeholder="/path/to/projects or ~/workspace" value=""/>
+              <button id="btn-browse-master-dir-onboarding" class="text-xs font-mono px-2.5 py-1 bg-app-subtle hover:bg-white hover:text-black text-white border border-app-border rounded transition-all cursor-pointer flex items-center gap-1 shrink-0" title="Choose directory with file picker">
+                <span class="material-symbols-outlined text-[14px]">folder_open</span>
+                <span>Browse</span>
+              </button>
+              <button id="btn-save-master-dir-onboarding" class="text-xs font-mono px-2.5 py-1 bg-white hover:bg-neutral-200 text-black font-semibold rounded transition-all cursor-pointer shrink-0">Save</button>
+            </div>
+          </div>
+
+          <!-- Bottom Action Button & Encryption Guarantee -->
+          <div class="flex flex-col gap-2 pt-1">
+            <button id="btn-launch-workspace" class="w-full py-3 px-6 rounded-lg bg-app-subtle text-app-dim border border-app-border text-xs font-mono font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-all opacity-50 cursor-not-allowed">
+              <span class="material-symbols-outlined text-[14px]">lock</span>
+              <span id="btn-launch-text">Complete Steps 1 &amp; 2 to Unlock Workspace</span>
+            </button>
+            <div class="flex items-center justify-center gap-1.5 text-[10px] text-app-tertiary font-mono">
+              <span class="material-symbols-outlined text-[13px]">lock</span>
+              <span>Local-first architecture · All tokens &amp; keys reside in your machine sandbox.</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= VIEW 2: DESKTOP WORKSPACE (Stitch Screen 05 Monochrome) ================= -->
+      <div id="view-workspace" class="flex-1 min-h-0 flex flex-col overflow-hidden hidden bg-app-canvas">
+        <main class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-app-canvas">
+          
+          <!-- Split Columns: Unified Left Control Column & Right Live Feed/Telemetry Column -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 min-h-0">
+            <!-- Left Column: Unified Bot Call-Sign, Workspaces, and Friends (5 cols) -->
+            <div id="left-pane" class="md:col-span-5 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-140px)] scrollbar-left pl-1.5 pr-0.5">
+              
+              <!-- Bot Call-Sign Card -->
+              <div class="bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between shrink-0">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-[10px] font-mono font-medium tracking-wider uppercase text-app-tertiary flex items-center gap-1.5">
+                      <i class="fa-solid fa-terminal text-[10px] text-white"></i>
+                      Bot Call-Sign
+                    </span>
+                    <span id="workspace-bot-status-tag" class="text-[10px] text-app-secondary bg-app-canvas border border-app-border px-1.5 py-0.5 rounded font-mono">
+                      LISTENING
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between bg-app-canvas border border-app-border rounded p-2.5">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-7 h-7 rounded bg-app-subtle border border-app-border flex items-center justify-center text-white font-mono font-medium text-xs">
+                        @
+                      </div>
+                      <div>
+                        <div class="font-mono font-medium text-sm text-white tracking-tight flex items-center gap-1.5">
+                          <span id="callsign-display">@weave</span>
+                          <i class="fa-solid fa-circle-check text-white text-[11px]" title="Verified Hook"></i>
+                        </div>
+                        <p class="text-[11px] text-app-tertiary mt-0.5 font-sans">Trigger via group or direct thread</p>
+                      </div>
+                    </div>
+                    <button class="px-2 py-1 bg-app-subtle hover:bg-white hover:text-black text-white border border-app-border rounded text-[11px] font-mono transition flex items-center gap-1.5 active:scale-95" id="btn-copy-callsign">
+                      <span class="text-app-tertiary">⌘C</span>
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px] text-app-tertiary pt-2 border-t border-app-borderSubtle font-mono">
+                  <span class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white inline-block"></span>
+                    <span>latency: <strong class="text-app-secondary font-medium">320ms</strong></span>
+                  </span>
+                  <span>tunnel: <span class="text-app-secondary">local socket</span></span>
+                </div>
+              </div>
+
+              <!-- Connected Workspaces Panel -->
+              <div class="bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between shrink-0">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <div class="flex items-center gap-1.5">
+                      <i class="fa-regular fa-folder text-white text-xs"></i>
+                      <h2 class="text-[10px] font-mono font-medium text-app-tertiary tracking-wider uppercase">Local Workspaces</h2>
+                    </div>
+                    <span id="badge-mounted-count" class="text-[10px] text-app-secondary font-mono bg-app-canvas px-1.5 py-0.5 rounded border border-app-border">1 MOUNTED</span>
+                  </div>
+
+                  <!-- Master Directory Config Bar -->
+                  <div class="mb-3 p-2 rounded bg-app-canvas border border-app-border">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-mono uppercase text-app-tertiary flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[13px] text-zinc-400">folder_special</span>
+                        Master Directory
+                      </span>
+                      <span id="master-dir-workspace-badge" class="text-[9px] font-mono text-zinc-500">Root folder</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <input id="master-dir-input-workspace" type="text" placeholder="/path/to/projects or ~/workspace" class="bg-app-surface border border-app-border rounded px-2 py-1 text-xs text-white font-mono focus:outline-none w-full tracking-tight"/>
+                      <button id="btn-browse-master-dir-workspace" class="px-2 py-1 bg-app-subtle hover:bg-white hover:text-black text-white border border-app-border rounded text-[11px] font-mono transition flex items-center gap-1 cursor-pointer shrink-0" title="Select directory with file picker">
+                        <span class="material-symbols-outlined text-[13px]">folder_open</span>
+                        <span>Browse</span>
+                      </button>
+                      <button id="btn-save-master-dir-workspace" class="px-2.5 py-1 bg-white hover:bg-neutral-200 text-black text-[11px] font-mono font-medium rounded transition active:scale-95 shrink-0 cursor-pointer">
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Folders / Projects list -->
+                  <div id="projects-list-container" class="space-y-2 pr-1">
+                    <!-- Dynamically populated by app.js -->
+                    <div class="p-3 rounded bg-app-canvas border border-app-border text-center text-app-tertiary text-xs font-mono">
+                      Discovering workspaces...
+                    </div>
+                  </div>
+
+                  <!-- Run Local Prompt Test Box -->
+                  <div class="mt-3 pt-3 border-t border-app-borderSubtle">
+                    <label class="text-[10px] font-mono uppercase text-app-tertiary block mb-1">Direct Console Prompt</label>
+                    <div class="flex items-center gap-1 bg-app-canvas border border-app-border rounded p-1">
+                      <input id="prompt-input" type="text" placeholder="e.g. create a counter component" class="bg-transparent border-none text-xs text-white font-mono focus:outline-none px-2 w-full"/>
+                      <button id="btn-run-prompt" class="px-2.5 py-1 bg-white hover:bg-neutral-200 text-black text-[11px] font-mono font-medium rounded transition active:scale-95 shrink-0">
+                        Run
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[10px] text-app-tertiary font-mono">
+                  <span>SANDBOX: <strong class="text-app-secondary font-normal">Active</strong></span>
+                  <span class="text-app-dim">Subprocess Isolation</span>
+                </div>
+              </div>
+
+              <!-- Friends & Collaborators Directory Panel -->
+              <div class="bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <div class="flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-[15px] text-white">group</span>
+                      <h2 class="text-[10px] font-mono font-medium text-app-tertiary tracking-wider uppercase">Friends &amp; Collaborators</h2>
+                    </div>
+                    <span id="badge-friends-count" class="text-[10px] text-app-secondary font-mono bg-app-canvas px-1.5 py-0.5 rounded border border-app-border">0 REGISTERED</span>
+                  </div>
+
+                  <!-- Add Friend Form -->
+                  <div class="mb-3 p-2 rounded bg-app-canvas border border-app-border">
+                    <div class="text-[10px] font-mono uppercase text-app-tertiary mb-1.5 flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[13px] text-zinc-400">person_add</span>
+                      Add Friend (GitHub Mapping)
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-1.5">
+                      <input id="input-friend-name" type="text" placeholder="Name (e.g. Jai)" class="bg-app-surface border border-app-border rounded px-2 py-1 text-xs text-white font-mono focus:outline-none"/>
+                      <input id="input-friend-github" type="text" placeholder="GitHub username (e.g. jai-dev)" class="bg-app-surface border border-app-border rounded px-2 py-1 text-xs text-white font-mono focus:outline-none"/>
+                    </div>
+                    <button id="btn-add-friend" class="w-full py-1 bg-white hover:bg-neutral-200 text-black text-[11px] font-mono font-medium rounded transition active:scale-95 cursor-pointer flex items-center justify-center gap-1">
+                      <span class="material-symbols-outlined text-[13px]">add</span>
+                      <span>Save Friend</span>
+                    </button>
+                  </div>
+
+                  <!-- Dynamic Friends List Container -->
+                  <div id="friends-list-container" class="space-y-1.5 pr-1">
+                    <div class="p-2.5 rounded bg-app-canvas border border-app-border text-center text-app-tertiary text-xs font-mono">
+                      No friends added yet.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[10px] text-app-tertiary font-mono">
+                  <span>COLLAB RESOLUTION: <strong class="text-app-secondary font-normal">Active</strong></span>
+                  <span class="text-app-dim">Auto GitHub Invites</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Column: Engine Telemetry & Live Activity Feed (7 cols) -->
+            <div class="md:col-span-7 flex flex-col gap-3">
+
+              <!-- Engine Telemetry & Security Card -->
+              <div class="bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-[10px] font-mono font-medium tracking-wider uppercase text-app-tertiary flex items-center gap-1.5">
+                      <i class="fa-solid fa-sliders text-[10px] text-white"></i>
+                      Engine Telemetry &amp; Security
+                    </span>
+                    <span class="text-[10px] text-app-secondary font-mono flex items-center gap-1.5 uppercase">
+                      <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                      Ready
+                    </span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <!-- Active Agent Pill -->
+                    <div class="bg-app-canvas border border-app-border rounded p-2.5 flex flex-col justify-between">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] text-app-tertiary uppercase font-mono">Model</span>
+                        <i class="fa-solid fa-microchip text-app-secondary text-[11px]"></i>
+                      </div>
+                      <div>
+                        <div class="text-xs font-medium text-white truncate">Gemini 2.5 Flash</div>
+                        <div class="text-[10px] text-app-tertiary font-mono mt-0.5">Antigravity Loop</div>
+                      </div>
+                    </div>
+                    <!-- Bridge Status -->
+                    <div class="bg-app-canvas border border-app-border rounded p-2.5 flex flex-col justify-between">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] text-app-tertiary uppercase font-mono">Bridge Queue</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                      </div>
+                      <div>
+                        <div class="text-xs font-medium text-white" id="queue-status-text">Active</div>
+                        <div class="text-[10px] text-app-tertiary font-mono mt-0.5">0 pending tasks</div>
+                      </div>
+                    </div>
+                    <!-- Safety Mode -->
+                    <div class="bg-app-canvas border border-app-border rounded p-2.5 flex flex-col justify-between">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] text-app-tertiary uppercase font-mono">Sandbox</span>
+                        <i class="fa-solid fa-shield text-app-secondary text-[10px]"></i>
+                      </div>
+                      <div>
+                        <div class="text-xs font-medium text-white truncate">Scoped Folders Only</div>
+                        <div class="text-[10px] text-app-tertiary font-mono mt-0.5">Strict Airgap</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px] text-app-tertiary pt-2 border-t border-app-borderSubtle font-mono">
+                  <span class="flex items-center gap-1.5 text-app-tertiary">
+                    <i class="fa-solid fa-circle-nodes text-[10px]"></i> loopback: <span class="text-app-secondary font-mono">127.0.0.1:8085</span>
+                  </span>
+                  <span class="text-[10px] text-app-secondary bg-app-canvas border border-app-border px-1.5 py-0.5 rounded uppercase">E2EE Locked</span>
+                </div>
+              </div>
+
+              <!-- Live WhatsApp Activity Feed -->
+              <div class="bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between flex-1">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <div class="flex items-center gap-1.5">
+                      <i class="fa-solid fa-bolt text-white text-xs"></i>
+                      <h2 class="text-[10px] font-mono font-medium text-app-tertiary tracking-wider uppercase">Live WhatsApp Event Bus</h2>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                      <span class="text-[10px] text-app-secondary font-mono uppercase">STREAMING</span>
+                    </div>
+                  </div>
+
+                <!-- Feed Stream Terminal Body -->
+                <div id="terminal-body" class="space-y-1.5 h-64 overflow-y-auto bg-app-canvas border border-app-border rounded p-2.5 font-mono text-[11px]">
+                  <div class="text-app-dim">// Stream initialized. Waiting for WhatsApp triggers or local commands...</div>
+                </div>
+              </div>
+
+              <div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[10px] text-app-tertiary font-mono">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-1 h-1 rounded-full bg-white"></span>
+                  socket heartbeat: <span id="heartbeat-text" class="text-app-secondary">200 OK</span>
+                </span>
+                <div class="flex items-center gap-3">
+                  <button id="btn-copy-logs" class="hover:text-white transition cursor-pointer flex items-center gap-1" title="Copy entire stream to clipboard">
+                    <i class="fa-regular fa-copy text-[10px]"></i>
+                    <span>copy stream</span>
+                  </button>
+                  <span class="text-app-borderSubtle">|</span>
+                  <button id="btn-clear-logs" class="hover:text-white transition cursor-pointer">clear stream</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </main>
+
+        <!-- Bottom Control Footer Bar -->
+        <footer class="h-11 bg-app-canvas border-t border-app-border px-4 flex items-center justify-between shrink-0 z-20">
+          <div class="flex items-center gap-5 font-mono text-xs text-app-secondary">
+            <div class="flex items-center gap-1.5">
+              <i class="fa-brands fa-git-alt text-white text-[11px]"></i>
+              <span>Team Git Edits</span>
+            </div>
+            <div class="hidden sm:flex items-center gap-1.5">
+              <i class="fa-solid fa-microphone text-white text-[11px]"></i>
+              <span>Whisper Audio</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-quick-stop" class="px-2 py-1 rounded bg-app-surface hover:bg-white hover:text-black border border-app-border text-app-secondary transition text-xs font-mono font-medium flex items-center gap-1.5 cursor-pointer active:scale-95" title="Halt running tasks">
+              <i class="fa-solid fa-stop text-[10px]"></i>
+              <span>Stop Task</span>
+            </button>
+          </div>
+        </footer>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

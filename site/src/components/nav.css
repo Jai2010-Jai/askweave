@@ -1,0 +1,56 @@
+.nav { position: sticky; top: 0; z-index: 50; transition: background-color 0.3s, border-color 0.3s; border-bottom: 1px solid transparent; }
+.nav.scrolled { background: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom-color: var(--edge); }
+.nav-row { display: flex; align-items: center; gap: 20px; height: 68px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font: 800 19px var(--display); letter-spacing: -0.03em; }
+.brand-mark { width: 28px; height: 28px; }
+.nav-links { display: flex; align-items: center; gap: 26px; margin-left: auto; }
+.nav-links a:not(.btn) { color: var(--ink); text-decoration: none; font: 500 14px var(--sans); white-space: nowrap; transition: color 0.2s; }
+.nav-links a:not(.btn):hover { color: var(--green); }
+.nav-cta { padding: 9px 18px; font-size: 14px; white-space: nowrap; }
+.nav-tools { display: flex; align-items: center; gap: 8px; }
+.nav-burger { display: none; }
+
+.lang-menu { position: relative; }
+.lang-btn {
+  height: 36px; padding: 0 10px; border-radius: 999px; display: flex; align-items: center; gap: 6px; cursor: pointer;
+  background: transparent; color: var(--ink-2); border: 1px solid var(--edge); font: 600 12px var(--sans);
+  transition: color 0.2s, border-color 0.2s;
+}
+.lang-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.lang-btn svg { width: 15px; height: 15px; }
+.lang-list {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; list-style: none; margin: 0; padding: 6px; min-width: 190px;
+  background: var(--sheet); border: 1px solid var(--edge); border-radius: 14px; box-shadow: 0 20px 40px -20px var(--shadow);
+  transform-origin: top right;
+}
+.lang-list button {
+  width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 12px;
+  border: 0; border-radius: 9px; background: none; cursor: pointer; text-align: left; color: var(--ink);
+}
+.lang-list button:hover { background: var(--paper); }
+.lang-list button.on { background: var(--mint); }
+.lang-list b { font: 500 15px var(--sans); }
+.lang-list small { font: 11px var(--sans); color: var(--ink-3); }
+
+@media (max-width: 900px) {
+  .nav-tools { margin-left: auto; }
+  .nav-burger {
+    display: grid; gap: 6px; place-content: center; width: 40px; height: 40px;
+    background: transparent; border: 1px solid var(--edge); border-radius: 999px; cursor: pointer;
+  }
+  .nav-burger span { width: 18px; height: 2px; background: var(--ink); border-radius: 2px; transition: transform 0.3s var(--ease); }
+  .nav-burger[aria-expanded="true"] span:first-child { transform: translateY(4px) rotate(45deg); }
+  .nav-burger[aria-expanded="true"] span:last-child { transform: translateY(-4px) rotate(-45deg); }
+  .nav-links {
+    position: absolute; top: 68px; left: 12px; right: 12px; flex-direction: column; align-items: stretch; gap: 2px;
+    padding: 12px; background: var(--sheet); border: 1px solid var(--edge); border-radius: 16px; box-shadow: 0 24px 40px -20px var(--shadow);
+    opacity: 0; pointer-events: none; transform: translateY(-8px); transition: opacity 0.25s, transform 0.25s var(--ease);
+  }
+  .nav-links.open { opacity: 1; pointer-events: auto; transform: none; }
+  .nav-links a:not(.btn) { padding: 10px 8px; font-size: 16px; }
+  .nav-cta { margin-top: 8px; }
+}
+@media (max-width: 420px) { .lang-btn span { display: none; } }
+.brand .weave-logo { height: 24px; width: 158px; }
+/* The intro's logo flies into this spot, so keep it empty until the intro is gone. */
+html:has(.intro) .brand .weave-logo { visibility: hidden; }

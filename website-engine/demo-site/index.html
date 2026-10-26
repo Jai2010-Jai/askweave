@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Purrfect Match — Velvet Salon &amp; Whisker Society</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#9E4736",
+            "primary-container": "#F6DDD7",
+            "on-primary": "#FFFFFF",
+            "on-primary-container": "#4A180E",
+            surface: "#FAF7F2",
+            "surface-container": "#F4EFEA",
+            "surface-container-high": "#EDE5DC",
+            "on-surface": "#2D2622",
+            "on-surface-variant": "#786E67",
+            "outline-variant": "#DBCFC6",
+            accent: "#C59B27",
+            mahogany: "#6A281B"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            display: ["'Cormorant Garamond'", "serif"],
+            body: ["'Plus Jakarta Sans'", "sans-serif"],
+            label: ["'Public Sans'", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .arched-portrait {
+      border-top-left-radius: 9rem;
+      border-top-right-radius: 9rem;
+      border-bottom-left-radius: 0.5rem;
+      border-bottom-right-radius: 0.5rem;
+    }
+    .deckled-border {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 12px 24px -4px rgba(115, 80, 60, 0.08);
+      border: 1px solid rgba(219, 207, 198, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-[#FAF7F2] text-on-surface font-body antialiased selection:bg-primary-container selection:text-on-primary-container">
+
+<div id="stitch-preview-bar" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 99999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; font-size: 13px;">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <span style="background: #10b981; color: #000; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.05em;">DESIGN PREVIEW</span>
+    <span style="color: #cbd5e1;">Viewing: <strong style="color: #fff;">Option 1: Purrfect Match - Velvet Salon & Whisker Society</strong></span>
+  </div>
+  <div style="display: flex; gap: 6px;">
+    
+      <a href="/option1.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: #10b981; color: #000;">Option 1</a>
+      <a href="/option2.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: rgba(255,255,255,0.1); color: #fff;">Option 2</a>
+      <a href="/option3.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: rgba(255,255,255,0.1); color: #fff;">Option 3</a>
+  </div>
+</div>
+<!-- TOP APP BAR -->
+<header class="bg-surface sticky top-0 z-50 transition-all duration-300 shadow-sm border-b border-outline-variant/30">
+<div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+<!-- Brand & Cameo -->
+<a class="flex items-center gap-3 group" href="#">
+<div class="w-10 h-10 rounded-full border border-primary/30 p-0.5 flex items-center justify-center bg-surface-container shadow-inner">
+<div class="w-full h-full rounded-full border border-accent/40 flex items-center justify-center bg-[#F9F5F0]">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="pets">pets</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-headline text-2xl font-bold tracking-tight text-primary">Purrfect Match</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant -mt-1 font-semibold">Velvet Salon &amp; Whisker Society</span>
+</div>
+</a>
+<!-- Desktop Navigation Links -->
+<nav class="hidden md:flex items-center space-x-8">
+<a class="text-primary font-medium border-b border-primary pb-1 font-label text-sm tracking-wide transition-all" href="#dossiers">Curated Dossiers</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label text-sm tracking-wide" href="#salon">Salon Playdates</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label text-sm tracking-wide" href="#lineage">Lineage Registry</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label text-sm tracking-wide" href="#concierge">Request Presentation</a>
+</nav>
+<!-- Action Cluster -->
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center gap-2 border-r border-outline-variant/50 pr-4">
+<button aria-label="Notifications" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Favorites" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Favorites">
+<span class="material-symbols-outlined text-xl" data-icon="favorite">favorite</span>
+</button>
+</div>
+<a class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-[#8C3A2A] text-on-primary font-label text-xs uppercase tracking-wider font-semibold rounded-full shadow-sm hover:shadow transition-all duration-300 border border-accent/30 active:scale-[0.99]" href="#concierge">
+<span>Society Membership</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</div>
+</header>
+<main>
+<!-- 1. HERO SECTION -->
+<section class="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+<!-- Ornate background accents -->
+<div class="absolute -top-40 right-0 w-96 h-96 bg-primary-container/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-1/2 -left-20 w-80 h-80 bg-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+<!-- Editorial Headline Column -->
+<div class="lg:col-span-7 space-y-8">
+<div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-surface-container border border-outline-variant/60">
+<span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant font-medium">Salon Season 1894 • Autumn Presentations</span>
+</div>
+<h1 class="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl leading-[1.08] text-on-surface tracking-tight">
+              Curated <span class="italic font-normal text-primary">Courtship</span> for the <span class="italic font-normal text-primary">Distinguished</span> Feline
+            </h1>
+<p class="font-body text-lg text-on-surface-variant leading-relaxed max-w-2xl font-light">
+              Bespoke companionship matching, peer-vetted temperaments, and neutral salon playdates conducted under the highest standards of parlour etiquette.
+            </p>
+<div class="flex flex-wrap items-center gap-4 pt-2">
+<a class="px-8 py-3.5 rounded-full bg-primary hover:bg-[#8B3B2B] text-white font-label text-xs uppercase tracking-widest font-semibold transition-all shadow-md hover:shadow-lg border border-accent/40 active:scale-[0.98]" href="#dossiers">
+                Explore Dossiers
+              </a>
+<a class="px-8 py-3.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant font-label text-xs uppercase tracking-widest font-semibold transition-all active:scale-[0.98]" href="#salon">
+                Audition Your Feline
+              </a>
+</div>
+<!-- Society Endorsement Mini Bar -->
+<div class="pt-6 border-t border-outline-variant/40 flex items-center gap-6 text-on-surface-variant">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A refined British Shorthair cat in a vintage Victorian brass collar, high-key warm cream lighting, editorial catalog aesthetics with antique textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwsoBknpW4iY92nQi2wwSVU410oVGPGxF7d52XOFcof5IqVhI9qBNJ_UZrbxSkyyZGOtVL2MfRTZjLARdVH9oupoRqoFcDhBDH9blwWnAzz-D72kojt__rvSakhmj2EvVpemyBowDwzZ4jSv9vnKOLY0kYR3MgM4s3XfECkwiNI5W50sfCCxfjVE4p8NWOrbjOO_JZHdba_Afqgl3JCdQmsWn6zsKZU2t1plJInCCQE563aCNo3FfDulKxIre9b0c2zNmyLAkjHxxT"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="An aristocrat Persian cat with pure white silky coat, gentle expression, warm archival studio portrait lighting with muted cream velvet tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCKSdJ6N-rXQJiDutDHZqELSedf5_l2KDSwfNNsru1KfMBmDC7BJfNHTsrC2DKpUwQqu3fxrjVL0pX3xbPo2iealkfIICP5qqhEXL-6_1TS0Dm36hlQeOLA-MBjJfXLjPN-wZWNSiPgETnf9mAIMlJdAr33G2TxFmFYnKDGXnlDuSKRypdKS2bSxagHr8mWSvPzTxxL3MXysDJwfsAv1oqNtudsbKJsHnZklbwg80VFBAwEDEv2HXyVk8sgxR554Vr2_OE8S8eRo_f"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A dignified Maine Coon feline in a soft warm salon setting, natural amber daylight, velvet salon whisker society monogram badge." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_-A6NSLg5auUNBUy6GZZONc513kbH-64VHLZYCAKELFwnOfIz6YjvRx9XP-MDsI0HE7MacWVpFKeKDrgH2tOITxj-ejYYDcXOUiNBe7AjGgPJZs5fu31QDwaVY0RU1u2gYZwNEjSVF7e_O5ibV-tHBjfaqyleXuD8jjC_Y9VmgTov7pL_0FjPmQExRQ5cE4sSjjebPPfpHbJW8pxaDcSJ64YA9LwVkJDLt6E5uY-4oVpZOChYFCKJiISXNxG4GRzl6i5zTii8YeUg"/>
+</div>
+</div>
+<p class="font-label text-xs tracking-wide text-on-surface-variant">
+                Recommended by <strong class="text-on-surface font-semibold">412 Feline Houses</strong> across Kensington &amp; Mayfair
+              </p>
+</div>
+</div>
+<!-- Calling Card Hero Mockup -->
+<div class="lg:col-span-5 relative">
+<div class="relative bg-white deckled-border rounded-xl p-6 sm:p-8 max-w-md mx-auto shadow-xl">
+<!-- Corner Crest Stamp -->
+<div class="absolute top-4 right-4 flex flex-col items-center opacity-85">
+<div class="w-9 h-9 rounded-full border border-accent/60 flex items-center justify-center text-accent">
+<span class="material-symbols-outlined text-lg" data-icon="workspace_premium">workspace_premium</span>
+</div>
+<span class="font-label text-[8px] uppercase tracking-wider text-accent mt-0.5">High-Tea Class</span>
+</div>
+<!-- Feline Arch Portrait -->
+<div class="relative mx-auto w-56 h-64 arched-portrait overflow-hidden p-1 bg-surface-container border border-accent/50 shadow-inner">
+<div class="w-full h-full arched-portrait overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Exquisite archival portrait of Sir Barnaby, an aristocratic Lilac and Cream pedigree British Shorthair feline sitting calmly upon a plush velvet ottoman, gentle sepia-warm natural salon lighting, high resolution editorial finish." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYQOjgxcaCNUzPozwowq3PNApxS9w1K_D6y2VB8j85M5i-W5UG-XZcw0SlVhUOajqY1IHj6ISgTyPbNjJQWT-gOdsUL73AxcnLAVOXgITLxxq0MmM-BUoi1DRY2CNlzsTBW_1zwMzMKoGEBXtJ060RsaYgJS1hnWlT-ZAIjOgzv4vsohRkIbyz7ciQNBARJm3amOnrUThGzDRdtHJdyrNn7ZMU0HFZetmwI0Oe6HWuSIRgudPWITqvcI_Iyolg0XoAkZWBe9qSvr0K"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+<div class="absolute bottom-2 left-0 right-0 text-center">
+<span class="bg-surface/90 text-primary text-[10px] font-label font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm">
+                      Debut Companion
+                    </span>
+</div>
+</div>
+</div>
+<!-- Dossier Details -->
+<div class="text-center mt-5 space-y-3">
+<div>
+<h3 class="font-display text-2xl font-bold text-on-surface">Sir Barnaby</h3>
+<p class="font-label text-xs text-on-surface-variant uppercase tracking-wider mt-0.5">Lilac &amp; Cream British Shorthair • 4 Years Old</p>
+</div>
+<!-- Temperament Badges -->
+<div class="flex flex-wrap justify-center gap-1.5 pt-1">
+<span class="px-2.5 py-1 rounded-full bg-[#FAF4EB] border border-[#E4D5B7] text-[#866219] font-label text-[11px] font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="chair">chair</span> Couch Diplomat
+                  </span>
+<span class="px-2.5 py-1 rounded-full bg-[#FAF4EB] border border-[#E4D5B7] text-[#866219] font-label text-[11px] font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="wb_sunny">wb_sunny</span> Sunbeam Connoisseur
+                  </span>
+<span class="px-2.5 py-1 rounded-full bg-[#FAF4EB] border border-[#E4D5B7] text-[#866219] font-label text-[11px] font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="restaurant">restaurant</span> Caviar Sceptic
+                  </span>
+</div>
+<!-- Pedigree Ledger -->
+<div class="bg-surface-container/60 rounded p-3 text-left border border-outline-variant/40 space-y-1.5 text-xs font-label">
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Lineage Archive:</span>
+<strong class="text-on-surface font-medium">House of Kensington</strong>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Disposition:</span>
+<strong class="text-on-surface font-medium">Contemplative &amp; Affectionate</strong>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Etiquette Rating:</span>
+<span class="text-accent flex items-center">
+<span class="material-symbols-outlined text-sm material-symbols-fill" data-icon="star">star</span>
+<span class="material-symbols-outlined text-sm material-symbols-fill" data-icon="star">star</span>
+<span class="material-symbols-outlined text-sm material-symbols-fill" data-icon="star">star</span>
+<span class="material-symbols-outlined text-sm material-symbols-fill" data-icon="star">star</span>
+<span class="material-symbols-outlined text-sm material-symbols-fill" data-icon="star">star</span>
+</span>
+</div>
+</div>
+<!-- Calling Card CTA -->
+<button class="w-full mt-3 py-3 rounded-full bg-primary hover:bg-[#8A3A2B] text-white font-label text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2 transition-all shadow-sm">
+<span>Request Salon Introduction</span>
+<span class="material-symbols-outlined text-sm" data-icon="mail">mail</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. ASYMMETRIC SOCIAL PROOF METRIC TICKER -->
+<section class="border-y border-outline-variant/60 bg-[#F4EFEA] py-10 relative">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-outline-variant/60">
+<!-- Metric 1 -->
+<div class="flex items-start gap-4 px-0 md:px-8 py-2 md:py-0">
+<div class="p-2.5 rounded-full bg-white text-primary border border-outline-variant/50 shadow-sm mt-1">
+<span class="material-symbols-outlined text-2xl" data-icon="verified">verified</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">14,200+</span>
+<span class="font-label text-xs uppercase tracking-wider text-primary font-semibold">Registered</span>
+</div>
+<h4 class="font-headline text-base font-bold text-on-surface mt-0.5">Verified Courtesies</h4>
+<p class="font-body text-xs text-on-surface-variant mt-1 italic">
+                “Zero incidents of ungentlemanly conduct on salon records.”
+              </p>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="flex items-start gap-4 px-0 md:px-8 py-4 md:py-0">
+<div class="p-2.5 rounded-full bg-white text-accent border border-outline-variant/50 shadow-sm mt-1">
+<span class="material-symbols-outlined text-2xl" data-icon="music_note">music_note</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">98.4%</span>
+<span class="font-label text-xs uppercase tracking-wider text-accent font-semibold">Resonance</span>
+</div>
+<h4 class="font-headline text-base font-bold text-on-surface mt-0.5">Harmony Score</h4>
+<p class="font-body text-xs text-on-surface-variant mt-1">
+                Measured via acoustic purr resonance and shared loaf proximity.
+              </p>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="flex items-start gap-4 px-0 md:px-8 py-4 md:py-0">
+<div class="p-2.5 rounded-full bg-white text-primary border border-outline-variant/50 shadow-sm mt-1">
+<span class="material-symbols-outlined text-2xl" data-icon="shield">shield</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">100%</span>
+<span class="font-label text-xs uppercase tracking-wider text-primary font-semibold">Civility</span>
+</div>
+<h4 class="font-headline text-base font-bold text-on-surface mt-0.5">Zero Hiss Guarantee</h4>
+<p class="font-body text-xs text-on-surface-variant mt-1">
+                Complimentary neutral chaperone separation and catnip soothing.
+              </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. ARCHIVAL ART PRINTS GALLERY ('Prospective Companions') -->
+<section class="py-20 lg:py-28 bg-[#FAF7F2]" id="dossiers">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<!-- Section Header -->
+<div class="text-center max-w-3xl mx-auto space-y-4 mb-16">
+<div class="inline-flex items-center justify-center space-x-3 text-accent">
+<span class="w-12 h-[1px] bg-accent/60"></span>
+<span class="material-symbols-outlined text-sm" data-icon="diamond">diamond</span>
+<span class="w-12 h-[1px] bg-accent/60"></span>
+</div>
+<h2 class="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-on-surface">
+            The Society Registry — Selected Season Debuts
+          </h2>
+<p class="font-body text-base text-on-surface-variant max-w-xl mx-auto font-light">
+            Each prospect is verified for genealogical rectitude, salon poise, and conversational whiskers. Calling cards are renewed bi-monthly.
+          </p>
+</div>
+<!-- 3-Column Archival Print Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Card 1: Lady Genevieve -->
+<article class="bg-white deckled-border rounded-lg p-6 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group">
+<div class="space-y-4">
+<div class="relative w-full h-72 rounded bg-surface-container overflow-hidden border border-outline-variant/40">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Lady Genevieve, an exquisite Ragdoll Marquise cat with deep sapphire blue eyes and pristine cream and seal point fur resting on an antique French velvet ottoman, soft warm daylight editorial photograph." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQmUWwjP89557M8RcjX4gPxPQ7RpdHwt2ejVOVkPvMyAQxj18OpNwYzE9PG2CLMGGhi1XsMemeWmo737M7ctguQFpdT5e_pwCnvAk9EZLf2lA_rxhZ2-3a0755F3RX2Zpbx_AE3YrauaOIDDt5m-sfl5kB7CKvg9YgzkKb6M1MwapXsi07VteTA41qEV5I2pn-DYhKV_bnlOHh8W9ocCTwtIwgFBH1z8H9k1-QLJnNDEkHAftCNuF9WOEgaUBCUlVoKSrvJuF5VA_q"/>
+<div class="absolute top-3 left-3 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-label font-bold uppercase tracking-widest text-primary border border-outline-variant">
+                  Dossier #084
+                </div>
+<div class="absolute bottom-3 right-3 bg-on-surface/80 backdrop-blur-sm px-2.5 py-0.5 rounded text-[11px] font-label text-white">
+                  48hr Acclimation
+                </div>
+</div>
+<div>
+<div class="flex justify-between items-baseline">
+<h3 class="font-display text-2xl font-bold text-on-surface">Lady Genevieve</h3>
+<span class="text-xs font-label text-accent font-semibold">Marquise</span>
+</div>
+<p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mt-0.5">Blue Bicolor Ragdoll • 3 Years Old</p>
+</div>
+<!-- Personality Traits -->
+<div class="space-y-2 pt-2 border-t border-outline-variant/40 text-xs font-label">
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Salon Affinity:</span>
+<span class="text-on-surface font-medium">French Velvet Ottomans</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Dietary Leaning:</span>
+<span class="text-on-surface font-medium">Organic Quail Broth</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Loaf Posture:</span>
+<span class="text-on-surface font-medium">Tucked Paws Symmetry</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-1.5 pt-1">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Graceful</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Quiet Melodist</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Loves Silk Feathers</span>
+</div>
+</div>
+<div class="pt-6 mt-6 border-t border-outline-variant/40 flex items-center justify-between">
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant">Lineage: De Valois</span>
+<a class="inline-flex items-center gap-1.5 text-primary hover:text-mahogany font-label text-xs uppercase tracking-wider font-bold" href="#salon">
+<span>Examine Dossier</span>
+<span class="material-symbols-outlined text-sm" data-icon="north_east">north_east</span>
+</a>
+</div>
+</article>
+<!-- Card 2: Baron von Fluffington -->
+<article class="bg-white deckled-border rounded-lg p-6 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group">
+<div class="space-y-4">
+<div class="relative w-full h-72 rounded bg-surface-container overflow-hidden border border-outline-variant/40">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Baron von Fluffington, a grand Siberian Forest Count cat with dense silver tabby mane and piercing hazel eyes seated before a stately stone fireplace in a rustic country estate, natural warm rim lighting, aristocratic feline lookbook." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOIIM8EDdsLLv9lg-qXqdCwF-cVKbNwhSpGKZDtj9ub1EM5DnWZq2RFt7sv9e4QWqmwgPlGc9Fz4C_veHrnvHBhsm-luhda_e29_B-PqhtfWf3GNG4m5GukvhleBO7pWtWu1C9mDD0iRrtX8N-0ZQpeJdSxhF91TVTaZTdaATW-wtJszr0hbuTJieALO9JfwPbcGVNpBUJ921Z-75TgGP0XYoCkc1ge4dGxzSZ5SSrAvK5f8rLIzQoC1ivmFkJYtDUIE9g7bCSvye6"/>
+<div class="absolute top-3 left-3 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-label font-bold uppercase tracking-widest text-primary border border-outline-variant">
+                  Dossier #092
+                </div>
+<div class="absolute bottom-3 right-3 bg-on-surface/80 backdrop-blur-sm px-2.5 py-0.5 rounded text-[11px] font-label text-white">
+                  72hr Acclimation
+                </div>
+</div>
+<div>
+<div class="flex justify-between items-baseline">
+<h3 class="font-display text-2xl font-bold text-on-surface">Baron von Fluffington</h3>
+<span class="text-xs font-label text-accent font-semibold">Count</span>
+</div>
+<p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mt-0.5">Siberian Forest Noble • 5 Years Old</p>
+</div>
+<!-- Personality Traits -->
+<div class="space-y-2 pt-2 border-t border-outline-variant/40 text-xs font-label">
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Salon Affinity:</span>
+<span class="text-on-surface font-medium">High Hearth Perches</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Dietary Leaning:</span>
+<span class="text-on-surface font-medium">Freeze-Dried Salmon Caviar</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Loaf Posture:</span>
+<span class="text-on-surface font-medium">Sphinx Vigilant Style</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-1.5 pt-1">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Aristocratic</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Baritone Purr</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Birdwatcher</span>
+</div>
+</div>
+<div class="pt-6 mt-6 border-t border-outline-variant/40 flex items-center justify-between">
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant">Lineage: Romanov-Hearth</span>
+<a class="inline-flex items-center gap-1.5 text-primary hover:text-mahogany font-label text-xs uppercase tracking-wider font-bold" href="#salon">
+<span>Examine Dossier</span>
+<span class="material-symbols-outlined text-sm" data-icon="north_east">north_east</span>
+</a>
+</div>
+</article>
+<!-- Card 3: Duchess Mirabelle -->
+<article class="bg-white deckled-border rounded-lg p-6 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group">
+<div class="space-y-4">
+<div class="relative w-full h-72 rounded bg-surface-container overflow-hidden border border-outline-variant/40">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Duchess Mirabelle, an adorable Scottish Fold Heiress cat with folded ears, golden eyes and soft ginger coat curled gracefully upon pure cashmere fabric in an editorial Parisian parlour, soft vintage grain, high aesthetic detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8jxLC-xU6O0g9dA2JIN2R3WgodQS9DEfa8-HMFAhuwibxGJa71CUDlAbsqQI0nRt4OctqHqTHLRnpf2HFUExlsFg34h8niR-FRPtMGb-x4AYbtuzn389zlcBjgXLAbrGgrNUog3KPJPsEarqbJMzsEcm51flREx_A7TPWiLeIfcVwGCPIPbJ-KUgRt-DfkNLAS-jPDUcEVeaqj3m4zf6BaJeC7sDOpxeNZXhNswG6owzXEGwf4LgqBzIdZlKPecO82e-oCwW6gGBL"/>
+<div class="absolute top-3 left-3 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-label font-bold uppercase tracking-widest text-primary border border-outline-variant">
+                  Dossier #104
+                </div>
+<div class="absolute bottom-3 right-3 bg-on-surface/80 backdrop-blur-sm px-2.5 py-0.5 rounded text-[11px] font-label text-white">
+                  24hr Rapid Courtship
+                </div>
+</div>
+<div>
+<div class="flex justify-between items-baseline">
+<h3 class="font-display text-2xl font-bold text-on-surface">Duchess Mirabelle</h3>
+<span class="text-xs font-label text-accent font-semibold">Heiress</span>
+</div>
+<p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mt-0.5">Scottish Fold • 2 Years Old</p>
+</div>
+<!-- Personality Traits -->
+<div class="space-y-2 pt-2 border-t border-outline-variant/40 text-xs font-label">
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Salon Affinity:</span>
+<span class="text-on-surface font-medium">Cashmere Throws</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Dietary Leaning:</span>
+<span class="text-on-surface font-medium">Warm Bone Broth Infusion</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="w-24 text-on-surface-variant/80">Loaf Posture:</span>
+<span class="text-on-surface font-medium">Crescent Curled Ball</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-1.5 pt-1">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Tender Hearted</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Gentle Headbutt</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-label">Kittenish Poise</span>
+</div>
+</div>
+<div class="pt-6 mt-6 border-t border-outline-variant/40 flex items-center justify-between">
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant">Lineage: Balmoral Fold</span>
+<a class="inline-flex items-center gap-1.5 text-primary hover:text-mahogany font-label text-xs uppercase tracking-wider font-bold" href="#salon">
+<span>Examine Dossier</span>
+<span class="material-symbols-outlined text-sm" data-icon="north_east">north_east</span>
+</a>
+</div>
+</article>
+</div>
+<!-- Registry Footer Callout -->
+<div class="mt-14 p-6 bg-surface-container rounded border border-outline-variant/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-accent text-2xl" data-icon="menu_book">menu_book</span>
+<p class="font-label text-sm text-on-surface">
+              Seeking specific coat colourations or nocturnal sleep routines? Access the <span class="font-bold">Full 1894 Society Lineage Archives</span>.
+            </p>
+</div>
+<button class="px-6 py-2.5 rounded bg-white hover:bg-surface border border-outline-variant text-on-surface font-label text-xs uppercase tracking-wider font-semibold whitespace-nowrap shadow-sm transition-all">
+            Unlock Full Registry (160+ Felines)
+          </button>
+</div>
+</div>
+</section>
+<!-- 4. NEUTRAL TERRITORY SALON CONCIERGE BOOKING INTERFACE -->
+<section class="py-20 bg-surface-container border-y border-outline-variant/50 relative" id="salon">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Booking Left Manifesto -->
+<div class="lg:col-span-5 space-y-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-white border border-outline-variant text-primary font-label text-xs uppercase tracking-widest font-semibold">
+<span class="material-symbols-outlined text-sm" data-icon="table_restaurant">table_restaurant</span>
+              Parlour Etiquette &amp; Neutrality
+            </div>
+<h2 class="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-on-surface leading-tight">
+              Neutral Territory <br/><span class="italic font-normal text-primary">Salon Concierge</span>
+</h2>
+<p class="font-body text-base text-on-surface-variant leading-relaxed font-light">
+              Feline temperaments require diplomacy. Our salons are completely neutral territories, purified of ambient domestic scents, fitted with acoustic dampening velvet curtains, and overseen by certified Society Chaperones.
+            </p>
+<div class="space-y-4 pt-2">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-accent text-xl mt-0.5" data-icon="done">done</span>
+<div>
+<h4 class="font-headline text-sm font-bold text-on-surface">Bilateral Safety Protocol</h4>
+<p class="text-xs text-on-surface-variant font-light">Independent retreat tunnels if one party requires solitary composure.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-accent text-xl mt-0.5" data-icon="done">done</span>
+<div>
+<h4 class="font-headline text-sm font-bold text-on-surface">Sommelier Refreshment Service</h4>
+<p class="text-xs text-on-surface-variant font-light">Custom infusion of Japanese silvervine, French catnip, or fresh broth pairings.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Booking Console Box -->
+<div class="lg:col-span-7">
+<div class="bg-white deckled-border rounded-xl p-8 shadow-xl">
+<div class="border-b border-outline-variant/50 pb-5 mb-6 flex justify-between items-center">
+<div>
+<h3 class="font-headline text-xl font-bold text-on-surface">Reserve a Courtship Salon Chamber</h3>
+<p class="font-label text-xs text-on-surface-variant mt-0.5">Complimentary 90-minute session with dedicated Master of Whiskers</p>
+</div>
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="calendar_month">calendar_month</span>
+</div>
+<form class="space-y-6" onsubmit="event.preventDefault(); alert('Presentation request registered in the Society Courtship Ledger.');">
+<!-- 1. Chamber Selection -->
+<div>
+<label class="block font-label text-xs uppercase tracking-wider font-semibold text-on-surface mb-2.5">
+                    1. Select Chamber Ambiance
+                  </label>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="chamber" type="radio"/>
+<div class="p-3.5 rounded border border-outline-variant peer-checked:border-primary peer-checked:bg-primary-container/20 transition-all text-center">
+<span class="material-symbols-outlined text-primary text-2xl mb-1" data-icon="yard">yard</span>
+<h5 class="font-headline text-xs font-bold text-on-surface">The Orangerie</h5>
+<p class="text-[10px] text-on-surface-variant font-label mt-0.5">Sunlit &amp; Floral</p>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="chamber" type="radio"/>
+<div class="p-3.5 rounded border border-outline-variant peer-checked:border-primary peer-checked:bg-primary-container/20 transition-all text-center">
+<span class="material-symbols-outlined text-primary text-2xl mb-1" data-icon="fireplace">fireplace</span>
+<h5 class="font-headline text-xs font-bold text-on-surface">The Hearth Suite</h5>
+<p class="text-[10px] text-on-surface-variant font-label mt-0.5">Warm &amp; Timbered</p>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="chamber" type="radio"/>
+<div class="p-3.5 rounded border border-outline-variant peer-checked:border-primary peer-checked:bg-primary-container/20 transition-all text-center">
+<span class="material-symbols-outlined text-primary text-2xl mb-1" data-icon="chair">chair</span>
+<h5 class="font-headline text-xs font-bold text-on-surface">Gilded Parlour</h5>
+<p class="text-[10px] text-on-surface-variant font-label mt-0.5">Velvet &amp; Silk</p>
+</div>
+</label>
+</div>
+</div>
+<!-- 2. Refreshment Pairing -->
+<div>
+<label class="block font-label text-xs uppercase tracking-wider font-semibold text-on-surface mb-2.5">
+                    2. Select Course of Refreshment
+                  </label>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<label class="flex items-center gap-2 p-3 rounded border border-outline-variant bg-surface/50 cursor-pointer">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label text-xs text-on-surface">Organic Valerian Tea</span>
+</label>
+<label class="flex items-center gap-2 p-3 rounded border border-outline-variant bg-surface/50 cursor-pointer">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label text-xs text-on-surface">Poached Mackerel Amuse</span>
+</label>
+<label class="flex items-center gap-2 p-3 rounded border border-outline-variant bg-surface/50 cursor-pointer">
+<input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label text-xs text-on-surface">Filtered Spring Water</span>
+</label>
+</div>
+</div>
+<!-- 3. Date & Time Selection -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block font-label text-xs uppercase tracking-wider font-semibold text-on-surface mb-1.5">
+                      Proposed Salon Date
+                    </label>
+<input class="w-full text-xs font-label rounded border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:ring-primary" type="date" value="2025-11-14"/>
+</div>
+<div>
+<label class="block font-label text-xs uppercase tracking-wider font-semibold text-on-surface mb-1.5">
+                      Tea Interval Time
+                    </label>
+<select class="w-full text-xs font-label rounded border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:ring-primary">
+<option>High Tea (2:30 PM — 4:00 PM)</option>
+<option>Twilight Siesta (5:00 PM — 6:30 PM)</option>
+<option>Morning Sunbeam Salon (10:30 AM — 12:00 PM)</option>
+</select>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-2">
+<button class="w-full py-4 rounded-full bg-primary hover:bg-[#8B3B2B] text-white font-label text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all duration-200" type="submit">
+<span class="material-symbols-outlined text-base" data-icon="lock">lock</span>
+<span>Confirm Salon Chaperone &amp; Reserve Chamber</span>
+</button>
+<p class="font-label text-[10px] text-center text-on-surface-variant mt-2">
+                    Reservations reviewed within 12 hours by our Chief Grooming Officer.
+                  </p>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. VERIFICATION & CERTIFICATION SEALS -->
+<section class="py-12 bg-white border-b border-outline-variant/40">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="flex flex-wrap items-center justify-around gap-8 text-on-surface-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-3xl text-accent" data-icon="verified_user">verified_user</span>
+<div>
+<p class="font-headline text-xs font-bold text-on-surface">Chartered Society 1894</p>
+<p class="font-label text-[10px] uppercase tracking-wider">Feline Etiquette Seal</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-3xl text-accent" data-icon="spa">spa</span>
+<div>
+<p class="font-headline text-xs font-bold text-on-surface">Royal Catnip Guild</p>
+<p class="font-label text-[10px] uppercase tracking-wider">Certified Organic Herbarium</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-3xl text-accent" data-icon="account_balance">account_balance</span>
+<div>
+<p class="font-headline text-xs font-bold text-on-surface">Genealogical Purity Seal</p>
+<p class="font-label text-[10px] uppercase tracking-wider">Seven-Generation Archival Audit</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-3xl text-accent" data-icon="sentiment_very_satisfied">sentiment_very_satisfied</span>
+<div>
+<p class="font-headline text-xs font-bold text-on-surface">Zero Claws Policy</p>
+<p class="font-label text-[10px] uppercase tracking-wider">Gentle Parlour Guarantee</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. DISPATCHES NEWSLETTER MODULE -->
+<section class="py-16 bg-[#FAF7F2]">
+<div class="max-w-4xl mx-auto px-6 text-center space-y-6">
+<div class="w-12 h-12 rounded-full border border-primary/30 mx-auto flex items-center justify-center bg-surface-container">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="newspaper">newspaper</span>
+</div>
+<h3 class="font-display text-3xl sm:text-4xl font-bold text-on-surface">
+          Receive "The Whisker Gazette"
+        </h3>
+<p class="font-body text-sm text-on-surface-variant max-w-lg mx-auto font-light">
+          Dispatches on salon diplomacy, feline genetics, seasonal cat grass cultivation, and high-society gossip delivered fortnightly to your parlour.
+        </p>
+<form class="max-w-md mx-auto flex gap-2" onsubmit="event.preventDefault(); alert('Your dispatch courier has been commissioned.');">
+<input class="flex-1 text-xs font-label rounded-full border-outline-variant bg-white px-4 py-3 text-on-surface focus:border-primary focus:ring-primary shadow-inner" placeholder="Enter your estate email..." required="" type="email"/>
+<button class="px-6 py-3 rounded-full bg-primary hover:bg-[#8A3A2B] text-white font-label text-xs uppercase tracking-widest font-semibold transition-all shadow-sm whitespace-nowrap" type="submit">
+            Subscribe
+          </button>
+</form>
+<span class="font-label text-[10px] text-on-surface-variant block">We respect privacy. Never spam; only feline discourse of genuine merit.</span>
+</div>
+</section>
+</main>
+<!-- FOOTER -->
+<footer class="w-full bg-surface-container border-t border-outline-variant/40">
+<div class="max-w-7xl mx-auto px-6 lg:px-12 py-16 flex flex-col items-center text-center space-y-8">
+<!-- Brand & Society Crest -->
+<div class="space-y-2">
+<div class="w-12 h-12 rounded-full border border-primary/30 mx-auto flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="cruelty_free">cruelty_free</span>
+</div>
+<h4 class="font-headline text-xl font-bold tracking-tight text-primary">Purrfect Match</h4>
+<p class="font-display italic text-sm text-on-surface-variant">Velvet Salon &amp; Whisker Society of Great Britain</p>
+</div>
+<!-- Links from Shared Components JSON -->
+<div class="flex flex-wrap justify-center gap-x-8 gap-y-3 font-label text-xs uppercase tracking-widest text-on-surface-variant">
+<a class="hover:text-primary transition-colors duration-200" href="#">The Whisker Gazette</a>
+<a class="hover:text-primary transition-colors duration-200" href="#">Salon Charter</a>
+<a class="hover:text-primary transition-colors duration-200" href="#">Lineage Archives</a>
+<a class="hover:text-primary transition-colors duration-200" href="#">Concierge Registry</a>
+<a class="hover:text-primary transition-colors duration-200" href="#">Terms of Courtship</a>
+<a class="hover:text-primary transition-colors duration-200" href="#">Privacy Dispatches</a>
+</div>
+<!-- Archival Watermark Note -->
+<div class="max-w-xl text-center">
+<p class="font-body text-body-sm leading-relaxed text-on-surface-variant/80 text-xs">
+          © 1894–2025 Purrfect Match &amp; Velvet Salon Society. Curated feline courtships of distinction. All courtesies reserved.
+        </p>
+</div>
+</div>
+</footer>
+</body></html>

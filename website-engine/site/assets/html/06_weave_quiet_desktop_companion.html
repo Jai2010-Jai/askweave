@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weave — Desktop Companion</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Newsreader:ital,opsz,wght@1,6..72,300;1,6..72,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            app: {
+              bg: '#0c0c0e',
+              window: '#141416',
+              surface: '#1a1a1d',
+              surfaceSubtle: '#171719',
+              border: 'rgba(255, 255, 255, 0.07)',
+              borderStrong: 'rgba(255, 255, 255, 0.12)',
+              textPrimary: '#ececed',
+              textSecondary: '#8e8e93',
+              textMuted: '#58585e',
+            }
+          },
+          fontFamily: {
+            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            serif: ['Newsreader', 'Georgia', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    ::selection {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-app-bg text-app-textPrimary font-sans antialiased min-h-screen flex items-center justify-center p-3 sm:p-8 selection:bg-white/10">
+<!-- Desktop App Window Shell (Warm Graphite, Quiet & Craft-focused) -->
+<div class="w-full max-w-[760px] bg-app-window border border-app-border rounded-2xl shadow-2xl shadow-black/70 overflow-hidden flex flex-col h-[760px] relative transition-all">
+<!-- Subtle Window Header Chrome -->
+<header class="h-14 px-5 border-b border-app-border flex items-center justify-between shrink-0 bg-app-window select-none">
+<!-- Left: Gentle macOS Dots & Wordmark -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 opacity-40 hover:opacity-80 transition-opacity">
+<span class="w-2.5 h-2.5 rounded-full bg-white/20 hover:bg-white/35 transition cursor-pointer"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-white/20 hover:bg-white/35 transition cursor-pointer"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-white/20 hover:bg-white/35 transition cursor-pointer"></span>
+</div>
+<div class="h-3.5 w-px bg-white/10"></div>
+<div class="flex items-center gap-2.5">
+<span class="text-sm font-medium tracking-tight text-app-textPrimary">Weave</span>
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-app-border text-[11px] text-app-textSecondary">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400/80"></span>
+<span>Connected</span>
+</div>
+</div>
+</div>
+<!-- Right: Discreet Profile Chip -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs text-app-textSecondary hover:text-app-textPrimary hover:bg-white/[0.03] transition cursor-pointer">
+<div class="w-4 h-4 rounded-full bg-white/10 text-[10px] font-medium text-app-textPrimary flex items-center justify-center">
+            A
+          </div>
+<span class="text-[12px] text-app-textSecondary">alex@gmail.com</span>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas (Breathable, centered, calm layout) -->
+<main class="flex-1 overflow-y-auto px-6 py-7 sm:px-10 sm:py-8 space-y-7">
+<!-- Serene Hero / Identity Card -->
+<div class="bg-app-surface/60 border border-app-border rounded-xl p-5 sm:p-6 transition hover:border-app-borderStrong">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<p class="text-xs font-medium text-app-textSecondary tracking-wide uppercase mb-1">Status</p>
+<h1 class="text-lg sm:text-xl font-normal text-app-textPrimary tracking-tight">
+              Ready to assist on WhatsApp
+            </h1>
+<p class="text-xs text-app-textSecondary mt-1">
+              Powered by Gemini <span class="text-white/20 mx-1">·</span> 2 shared folders connected
+            </p>
+</div>
+<!-- Calm Bot Handle & Understated Copy -->
+<div class="flex items-center gap-2 self-start sm:self-center bg-app-surfaceSubtle border border-app-border px-3 py-1.5 rounded-lg group">
+<span class="text-xs text-app-textMuted font-mono">callsign</span>
+<span class="text-sm font-medium text-app-textPrimary tracking-tight">@weave_alex</span>
+<button class="ml-1 text-[11px] text-app-textSecondary hover:text-white transition px-1.5 py-0.5 rounded bg-white/[0.04] hover:bg-white/[0.08]" onclick="navigator.clipboard.writeText('@weave_alex'); const el=this; el.innerText='Copied'; setTimeout(() =&gt; el.innerText='Copy', 1800)">
+              Copy
+            </button>
+</div>
+</div>
+</div>
+<!-- Connected Workspaces Section (Clean, List-style) -->
+<section class="space-y-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-xs font-medium text-app-textSecondary tracking-wide uppercase">
+            Shared Folders
+          </h2>
+<span class="text-[11px] text-app-textMuted">Read &amp; write access</span>
+</div>
+<div class="bg-app-surface/40 border border-app-border rounded-xl divide-y divide-app-border overflow-hidden">
+<!-- Folder 1: Portfolio Site -->
+<div class="p-3.5 sm:px-4 flex items-center justify-between hover:bg-white/[0.02] transition">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-white/[0.04] border border-app-border flex items-center justify-center text-app-textSecondary text-xs">
+<i class="fa-regular fa-folder"></i>
+</div>
+<div>
+<p class="text-sm font-medium text-app-textPrimary">Portfolio Site</p>
+<p class="text-xs text-app-textMuted">~/projects/portfolio</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[11px] text-app-textSecondary px-2 py-0.5 rounded-md bg-white/[0.03]">Team Access</span>
+</div>
+</div>
+<!-- Folder 2: Docs & Resumes -->
+<div class="p-3.5 sm:px-4 flex items-center justify-between hover:bg-white/[0.02] transition">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-white/[0.04] border border-app-border flex items-center justify-center text-app-textSecondary text-xs">
+<i class="fa-regular fa-folder-closed"></i>
+</div>
+<div>
+<p class="text-sm font-medium text-app-textPrimary">Docs &amp; Resumes</p>
+<p class="text-xs text-app-textMuted">~/Documents</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[11px] text-app-textSecondary px-2 py-0.5 rounded-md bg-white/[0.03]">Private</span>
+</div>
+</div>
+<!-- Polite Add Folder Action -->
+<div class="p-2 sm:px-3 bg-app-surface/20">
+<button class="w-full py-2 px-3 rounded-lg text-xs text-app-textSecondary hover:text-app-textPrimary hover:bg-white/[0.03] transition flex items-center justify-center gap-2" onclick="const el=document.getElementById('nativeFeedback'); el.classList.remove('hidden'); setTimeout(()=&gt;el.classList.add('hidden'), 2200);">
+<i class="fa-solid fa-plus text-[10px]"></i>
+<span>Add folder</span>
+</button>
+<div class="hidden text-center text-[11px] text-app-textSecondary pb-2 pt-1 transition" id="nativeFeedback">
+              Selecting folder via system dialog...
+            </div>
+</div>
+</div>
+</section>
+<!-- Recent Activity Section (Quiet, Conversational timeline) -->
+<section class="space-y-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-xs font-medium text-app-textSecondary tracking-wide uppercase">
+            Recent Activity
+          </h2>
+<span class="text-[11px] text-app-textMuted">Last 24 hours</span>
+</div>
+<div class="bg-app-surface/40 border border-app-border rounded-xl divide-y divide-app-border overflow-hidden">
+<!-- Event 1: Sarah Group Request -->
+<div class="p-4 hover:bg-white/[0.02] transition space-y-2">
+<div class="flex items-baseline justify-between">
+<p class="text-sm text-app-textPrimary">
+<strong class="font-medium">Sarah</strong> asked to fix navbar bug
+              </p>
+<span class="text-xs text-app-textMuted shrink-0 ml-3">2m ago</span>
+</div>
+<div class="flex items-center justify-between text-xs text-app-textSecondary pl-0.5">
+<span class="flex items-center gap-1.5">
+<i class="fa-solid fa-code-commit text-[10px] text-app-textMuted"></i>
+                Modified 3 files in <span class="text-app-textPrimary">Portfolio Site</span>
+</span>
+<a class="text-xs text-app-textSecondary hover:text-white underline underline-offset-4 decoration-white/20 transition" href="#">
+                Diff
+              </a>
+</div>
+</div>
+<!-- Event 2: Alex Calendar Request -->
+<div class="p-4 hover:bg-white/[0.02] transition space-y-2">
+<div class="flex items-baseline justify-between">
+<p class="text-sm text-app-textPrimary">
+<strong class="font-medium">Alex</strong> requested a meeting with Liam
+              </p>
+<span class="text-xs text-app-textMuted shrink-0 ml-3">12m ago</span>
+</div>
+<div class="flex items-center justify-between text-xs text-app-textSecondary pl-0.5">
+<span class="flex items-center gap-1.5">
+<i class="fa-regular fa-calendar-check text-[10px] text-app-textMuted"></i>
+                Added to Google Calendar for tomorrow at 3 PM
+              </span>
+<span class="text-[11px] text-app-textMuted">Scheduled</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Quiet, Minimal Footer -->
+<footer class="h-16 px-6 sm:px-8 border-t border-app-border flex items-center justify-between shrink-0 bg-app-window">
+<!-- Minimalist toggles -->
+<div class="flex items-center gap-6">
+<!-- Toggle 1: Allow team edits -->
+<label class="flex items-center gap-2.5 cursor-pointer group select-none">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-8 h-4.5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:bg-white/90 peer-checked:after:translate-x-3.5 peer-checked:after:bg-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-textSecondary after:rounded-full after:h-3.5 after:w-3.5 after:transition-all relative"></div>
+<span class="text-xs text-app-textSecondary group-hover:text-app-textPrimary transition">
+            Allow team edits
+          </span>
+</label>
+<!-- Toggle 2: Transcribe voice notes -->
+<label class="hidden sm:flex items-center gap-2.5 cursor-pointer group select-none">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-8 h-4.5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:bg-white/90 peer-checked:after:translate-x-3.5 peer-checked:after:bg-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-textSecondary after:rounded-full after:h-3.5 after:w-3.5 after:transition-all relative"></div>
+<span class="text-xs text-app-textSecondary group-hover:text-app-textPrimary transition">
+            Transcribe voice notes
+          </span>
+</label>
+</div>
+<!-- Understated Action Links -->
+<div class="flex items-center gap-3">
+<button class="text-xs text-app-textSecondary hover:text-app-textPrimary transition px-2.5 py-1 rounded-md hover:bg-white/[0.04]">
+          Preferences
+        </button>
+<button class="text-xs text-app-textSecondary hover:text-rose-300 transition px-2.5 py-1 rounded-md hover:bg-white/[0.04]" onclick="this.innerText = 'Disconnected'; this.classList.add('opacity-50')">
+          Disconnect
+        </button>
+</div>
+</footer>
+</div>
+</body></html>
+

@@ -1,0 +1,11 @@
+.changes { background: var(--band); color: #cfe0d6; }
+.ch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 72px); align-items: center; }
+.changes .label { color: #6ee0a0; }
+.changes h2 { color: #fff; margin-bottom: 18px; }
+.ch-body { margin: 0; max-width: 440px; font-size: 15.5px; line-height: 1.65; }
+.ch-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.ch-chips li {
+  padding: 8px 14px; border-radius: 8px; font: 600 14px var(--sans); color: var(--green-dark); background: var(--mint);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+@media (max-width: 860px) { .ch-grid { grid-template-columns: 1fr; } }

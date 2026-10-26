@@ -1,0 +1,84 @@
+{
+  "name": "weave-agent",
+  "version": "1.0.0",
+  "description": "WhatsApp Group & Direct Chat Agent Bridge for Google Antigravity & Gemini",
+  "type": "module",
+  "main": "electron/main.js",
+  "bin": {
+    "weave": "./bin/weave.js",
+    "weave-agent": "./bin/weave.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "desktop": "electron electron/main.js",
+    "build:ota": "node scripts/build-ota.js",
+    "dist": "node scripts/build-ota.js && electron-builder",
+    "dist:dir": "node scripts/build-ota.js && electron-builder --dir",
+    "test:agent": "node src/test-agent.js",
+    "test:nlp": "node src/nlp/test-nlp.js",
+    "test:swiggy": "node src/concierge/swiggy/test-swiggy.js",
+    "auth": "node src/auth.js",
+    "auth:swiggy": "node scripts/auth-swiggy.js",
+    "bundle": "git archive --format=zip --output=weave.zip HEAD"
+  },
+  "keywords": [
+    "whatsapp",
+    "antigravity",
+    "agy",
+    "agent",
+    "gemini",
+    "automation",
+    "ai",
+    "electron"
+  ],
+  "license": "MIT",
+  "build": {
+    "appId": "com.weave.desktop",
+    "productName": "Weave",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "electron/**/*",
+      "bin/**/*",
+      "assets/**/*",
+      "package.json",
+      ".env.example"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "zip"
+      ]
+    }
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.16",
+    "dotenv": "^16.4.7",
+    "nodemailer": "^10.1.0",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.7.0"
+  }
+}

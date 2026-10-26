@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weave Desktop App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'sans-serif'],
+            mono: ['"Geist Mono"', 'monospace'],
+          },
+          colors: {
+            app: {
+              bg: '#0b0f19',
+              sidebar: '#0d1322',
+              card: '#161f30',
+              cardHover: '#1c273c',
+              border: '#243247',
+              borderSubtle: '#1a2436',
+              cyan: '#38bdf8',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              text: '#f1f5f9',
+              muted: '#94a3b8',
+              dim: '#64748b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Custom scrollbar for desktop app feel */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(11, 15, 25, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #243247;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #38bdf8;
+    }
+    .traffic-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: transform 0.15s ease;
+    }
+    .traffic-dot:hover {
+      transform: scale(1.15);
+    }
+    .glass-card {
+      background: rgba(22, 31, 48, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid #243247;
+    }
+    .glow-cyan {
+      box-shadow: 0 0 16px -2px rgba(56, 189, 248, 0.22);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 12px -1px rgba(16, 185, 129, 0.28);
+    }
+  </style>
+</head>
+<body class="bg-[#050811] text-app-text font-sans antialiased min-h-screen flex items-center justify-center p-3 sm:p-6 select-none">
+<!-- Desktop App Window Shell (880px max width container simulating native macOS/Win window) -->
+<div class="w-full max-w-[920px] bg-app-bg border border-app-border rounded-xl shadow-2xl shadow-cyan-950/20 overflow-hidden flex flex-col h-[740px] relative">
+<!-- Top Native Title Bar / Header Window Chrome -->
+<header class="h-11 bg-app-sidebar/95 border-b border-app-border flex items-center justify-between px-3.5 z-20 shrink-0">
+<!-- Left: Window controls & branding -->
+<div class="flex items-center gap-3">
+<!-- macOS traffic lights -->
+<div class="flex items-center gap-1.5 mr-1 group">
+<span class="traffic-dot bg-[#ff5f56] border border-[#e0443e] cursor-pointer"></span>
+<span class="traffic-dot bg-[#ffbd2e] border border-[#dea123] cursor-pointer"></span>
+<span class="traffic-dot bg-[#27c93f] border border-[#1aab29] cursor-pointer"></span>
+</div>
+<div class="h-4 w-px bg-app-border"></div>
+<!-- App Brand & WhatsApp Badge -->
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-md bg-gradient-to-tr from-sky-500 to-cyan-300 flex items-center justify-center text-[#0b0f19] font-bold text-xs shadow-sm">
+<i class="fa-solid fa-code-merge text-[11px]"></i>
+</div>
+<span class="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
+            Weave
+            <span class="text-[10px] text-app-dim font-mono font-normal">v1.4.2</span>
+</span>
+<!-- Connected to WhatsApp pill -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium ml-1">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<i class="fa-brands fa-whatsapp text-emerald-400 text-xs"></i>
+<span>Connected to WhatsApp</span>
+</div>
+</div>
+</div>
+<!-- Center: Subtle window status title -->
+<div class="hidden md:flex items-center gap-2 text-xs text-app-dim font-mono">
+<i class="fa-solid fa-lock text-[10px] text-emerald-500"></i>
+<span>localhost:7442 • Bridge Active</span>
+</div>
+<!-- Right: Connected Google Account Pill -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-app-card/80 border border-app-border hover:border-app-cyan/50 transition cursor-pointer group">
+<img alt="Alex Avatar" class="w-5 h-5 rounded-full ring-1 ring-sky-400/40 object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+<div class="flex items-center gap-1.5">
+<span class="text-xs text-slate-200 font-medium">alex@gmail.com</span>
+<span class="inline-flex items-center text-[10px] text-sky-400 font-mono gap-1">
+<i class="fa-solid fa-arrows-rotate text-[9px] animate-spin text-sky-400" style="animation-duration: 3s;"></i>
+<span class="hidden sm:inline text-app-dim">Syncing</span>
+</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+<!-- Section 1: Bot Call-Sign & Agent Telemetry Row -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+<!-- Bot Call-Sign Card (5 cols) -->
+<div class="md:col-span-5 glass-card rounded-xl p-3.5 relative overflow-hidden group hover:border-sky-500/40 transition">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-sky-500/10 rounded-full blur-xl pointer-events-none"></div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-[11px] font-semibold tracking-wider uppercase text-app-dim flex items-center gap-1.5">
+<i class="fa-solid fa-at text-sky-400 text-xs"></i>
+              Bot Call-Sign
+            </span>
+<span class="text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">
+              Listening in WhatsApp
+            </span>
+</div>
+<div class="flex items-center justify-between bg-app-bg/80 border border-app-border rounded-lg p-2.5">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 font-mono font-bold text-sm">
+                @
+              </div>
+<div>
+<div class="font-mono font-semibold text-base text-white tracking-tight flex items-center gap-1.5">
+                  @weave_alex
+                  <i class="fa-solid fa-circle-check text-emerald-400 text-xs" title="Verified Hook"></i>
+</div>
+<p class="text-[11px] text-app-dim">Trigger bot via group or direct message</p>
+</div>
+</div>
+<button class="px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:border-sky-400/60 rounded-md text-xs font-mono font-medium transition flex items-center gap-1.5 active:scale-95" id="copyBtn" onclick="navigator.clipboard.writeText('@weave_alex'); const el=this; el.innerHTML='&lt;i class=\'fa-solid fa-check text-emerald-400\'&gt;&lt;/i&gt; Copied'; setTimeout(() =&gt; el.innerHTML='&lt;i class=\'fa-regular fa-copy\'&gt;&lt;/i&gt; Copy', 2000)">
+<i class="fa-regular fa-copy"></i>
+<span>Copy</span>
+</button>
+</div>
+<div class="mt-2.5 flex items-center justify-between text-[11px] text-app-dim pt-1 border-t border-app-borderSubtle">
+<span class="flex items-center gap-1">
+<i class="fa-solid fa-bolt text-amber-400 text-[10px]"></i> Latency: <strong>320ms</strong>
+</span>
+<span class="font-mono text-slate-400">Tokens: 14.2k / 1M</span>
+</div>
+</div>
+<!-- Telemetry & Status Badges (7 cols) -->
+<div class="md:col-span-7 glass-card rounded-xl p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[11px] font-semibold tracking-wider uppercase text-app-dim flex items-center gap-1.5">
+<i class="fa-solid fa-gauge-high text-sky-400 text-xs"></i>
+              Engine Telemetry &amp; Security
+            </span>
+<span class="text-[11px] text-sky-400 font-mono flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+              Ready
+            </span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+<!-- Active Agent Pill -->
+<div class="bg-app-bg/70 border border-app-border rounded-lg p-2.5 flex flex-col justify-between hover:border-app-border transition">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[10px] text-app-dim uppercase font-mono">Model</span>
+<i class="fa-solid fa-microchip text-sky-400 text-xs"></i>
+</div>
+<div>
+<div class="text-xs font-semibold text-white truncate flex items-center gap-1">
+                  Gemini 2.5 Flash
+                </div>
+<div class="text-[10px] text-sky-400 font-mono mt-0.5">Google Cloud GenAI</div>
+</div>
+</div>
+<!-- Bridge Status -->
+<div class="bg-app-bg/70 border border-app-border rounded-lg p-2.5 flex flex-col justify-between hover:border-app-border transition">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[10px] text-app-dim uppercase font-mono">Bridge Queue</span>
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+</div>
+<div>
+<div class="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                  Active
+                </div>
+<div class="text-[10px] text-app-dim font-mono mt-0.5">0 pending tasks</div>
+</div>
+</div>
+<!-- Safety Mode -->
+<div class="bg-app-bg/70 border border-app-border rounded-lg p-2.5 flex flex-col justify-between hover:border-app-border transition">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[10px] text-app-dim uppercase font-mono">Sandbox</span>
+<i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i>
+</div>
+<div>
+<div class="text-xs font-semibold text-slate-200">
+                  Scoped Folders Only
+                </div>
+<div class="text-[10px] text-emerald-400/90 font-mono mt-0.5">Strict Airgap</div>
+</div>
+</div>
+</div>
+<div class="mt-2.5 flex items-center justify-between text-[11px] text-app-dim pt-1 border-t border-app-borderSubtle">
+<span class="flex items-center gap-1.5 text-slate-400">
+<i class="fa-solid fa-network-wired text-app-dim text-[10px]"></i> Webhook tunnel: <span class="font-mono text-slate-300">wss://relay.weave.internal</span>
+</span>
+<span class="text-[10px] text-sky-400 bg-sky-950/60 border border-sky-500/20 px-1.5 py-0.5 rounded font-mono">E2EE Active</span>
+</div>
+</div>
+</div>
+<!-- Section 2: Split Columns - Connected Workspaces & Live Feed -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+<!-- Connected Workspaces & Projects Panel (5 cols) -->
+<div class="md:col-span-5 glass-card rounded-xl p-3.5 flex flex-col">
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xs">
+<i class="fa-regular fa-folder-open"></i>
+</div>
+<h2 class="text-xs font-semibold text-white tracking-tight uppercase">Local Workspaces</h2>
+</div>
+<span class="text-[10px] text-app-dim font-mono bg-app-bg px-2 py-0.5 rounded border border-app-borderSubtle">2 Mounted</span>
+</div>
+<!-- Folders list -->
+<div class="space-y-2 flex-1">
+<!-- Folder 1: Portfolio Site -->
+<div class="p-2.5 rounded-lg bg-app-bg/80 border border-app-border hover:border-sky-500/40 hover:bg-app-card/60 transition group cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 text-xs shrink-0">
+<i class="fa-solid fa-code"></i>
+</div>
+<div>
+<div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      Portfolio Site
+                      <span class="text-[10px] px-1.5 py-0.2 rounded bg-sky-950/70 text-sky-300 border border-sky-500/30 font-sans">
+                        Shared with Team
+                      </span>
+</div>
+<div class="text-[11px] font-mono text-app-dim truncate mt-0.5">~/projects/portfolio</div>
+</div>
+</div>
+<div class="text-[10px] font-mono text-emerald-400 flex items-center gap-1 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  Read/Write
+                </div>
+</div>
+</div>
+<!-- Folder 2: Docs & Resumes -->
+<div class="p-2.5 rounded-lg bg-app-bg/80 border border-app-border hover:border-sky-500/40 hover:bg-app-card/60 transition group cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xs shrink-0">
+<i class="fa-solid fa-file-shield"></i>
+</div>
+<div>
+<div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      Docs &amp; Resumes
+                      <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 font-sans">
+                        Private
+                      </span>
+</div>
+<div class="text-[11px] font-mono text-app-dim truncate mt-0.5">~/Documents</div>
+</div>
+</div>
+<div class="text-[10px] font-mono text-app-dim flex items-center gap-1 mt-0.5">
+<i class="fa-solid fa-lock text-[9px] text-amber-400"></i>
+                  Read-Only
+                </div>
+</div>
+</div>
+<!-- Add Folder Button with Dotted Outline -->
+<button class="w-full py-2 px-3 rounded-lg border border-dashed border-sky-500/40 hover:border-sky-400 bg-sky-950/20 hover:bg-sky-950/40 text-sky-300 transition text-xs font-medium flex items-center justify-center gap-2 group cursor-pointer" onclick="const el=document.getElementById('nativeFileAlert'); el.classList.remove('hidden'); setTimeout(()=&gt;el.classList.add('hidden'), 2500)">
+<i class="fa-solid fa-folder-plus text-sky-400 group-hover:scale-110 transition"></i>
+<span>+ Add Folder</span>
+<span class="text-[10px] text-sky-400/70 font-mono">(Triggers OS Picker)</span>
+</button>
+<!-- Temporary Native Trigger Toast -->
+<div class="hidden text-center py-1 text-[11px] font-mono text-sky-400 bg-sky-950/80 border border-sky-500/40 rounded transition" id="nativeFileAlert">
+<i class="fa-solid fa-spinner fa-spin mr-1"></i> Opening native macOS directory picker...
+            </div>
+</div>
+<div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[11px] text-app-dim">
+<span>Allowed extensions: <strong class="text-slate-300 font-mono">.ts, .md, .py, .pdf</strong></span>
+<button class="hover:text-sky-300 transition text-[11px] font-medium flex items-center gap-1">
+<i class="fa-solid fa-sliders text-[10px]"></i> Scopes
+            </button>
+</div>
+</div>
+<!-- Live WhatsApp Activity Feed (7 cols) -->
+<div class="md:col-span-7 glass-card rounded-xl p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xs">
+<i class="fa-brands fa-whatsapp"></i>
+</div>
+<h2 class="text-xs font-semibold text-white tracking-tight uppercase">Live WhatsApp Stream</h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<span class="text-[10px] text-emerald-400 font-mono">Realtime Event Bus</span>
+</div>
+</div>
+<!-- Feed Stream List -->
+<div class="space-y-2.5 flex-1">
+<!-- Feed Item 1: Sarah Group Command -->
+<div class="p-2.5 rounded-lg bg-app-bg/90 border border-app-border hover:border-app-border/80 transition">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center gap-1.5 text-xs">
+<span class="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-[10px] font-bold">
+                    S
+                  </span>
+<span class="font-medium text-slate-200">Sarah</span>
+<span class="text-app-dim text-[11px]">via</span>
+<span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 text-[10px] font-medium">Team Group</span>
+</div>
+<span class="text-[10px] font-mono text-app-dim">2m ago</span>
+</div>
+<!-- Message quote -->
+<div class="text-xs font-mono text-sky-300 bg-app-card/60 border border-app-borderSubtle px-2 py-1 rounded mb-2">
+                “@weave_alex fix navbar bug”
+              </div>
+<!-- Action result bar -->
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-1.5 text-emerald-400 text-[11px] font-medium">
+<i class="fa-solid fa-arrow-turn-down text-[10px] rotate-[-90deg]"></i>
+<i class="fa-solid fa-file-pen text-xs"></i>
+<span>3 files modified in <strong class="font-mono text-slate-200">Portfolio Site</strong></span>
+</div>
+<button class="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[11px] font-mono transition flex items-center gap-1">
+<i class="fa-solid fa-code-compare text-[10px]"></i>
+                  [View Diff]
+                </button>
+</div>
+</div>
+<!-- Feed Item 2: Alex Direct DM -->
+<div class="p-2.5 rounded-lg bg-app-bg/90 border border-app-border hover:border-app-border/80 transition">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center gap-1.5 text-xs">
+<span class="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center text-[10px] font-bold">
+                    A
+                  </span>
+<span class="font-medium text-slate-200">Alex</span>
+<span class="text-app-dim text-[11px]">via</span>
+<span class="px-1.5 py-0.2 rounded bg-emerald-950/60 text-emerald-300 text-[10px] font-medium border border-emerald-500/30">Direct DM</span>
+</div>
+<span class="text-[10px] font-mono text-app-dim">12m ago</span>
+</div>
+<!-- Message quote -->
+<div class="text-xs font-mono text-sky-300 bg-app-card/60 border border-app-borderSubtle px-2 py-1 rounded mb-2">
+                “Schedule meeting with Liam tomorrow 3pm”
+              </div>
+<!-- Action result bar -->
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-1.5 text-sky-400 text-[11px] font-medium">
+<i class="fa-solid fa-arrow-turn-down text-[10px] rotate-[-90deg]"></i>
+<i class="fa-solid fa-calendar-check text-xs text-sky-400"></i>
+<span class="text-slate-300">Added to <strong class="text-white">Google Calendar</strong></span>
+</div>
+<span class="text-[10px] text-emerald-400 bg-emerald-950/50 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
+                  Synced
+                </span>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[11px] text-app-dim">
+<span class="flex items-center gap-1">
+<i class="fa-solid fa-wave-square text-emerald-400 text-[10px]"></i>
+              WhatsApp socket heartbeat: <span class="font-mono text-slate-300">OK</span>
+</span>
+<button class="hover:text-slate-300 transition text-[11px]">Clear history</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Control Footer Bar -->
+<footer class="h-14 bg-app-sidebar/95 border-t border-app-border px-4 flex items-center justify-between shrink-0 z-20">
+<!-- Quick Toggles -->
+<div class="flex items-center gap-5 sm:gap-6">
+<!-- Toggle 1: Allow Team Edits (Git PRs) -->
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="sr-only peer" id="toggleGit" type="checkbox"/>
+<div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-sky-500 relative"></div>
+<div class="flex items-center gap-1.5">
+<i class="fa-brands fa-git-alt text-amber-400 text-xs"></i>
+<span class="text-xs text-slate-300 font-medium group-hover:text-white transition">Allow Team Edits (Git PRs)</span>
+</div>
+</label>
+<!-- Toggle 2: Voice Note Transcription (Whisper) -->
+<label class="flex items-center gap-2 cursor-pointer group hidden sm:flex">
+<input checked="" class="sr-only peer" id="toggleWhisper" type="checkbox"/>
+<div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-sky-500 relative"></div>
+<div class="flex items-center gap-1.5">
+<i class="fa-solid fa-microphone-lines text-sky-400 text-xs"></i>
+<span class="text-xs text-slate-300 font-medium group-hover:text-white transition">Voice Transcription (Whisper)</span>
+</div>
+</label>
+</div>
+<!-- Footer Action Buttons: Settings gear & Disconnect -->
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 rounded-lg bg-app-card hover:bg-app-cardHover border border-app-border text-app-muted hover:text-white transition flex items-center justify-center text-xs cursor-pointer active:scale-95" title="Engine Configuration">
+<i class="fa-solid fa-gear"></i>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-300 hover:text-red-200 transition text-xs font-medium flex items-center gap-1.5 cursor-pointer active:scale-95" onclick="this.classList.toggle('bg-red-500/20'); this.innerHTML = '&lt;i class=\'fa-solid fa-plug-circle-xmark mr-1\'&gt;&lt;/i&gt; Disconnecting...'">
+<i class="fa-solid fa-plug-circle-xmark text-xs"></i>
+<span>Disconnect</span>
+</button>
+</div>
+</footer>
+</div>
+</body>
+</html>
+

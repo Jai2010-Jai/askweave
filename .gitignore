@@ -1,0 +1,29 @@
+# Secrets and local settings: never commit
+.env
+.env.*
+!.env.example
+*.pem
+local.properties
+
+# Runtime data (users, builds, backups)
+server/data/
+server/dist/
+
+# Dependencies and build output
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+site/.next/
+site/out/
+*.tsbuildinfo
+build/
+.gradle/
+.netlify/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+.claude/

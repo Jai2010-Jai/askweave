@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# WhatsApp Baileys Auth Session & Credentials
+auth_info_baileys/
+auth_info_baileys*/
+auth_info_baileys.bak*
+whatsapp-qr.png
+
+# Environment & Secret Configuration
+.env
+.env.local
+.env.*.local
+.credentials.json
+.credentials*.json
+credentials*.json
+*token*.json
+*.pem
+*.key
+
+# Runtime State & Project Data
+projects.json
+projects.json.*
+projects.json.corrupt-*
+contacts.json
+.processed-msgs.json
+.sent-msgs.json
+
+# Uploads & Temporary Media
+.whatsapp-uploads/
+**/.whatsapp-uploads/
+*.tmp
+*.bak
+*.bak-*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pino-debug.log*
+*.log
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives & Distribution Builds
+*.zip
+*.tar.gz
+dist/
+build/
+out/
+site/downloads/
+site/screenshots/
+extracted_app/
+squashfs-root/
+.netlify/

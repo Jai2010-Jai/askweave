@@ -1,0 +1,85 @@
+/* Ultra-refined Monochrome Aesthetics (Stitch Design 05 & 07) */
+.draggable {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Allow text selection inside Event Bus terminal */
+#terminal-body,
+#terminal-body *,
+.selectable,
+.selectable * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  cursor: text;
+}
+
+html, body, * {
+  scroll-behavior: smooth;
+}
+
+/* Ensure scrollable containers scroll smoothly and allow mousewheel */
+.overflow-y-auto {
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Place scrollbar on the complete left of the left pane */
+.scrollbar-left {
+  direction: rtl;
+}
+
+.scrollbar-left > * {
+  direction: ltr;
+}
+
+/* Sleek modern desktop scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Minimal Monochrome Window dots */
+.window-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.window-dot:hover {
+  background-color: #3f3f46;
+}
+
+/* Subtle transitions */
+.smooth-fade {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purrfect Match — Curated Companionship for Distinguished Cats</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#F5EFE6',
+              card: '#EBD9C8',
+              cardLight: '#F0E2D4',
+              accent: '#C85A32',
+              accentHover: '#B24B25',
+              secondary: '#E09F67',
+              secondaryLight: '#F3CFAB',
+              textPrimary: '#2B2118',
+              textMuted: '#7C6A59',
+              border: '#DEC8B5',
+              borderLight: '#ECE0D4',
+              surface: '#FFFDF9',
+              terracottaDeep: '#9C3D1B',
+              oliveMuted: '#687259',
+              sunbeam: '#FDE68A'
+            }
+          },
+          fontFamily: {
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
+            body: ['"DM Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          boxShadow: {
+            'tactile': '0 10px 30px -10px rgba(74, 53, 38, 0.08), 0 4px 6px -2px rgba(74, 53, 38, 0.03)',
+            'tactile-lg': '0 20px 40px -15px rgba(74, 53, 38, 0.12), 0 0 0 1px rgba(222, 200, 181, 0.4)',
+            'clay': 'inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 8px 16px -4px rgba(200, 90, 50, 0.18)',
+            'sunbeam': '0 0 45px rgba(224, 159, 103, 0.35)'
+          },
+          borderRadius: {
+            'pebble': '38px 24px 34px 28px',
+            'pebble-lg': '54px 36px 48px 42px',
+            'pebble-organic': '60% 40% 30% 70% / 60% 30% 70% 40%',
+            'pebble-inv': '40% 60% 70% 30% / 40% 70% 30% 60%'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Architectural Linen & Terracotta Texture */
+    body {
+      background-color: #F5EFE6;
+      color: #2B2118;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(224, 159, 103, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(200, 90, 50, 0.08) 0px, transparent 45%),
+        radial-gradient(at 50% 50%, rgba(245, 239, 230, 0.8) 0px, transparent 100%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+    }
+
+    /* Ceramic Subtle Glaze Effect */
+    .ceramic-glaze {
+      position: relative;
+    }
+    .ceramic-glaze::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1.5px 1px 0 rgba(124, 106, 89, 0.1);
+    }
+
+    /* Pebble contour hover */
+    .pebble-card {
+      transition: all 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .pebble-card:hover {
+      transform: translateY(-4px) scale(1.008);
+    }
+
+    /* Custom range input styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #DEC8B5;
+      height: 6px;
+      border-radius: 999px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #C85A32;
+      border: 3px solid #FFFDF9;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Solarium Sunbeam Ambient Pulse */
+    @keyframes sunbeamBreathe {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(1.04); }
+    }
+    .animate-sunbeam {
+      animation: sunbeamBreathe 8s ease-in-out infinite;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F5EFE6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #DEC8B5;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #C85A32;
+    }
+  </style>
+</head>
+
+<body class="font-body antialiased min-h-screen text-brand-textPrimary selection:bg-brand-secondaryLight selection:text-brand-terracottaDeep relative overflow-x-hidden">
+
+<div id="stitch-preview-bar" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 99999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; font-size: 13px;">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <span style="background: #10b981; color: #000; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.05em;">DESIGN PREVIEW</span>
+    <span style="color: #cbd5e1;">Viewing: <strong style="color: #fff;">Option 3: Sunbeam Solarium & Ceramic Loft</strong></span>
+  </div>
+  <div style="display: flex; gap: 6px;">
+    
+      <a href="/option1.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: rgba(255,255,255,0.1); color: #fff;">Option 1</a>
+      <a href="/option2.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: rgba(255,255,255,0.1); color: #fff;">Option 2</a>
+      <a href="/option3.html" style="padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; transition: all 0.2s; background: #10b981; color: #000;">Option 3</a>
+  </div>
+</div>
+
+  <!-- Ambient Light Cast Top Right -->
+  <div class="absolute -top-32 -right-32 w-96 h-96 md:w-[600px] md:h-[600px] bg-gradient-to-br from-brand-secondary/25 via-brand-accent/10 to-transparent rounded-full blur-3xl pointer-events-none animate-sunbeam"></div>
+  <div class="absolute top-1/3 -left-48 w-80 h-80 bg-gradient-to-tr from-brand-secondaryLight/40 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+  <!-- Top Announcement Bar: Curated Telemetry & Lounge Status -->
+  <aside class="border-b border-brand-border/60 bg-brand-surface/65 backdrop-blur-md px-4 py-2 text-xs text-brand-textMuted text-center font-medium tracking-wide flex items-center justify-center gap-3">
+    <span class="inline-flex items-center gap-1.5 text-brand-accent">
+      <span class="w-2 h-2 rounded-full bg-brand-accent animate-ping"></span>
+      <span class="w-2 h-2 rounded-full bg-brand-accent -ml-3.5"></span>
+      <span>Concierge Pheromone Solarium</span>
+    </span>
+    <span class="text-brand-border">•</span>
+    <span>Today's Solarium Index: <strong>94.2% Golden Angle</strong></span>
+    <span class="hidden md:inline text-brand-border">•</span>
+    <span class="hidden md:inline">Feliway™ Optimum Diffusers Active across 12 Private Atriums</span>
+    <span class="text-brand-border">•</span>
+    <a href="#solarium-matrix" class="underline underline-offset-2 hover:text-brand-accent transition-colors font-semibold">Reserve Window Seat</a>
+  </aside>
+
+  <!-- Sticky Luxury Navigation -->
+  <header class="sticky top-0 z-40 bg-brand-bg/85 backdrop-blur-lg border-b border-brand-border/70 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo & Kinfolk Emblem -->
+      <a href="#" class="group flex items-center gap-3.5 text-decoration-none">
+        <div class="w-11 h-11 rounded-pebble bg-brand-accent text-brand-surface flex items-center justify-center shadow-clay group-hover:rotate-6 transition-transform duration-300">
+          <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 3.31 1.62 6.24 4.12 8.04l.43.3.45-.26c1.46-.86 3.19-1.35 5-1.35 1.81 0 3.54.49 5 1.35l.45.26.43-.3C20.38 18.24 22 15.31 22 12c0-5.52-4.48-10-10-10zm-3.5 8c-.83 0-1.5-.67-1.5-1.5S7.67 7 8.5 7s1.5.67 1.5 1.5S9.33 10 8.5 10zm7 0c-.83 0-1.5-.67-1.5-1.5S14.67 7 15.5 7s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM12 16.5c-1.38 0-2.5-.56-3.25-1.42-.2-.23-.17-.58.06-.78.23-.2.58-.17.78.06.55.63 1.41 1.04 2.41 1.04s1.86-.41 2.41-1.04c.2-.23.55-.26.78-.06.23.2.26.55.06.78-.75.86-1.87 1.42-3.25 1.42z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="font-display font-semibold text-2xl tracking-tight text-brand-textPrimary block leading-none">Purrfect Match</span>
+          <span class="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-textMuted mt-1 block">Haute Feline Courtship</span>
+        </div>
+      </a>
+
+      <!-- Desktop Links -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-brand-textMuted">
+        <a href="#feline-capsules" class="hover:text-brand-accent transition-colors">Distinguished Profiles</a>
+        <a href="#telemetry-matrix" class="hover:text-brand-accent transition-colors">Compatibility Telemetry</a>
+        <a href="#solarium-matrix" class="hover:text-brand-accent transition-colors">Solarium Seat Matrix</a>
+        <a href="#verified-dossiers" class="hover:text-brand-accent transition-colors">Rescue & Pedigree Dossiers</a>
+        <a href="#guardian-pairing" class="hover:text-brand-accent transition-colors">Dual-Vibe Philosophy</a>
+      </nav>
+
+      <!-- Action Badges & Audio Ambience -->
+      <div class="flex items-center gap-3">
+        <!-- Purr Audio Synth Toggle -->
+        <button id="purrToggle" onclick="togglePurrAmbience()" title="Toggle Warm Cat Purr Ambience" class="px-3.5 py-2 rounded-full border border-brand-border bg-brand-surface/80 hover:bg-brand-cardLight transition-all text-xs font-medium flex items-center gap-2 shadow-sm text-brand-textPrimary">
+          <span id="purrIcon" class="inline-block w-2.5 h-2.5 rounded-full bg-brand-border"></span>
+          <span id="purrText">Loft Purr (Quiet)</span>
+        </button>
+
+        <!-- Guardian Consultation CTA -->
+        <a href="#solarium-matrix" class="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-brand-accent hover:bg-brand-accentHover text-brand-surface font-medium text-xs tracking-wider uppercase transition-all shadow-clay hover:shadow-tactile active:scale-95">
+          Request Dossier
+        </a>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-brand-textPrimary hover:text-brand-accent" aria-label="Toggle Navigation Menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden md:hidden border-t border-brand-border/60 bg-brand-surface/95 px-6 py-4 space-y-3 text-sm font-medium">
+      <a href="#feline-capsules" onclick="toggleMobileMenu()" class="block py-1.5 text-brand-textPrimary">Distinguished Profiles</a>
+      <a href="#telemetry-matrix" onclick="toggleMobileMenu()" class="block py-1.5 text-brand-textPrimary">Compatibility Telemetry</a>
+      <a href="#solarium-matrix" onclick="toggleMobileMenu()" class="block py-1.5 text-brand-textPrimary">Solarium Seat Matrix</a>
+      <a href="#verified-dossiers" onclick="toggleMobileMenu()" class="block py-1.5 text-brand-textPrimary">Rescue & Pedigree Dossiers</a>
+      <a href="#guardian-pairing" onclick="toggleMobileMenu()" class="block py-1.5 text-brand-textPrimary">Dual-Vibe Philosophy</a>
+      <div class="pt-2 border-t border-brand-border">
+        <a href="#solarium-matrix" onclick="toggleMobileMenu()" class="block w-full text-center py-2.5 rounded-full bg-brand-accent text-brand-surface font-semibold text-xs uppercase tracking-wider">
+          Request Dossier
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section: Ceramic Solarium & Organic Splendor -->
+  <main>
+    <section class="relative pt-12 pb-20 md:pt-24 md:pb-32 overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          
+          <!-- Left Column: Editorial Kinfolk Typography -->
+          <div class="lg:col-span-7 space-y-6">
+            
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-card/70 border border-brand-border text-xs uppercase tracking-widest font-semibold text-brand-accent">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-accent"></span>
+              Minimal Gallery Select 2026
+            </div>
+
+            <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[4.2rem] font-semibold text-brand-textPrimary leading-[1.08] tracking-tight">
+              Curated Companionship for <span class="italic font-normal text-brand-accent">Distinguished</span> Cats.
+            </h1>
+
+            <p class="text-lg md:text-xl text-brand-textMuted font-normal leading-relaxed max-w-xl">
+              Courtship for high-born felines and the devoted guardians who serve them. Tailored neutral-territory introductions bathed in golden sunbeams.
+            </p>
+
+            <!-- Dual Micro Metrics Card -->
+            <div class="pt-4 grid grid-cols-3 gap-3 max-w-lg">
+              <div class="p-4 rounded-2xl bg-brand-surface/90 border border-brand-border/80 shadow-sm ceramic-glaze">
+                <span class="block font-display text-2xl md:text-3xl font-semibold text-brand-accent">98.4%</span>
+                <span class="text-xs text-brand-textMuted mt-0.5 block leading-tight">Harmonious Introductions</span>
+              </div>
+              <div class="p-4 rounded-2xl bg-brand-surface/90 border border-brand-border/80 shadow-sm ceramic-glaze">
+                <span class="block font-display text-2xl md:text-3xl font-semibold text-brand-textPrimary">14,200+</span>
+                <span class="text-xs text-brand-textMuted mt-0.5 block leading-tight">Supervised Neutral Playdates</span>
+              </div>
+              <div class="p-4 rounded-2xl bg-brand-surface/90 border border-brand-border/80 shadow-sm ceramic-glaze">
+                <span class="block font-display text-2xl md:text-3xl font-semibold text-brand-oliveMuted">100%</span>
+                <span class="text-xs text-brand-textMuted mt-0.5 block leading-tight">Veterinary Certified Dossiers</span>
+              </div>
+            </div>
+
+            <!-- Action Cluster -->
+            <div class="pt-2 flex flex-wrap items-center gap-4">
+              <a href="#feline-capsules" class="px-7 py-3.5 rounded-full bg-brand-accent hover:bg-brand-accentHover text-brand-surface font-semibold text-sm tracking-wide shadow-clay hover:shadow-tactile transition-all duration-200">
+                Browse Active Suitors
+              </a>
+              <a href="#telemetry-matrix" class="px-7 py-3.5 rounded-full bg-brand-surface hover:bg-brand-cardLight border border-brand-border text-brand-textPrimary font-semibold text-sm transition-all duration-200 flex items-center gap-2 shadow-sm">
+                <span>Simulate Harmony Index</span>
+                <svg class="w-4 h-4 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+            </div>
+
+            <!-- Guardian Quote Signoff -->
+            <div class="pt-4 flex items-center gap-3 text-xs text-brand-textMuted border-t border-brand-border/60">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" alt="Lady Beatrice Croft" class="w-8 h-8 rounded-full object-cover border border-brand-secondary">
+              <p class="italic">"Lord Barnaby discovered his soulmate over freeze-dried duck hearts and a 4-hour synchronized nap." — Lady Croft, Kensington</p>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Tactile Pebble Capsule Composition -->
+          <div class="lg:col-span-5 relative">
+            
+            <!-- Warm Ceramic Frame with Featured Feline -->
+            <div class="relative mx-auto max-w-md lg:max-w-none">
+              
+              <!-- Background Pebble Backplate -->
+              <div class="absolute inset-0 bg-brand-secondary/30 rounded-pebble-organic transform rotate-3 scale-105 filter blur-sm"></div>
+              
+              <!-- Main Organic Capsule -->
+              <div class="relative bg-brand-surface rounded-[42px] border-2 border-brand-border p-5 shadow-tactile-lg ceramic-glaze overflow-hidden">
+                
+                <!-- Pill Status Banner -->
+                <div class="flex items-center justify-between mb-4">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-card/80 text-brand-terracottaDeep text-xs font-semibold uppercase tracking-wider">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    Window Seat #4 Occupied
+                  </span>
+                  <span class="text-xs font-serif italic text-brand-textMuted">Solarium Lounge • 24°C Warm Oak</span>
+                </div>
+
+                <!-- Main Feline Visual: High Quality Unsplash Feline -->
+                <div class="relative h-72 sm:h-80 w-full rounded-[32px] overflow-hidden border border-brand-border/70 group">
+                  <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80" alt="Sir Archibald of Sussex" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700">
+                  <div class="absolute inset-0 bg-gradient-to-t from-brand-textPrimary/80 via-transparent to-transparent"></div>
+                  
+                  <!-- Overlay Card Metadata -->
+                  <div class="absolute bottom-4 left-4 right-4 text-brand-surface">
+                    <div class="flex items-end justify-between">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <h2 class="font-display text-2xl font-semibold">Sir Archibald</h2>
+                          <span class="px-2 py-0.5 rounded-full bg-brand-accent/90 text-[10px] uppercase font-bold tracking-widest text-brand-surface">High-Born</span>
+                        </div>
+                        <p class="text-xs text-brand-secondaryLight font-light">British Shorthair • Lilac Coat • 4 Years Old</p>
+                      </div>
+                      <div class="text-right">
+                        <span class="text-xs block text-brand-secondaryLight">Nap Endurance</span>
+                        <span class="font-display text-lg font-bold text-brand-sunbeam">17.5 hrs/day</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Guardian & Feline Dual-Vibe Badge -->
+                <div class="mt-4 p-3.5 rounded-2xl bg-brand-bg/90 border border-brand-border flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-brand-card flex items-center justify-center font-display font-semibold text-brand-terracottaDeep border border-brand-border">
+                      HG
+                    </div>
+                    <div>
+                      <span class="text-xs font-semibold block text-brand-textPrimary">Guardian Dual-Vibe Badge</span>
+                      <span class="text-[11px] text-brand-textMuted">Ceramicist & Teak Furniture Restorer</span>
+                    </div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold border border-emerald-200">
+                    Quiet Household
+                  </span>
+                </div>
+
+                <!-- Treat & Catnip Affinity Pills -->
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  <span class="text-[11px] px-2.5 py-1 rounded-full bg-brand-card/60 text-brand-textPrimary border border-brand-border/60">🌿 Valerian Root Sniffer</span>
+                  <span class="text-[11px] px-2.5 py-1 rounded-full bg-brand-card/60 text-brand-textPrimary border border-brand-border/60">🦆 Freeze-Dried Duck Breast</span>
+                  <span class="text-[11px] px-2.5 py-1 rounded-full bg-brand-accent/15 text-brand-accent font-medium border border-brand-accent/30">☀️ Afternoon Beam Connoisseur</span>
+                </div>
+
+              </div>
+
+              <!-- Floating Tactile Badge -->
+              <div class="absolute -bottom-6 -left-6 bg-brand-surface border border-brand-border p-3.5 rounded-2xl shadow-tactile flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-secondary/30 flex items-center justify-center text-brand-accent">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+                </div>
+                <div>
+                  <span class="text-[11px] uppercase tracking-wider text-brand-textMuted block font-bold">Telemetric Harmony</span>
+                  <span class="font-display text-sm font-semibold text-brand-textPrimary">99.1% with Lady Clementine</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 2: Organic Pebble-Shaped Cat Bio Capsules (Interactive Curation) -->
+    <section id="feline-capsules" class="py-20 bg-brand-surface/60 border-y border-brand-border/70 relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Section Header -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+          <div>
+            <span class="text-xs uppercase tracking-widest font-semibold text-brand-accent block mb-2">Kinfolk Solarium Selection</span>
+            <h2 class="font-display text-3xl md:text-4xl font-semibold text-brand-textPrimary tracking-tight">
+              Distinguished Aristocrats & Refined Rescues
+            </h2>
+            <p class="text-brand-textMuted text-sm md:text-base mt-2 max-w-xl">
+              Each applicant undergoes verified microchip scans, certified veterinary temperament clearance, and neutral-zone feline compatibility profiling.
+            </p>
+          </div>
+
+          <!-- Tactile Filter Pills -->
+          <div class="flex flex-wrap items-center gap-2 p-1.5 bg-brand-bg rounded-full border border-brand-border max-w-fit">
+            <button onclick="filterProfiles('all')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-brand-accent text-brand-surface shadow-sm" data-category="all">
+              All Suitors (6)
+            </button>
+            <button onclick="filterProfiles('sunbather')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold text-brand-textMuted hover:text-brand-textPrimary transition-all" data-category="sunbather">
+              Sunbathers
+            </button>
+            <button onclick="filterProfiles('aristocrat')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold text-brand-textMuted hover:text-brand-textPrimary transition-all" data-category="aristocrat">
+              Aristocratic
+            </button>
+            <button onclick="filterProfiles('rescue')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold text-brand-textMuted hover:text-brand-textPrimary transition-all" data-category="rescue">
+              Noble Rescues
+            </button>
+          </div>
+        </div>
+
+        <!-- Bio Capsules Grid -->
+        <div id="profilesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <!-- Profile 1: Duchess Mimosa -->
+          <article class="cat-card pebble-card bg-brand-surface border border-brand-border rounded-[36px] p-6 shadow-tactile ceramic-glaze flex flex-col justify-between" data-category="sunbather aristocrat">
+            <div>
+              <div class="relative h-64 w-full rounded-[26px] overflow-hidden border border-brand-border/60 mb-5">
+                <img src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=700&q=80" alt="Duchess Mimosa" class="w-full h-full object-cover">
+                <div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-surface/90 backdrop-blur-sm border border-brand-border text-[11px] font-semibold text-brand-terracottaDeep flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-brand-accent"></span>
+                  Verified Pedigree
+                </div>
+                <div class="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-brand-textPrimary/80 text-brand-surface text-[10px] font-mono tracking-wider">
+                  SOLARIUM LVL: 96%
+                </div>
+              </div>
+
+              <!-- Header Details -->
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-display text-xl font-semibold text-brand-textPrimary">Duchess Mimosa</h3>
+                  <p class="text-xs text-brand-textMuted">Scottish Fold • Cream & Pearl • 3 Yrs</p>
+                </div>
+                <span class="text-xs font-serif italic text-brand-accent px-2.5 py-0.5 rounded-full bg-brand-card">Passive Observer</span>
+              </div>
+
+              <p class="text-xs text-brand-textMuted mt-3 leading-relaxed">
+                Prefers low-wavelength acoustic cello, unbleached linen pillows, and meditative balcony staring. Strictly zero unprompted tail grabbing.
+              </p>
+
+              <!-- Temperament Multi-Axis -->
+              <div class="mt-4 pt-3 border-t border-brand-border/60 space-y-2">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-brand-textMuted">Nap Endurance</span>
+                  <span class="font-semibold text-brand-textPrimary">18.2 hrs / day</span>
+                </div>
+                <div class="w-full bg-brand-card rounded-full h-1.5">
+                  <div class="bg-brand-accent h-1.5 rounded-full" style="width: 92%"></div>
+                </div>
+
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-brand-textMuted">Lap Tolerance</span>
+                  <span class="font-semibold text-brand-textPrimary">Calculated (Post-Dinner)</span>
+                </div>
+                <div class="w-full bg-brand-card rounded-full h-1.5">
+                  <div class="bg-brand-secondary h-1.5 rounded-full" style="width: 78%"></div>
+                </div>
+              </div>
+
+              <!-- Treat Affinity Tags -->
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Silvervine Sprinkles</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Organic Spelt Grass</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Warm Goat Kephir</span>
+              </div>
+            </div>
+
+            <!-- Footer: Dual Vibe + Action -->
+            <div class="mt-6 pt-4 border-t border-brand-border flex items-center justify-between">
+              <div class="text-[11px]">
+                <span class="text-brand-textMuted block">Guardian Pairing:</span>
+                <span class="font-medium text-brand-textPrimary">Architectural Archivist</span>
+              </div>
+              <button onclick="openDossierModal('Duchess Mimosa', 'Scottish Fold', '98.4%', 'Pedigree Gold Certified #UK-99412', 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=700&q=80')" class="px-3.5 py-1.5 rounded-full border border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-surface transition-all text-xs font-semibold">
+                View Dossier
+              </button>
+            </div>
+          </article>
+
+          <!-- Profile 2: Soren of Montmartre (Rescue Noble) -->
+          <article class="cat-card pebble-card bg-brand-surface border border-brand-border rounded-[36px] p-6 shadow-tactile ceramic-glaze flex flex-col justify-between" data-category="rescue sunbather">
+            <div>
+              <div class="relative h-64 w-full rounded-[26px] overflow-hidden border border-brand-border/60 mb-5">
+                <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=700&q=80" alt="Soren of Montmartre" class="w-full h-full object-cover">
+                <div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-surface/90 backdrop-blur-sm border border-brand-border text-[11px] font-semibold text-brand-oliveMuted flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-brand-oliveMuted"></span>
+                  Rehabilitated Noble Rescue
+                </div>
+                <div class="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-brand-textPrimary/80 text-brand-surface text-[10px] font-mono tracking-wider">
+                  SOLARIUM LVL: 99%
+                </div>
+              </div>
+
+              <!-- Header Details -->
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-display text-xl font-semibold text-brand-textPrimary">Soren of Montmartre</h3>
+                  <p class="text-xs text-brand-textMuted">Domestic Tuxedo • Velvet Obsidian • 5 Yrs</p>
+                </div>
+                <span class="text-xs font-serif italic text-brand-terracottaDeep px-2.5 py-0.5 rounded-full bg-brand-card">Zen Stoic</span>
+              </div>
+
+              <p class="text-xs text-brand-textMuted mt-3 leading-relaxed">
+                Found sleeping atop vintage bookbindings in Paris. Master of territorial neutrality and synchronous bird-watching. Never initiates drama.
+              </p>
+
+              <!-- Temperament Multi-Axis -->
+              <div class="mt-4 pt-3 border-t border-brand-border/60 space-y-2">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-brand-textMuted">Nap Endurance</span>
+                  <span class="font-semibold text-brand-textPrimary">16.4 hrs / day</span>
+                </div>
+                <div class="w-full bg-brand-card rounded-full h-1.5">
+                  <div class="bg-brand-accent h-1.5 rounded-full" style="width: 82%"></div>
+                </div>
+
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-brand-textMuted">Territorial Neutrality</span>
+                  <span class="font-semibold text-brand-textPrimary">100% Diplomatic</span>
+                </div>
+                <div class="w-full bg-brand-card rounded-full h-1.5">
+                  <div class="bg-emerald-600 h-1.5 rounded-full" style="width: 98%"></div>
+                </div>
+              </div>
+
+              <!-- Treat Affinity Tags -->
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Wild Alaskan Salmon Jerky</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Nepeta Cataria Infusion</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Warm Solarium Bricks</span>
+              </div>
+            </div>
+
+            <!-- Footer: Dual Vibe + Action -->
+            <div class="mt-6 pt-4 border-t border-brand-border flex items-center justify-between">
+              <div class="text-[11px]">
+                <span class="text-brand-textMuted block">Guardian Pairing:</span>
+                <span class="font-medium text-brand-textPrimary">Independent Printmaker</span>
+              </div>
+              <button onclick="openDossierModal('Soren of Montmartre', 'Domestic Tuxedo', '99.2%', 'Rescue Verified Shield #FR-10492', 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=700&q=80')" class="px-3.5 py-1.5 rounded-full border border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-surface transition-all text-xs font-semibold">
+                View Dossier
+              </button>
+            </div>
+          </article>
+
+          <!-- Profile 3: Lady Clementine (Aristocrat) -->
+          <article class="cat-card pebble-card bg-brand-surface border border-brand-border rounded-[36px] p-6 shadow-tactile ceramic-glaze flex flex-col justify-between" data-category="aristocrat">
+            <div>
+              <div class="relative h-64 w-full rounded-[26px] overflow-hidden border border-brand-border/60 mb-5">
+                <img src="https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=700&q=80" alt="Lady Clementine" class="w-full h-full object-cover">
+                <div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-surface/90 backdrop-blur-sm border border-brand-border text-[11px] font-semibold text-brand-accent flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-brand-accent"></span>
+                  Genealogical Champion
+                </div>
+                <div class="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-brand-textPrimary/80 text-brand-surface text-[10px] font-mono tracking-wider">
+                  SOLARIUM LVL: 91%
+                </div>
+              </div>
+
+              <!-- Header Details -->
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-display text-xl font-semibold text-brand-textPrimary">Lady Clementine</h3>
+                  <p class="text-xs text-brand-textMuted">Somali Longhair • Ruddy Amber • 2.5 Yrs</p>
+                </div>
+                <span class="text-xs font-serif italic text-brand-accent px-2.5 py-0.5 rounded-full bg-brand-card">Graceful Athlete</span>
+              </div>
+
+              <p class="text-xs text-brand-textMuted mt-3 leading-relaxed">
+                Loves vertical wall climbs on handcrafted oak dowels. High emotional intelligence, seeks an intellectual peer who respects afternoon quiet hours.
+              </p>
+
+              <!-- Temperament Multi-Axis -->
+              <div class="mt-4 pt-3 border-t border-brand-border/60 space-y-2">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-brand-textMuted">Zoomies Timing</span>
+                  <span class="font-semibold text-brand-textPrimary">Prompt 19:45 PM (8 min)</span>
+                </div>
+                <div class="w-full bg-brand-card rounded-full h-1.5">
+                  <div class="bg-brand-secondary h-1.5 rounded-full" style="width: 65%"></div>
+                </div>
+
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-brand-textMuted">Aesthetic Poise</span>
+                  <span class="font-semibold text-brand-textPrimary">99.8% Sovereign</span>
+                </div>
+                <div class="w-full bg-brand-card rounded-full h-1.5">
+                  <div class="bg-brand-accent h-1.5 rounded-full" style="width: 96%"></div>
+                </div>
+              </div>
+
+              <!-- Treat Affinity Tags -->
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Japanese Bonito Flakes</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Pure Organic Honeysuckle</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-card/70 border border-brand-border text-brand-textPrimary">Filtered Raindrop Bowl</span>
+              </div>
+            </div>
+
+            <!-- Footer: Dual Vibe + Action -->
+            <div class="mt-6 pt-4 border-t border-brand-border flex items-center justify-between">
+              <div class="text-[11px]">
+                <span class="text-brand-textMuted block">Guardian Pairing:</span>
+                <span class="font-medium text-brand-textPrimary">Botanical Florist & Stylist</span>
+              </div>
+              <button onclick="openDossierModal('Lady Clementine', 'Somali Longhair', '97.9%', 'Pedigree Elite Shield #C-88201', 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=700&q=80')" class="px-3.5 py-1.5 rounded-full border border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-surface transition-all text-xs font-semibold">
+                View Dossier
+              </button>
+            </div>
+          </article>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 3: Live Interactive Compatibility Telemetry & Zoomies Formula Bar -->
+    <section id="telemetry-matrix" class="py-24 bg-brand-bg relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-3xl mx-auto mb-14">
+          <span class="text-xs uppercase tracking-widest font-semibold text-brand-accent block mb-2">Multi-Axis Compatibility Engine</span>
+          <h2 class="font-display text-3xl sm:text-4xl font-semibold text-brand-textPrimary tracking-tight">
+            Temperament & Energy Reconciliation Matrix
+          </h2>
+          <p class="text-brand-textMuted text-sm sm:text-base mt-2">
+            98.4% of our matched introductions result in peaceful parallel grooming. Adjust the telemetric parameters below to test pair harmony.
+          </p>
+        </div>
+
+        <!-- Interactive Telemetry Console Card -->
+        <div class="bg-brand-surface rounded-[40px] border-2 border-brand-border p-6 sm:p-10 shadow-tactile-lg ceramic-glaze max-w-5xl mx-auto">
+          
+          <!-- Live Telemetry Formula Bar (Inspired by Studio Data Sheets) -->
+          <div class="bg-brand-bg rounded-2xl border border-brand-border p-3.5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+            <div class="flex items-center gap-2 text-brand-terracottaDeep">
+              <span class="px-2 py-0.5 bg-brand-card rounded text-[11px] font-bold">ƒ(x)</span>
+              <span class="text-brand-textMuted">Harmonious_Index = </span>
+              <span id="formulaOutput" class="text-brand-accent font-semibold">
+                0.35(ΔNap) + 0.30(ΔZoomies) + 0.20(Territory) + 0.15(TreatAffinity)
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-brand-textMuted self-end sm:self-center">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Reconciliation Engine: v3.4 Active</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            
+            <!-- Controls Column (Sliders) -->
+            <div class="lg:col-span-7 space-y-6">
+              
+              <!-- Param 1: Nap Endurance Variance -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <label for="napSlider" class="text-xs font-semibold uppercase tracking-wider text-brand-textPrimary flex items-center gap-2">
+                    <span>Synchronized Nap Endurance</span>
+                    <span class="text-brand-textMuted font-normal">(Hours per day)</span>
+                  </label>
+                  <span id="napDisplay" class="font-mono text-xs font-bold text-brand-accent bg-brand-card/70 px-2 py-0.5 rounded">16.5 hrs</span>
+                </div>
+                <input id="napSlider" type="range" min="12" max="20" step="0.5" value="16.5" oninput="calculateHarmony()" class="w-full">
+                <div class="flex justify-between text-[10px] text-brand-textMuted mt-1">
+                  <span>12h (Active Explorer)</span>
+                  <span>16h (Optimal Balance)</span>
+                  <span>20h (Deep Zen Sleeper)</span>
+                </div>
+              </div>
+
+              <!-- Param 2: Zoomies Synchronization Schedule -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <label for="zoomiesSlider" class="text-xs font-semibold uppercase tracking-wider text-brand-textPrimary flex items-center gap-2">
+                    <span>Evening Zoomies Window</span>
+                    <span class="text-brand-textMuted font-normal">(PM Schedule)</span>
+                  </label>
+                  <span id="zoomiesDisplay" class="font-mono text-xs font-bold text-brand-accent bg-brand-card/70 px-2 py-0.5 rounded">20:30 PM</span>
+                </div>
+                <input id="zoomiesSlider" type="range" min="18" max="23" step="0.5" value="20.5" oninput="calculateHarmony()" class="w-full">
+                <div class="flex justify-between text-[10px] text-brand-textMuted mt-1">
+                  <span>18:00 (Dusk Sprint)</span>
+                  <span>20:30 (Mid-Evening Chase)</span>
+                  <span>23:00 (Midnight Aristocrat)</span>
+                </div>
+              </div>
+
+              <!-- Param 3: Lap Tolerance & Social Autonomy -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <label for="lapSlider" class="text-xs font-semibold uppercase tracking-wider text-brand-textPrimary flex items-center gap-2">
+                    <span>Territorial Neutrality & Lap Tolerance</span>
+                    <span class="text-brand-textMuted font-normal">(Index)</span>
+                  </label>
+                  <span id="lapDisplay" class="font-mono text-xs font-bold text-brand-accent bg-brand-card/70 px-2 py-0.5 rounded">88 / 100</span>
+                </div>
+                <input id="lapSlider" type="range" min="50" max="100" step="1" value="88" oninput="calculateHarmony()" class="w-full">
+                <div class="flex justify-between text-[10px] text-brand-textMuted mt-1">
+                  <span>50 (Guarded Sovereign)</span>
+                  <span>75 (Polite Proximity)</span>
+                  <span>100 (Unconditional Parallel Lounger)</span>
+                </div>
+              </div>
+
+              <!-- Treat Matrix Toggle -->
+              <div class="pt-2">
+                <label class="text-xs font-semibold uppercase tracking-wider text-brand-textPrimary block mb-2">Shared Treat Affinity Baseline</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button type="button" onclick="toggleAffinity(this)" class="treat-btn active px-3 py-2 rounded-xl text-xs font-medium border border-brand-accent bg-brand-accent text-brand-surface text-center transition-all">
+                    Freeze-Dried Salmon
+                  </button>
+                  <button type="button" onclick="toggleAffinity(this)" class="treat-btn active px-3 py-2 rounded-xl text-xs font-medium border border-brand-accent bg-brand-accent text-brand-surface text-center transition-all">
+                    Organic Cat Grass
+                  </button>
+                  <button type="button" onclick="toggleAffinity(this)" class="treat-btn px-3 py-2 rounded-xl text-xs font-medium border border-brand-border bg-brand-bg text-brand-textMuted hover:text-brand-textPrimary text-center transition-all">
+                    Valerian Root
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Output Visual Scorecard Column -->
+            <div class="lg:col-span-5 bg-brand-card/45 rounded-3xl border border-brand-border p-6 text-center space-y-5 ceramic-glaze">
+              
+              <span class="text-xs font-semibold uppercase tracking-wider text-brand-textMuted">Projected Match Harmony</span>
+              
+              <!-- Circular Score Graphic -->
+              <div class="relative w-44 h-44 mx-auto flex items-center justify-center">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="#DEC8B5" stroke-width="8" fill="transparent" />
+                  <circle id="scoreCircle" cx="50" cy="50" r="40" stroke="#C85A32" stroke-width="8" stroke-linecap="round" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="15" class="transition-all duration-700 ease-out" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span id="harmonyScore" class="font-display text-4xl sm:text-5xl font-bold text-brand-accent">97.8%</span>
+                  <span class="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider mt-1">Sovereign Match</span>
+                </div>
+              </div>
+
+              <!-- Recommendation Text -->
+              <div class="bg-brand-surface rounded-2xl p-4 border border-brand-border/80 text-left space-y-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span class="text-xs font-bold text-brand-textPrimary">Concierge Protocol: Greenlit</span>
+                </div>
+                <p id="recommendationText" class="text-xs text-brand-textMuted leading-relaxed">
+                  Both profiles exhibit peaceful nap circadian cycles and non-confrontational proximity. Approved for <strong>Private Solarium Suite B</strong> neutral session.
+                </p>
+              </div>
+
+              <!-- Copy Telemetry Link -->
+              <button onclick="copyTelemetryLink()" id="shareTelemetryBtn" class="w-full py-2.5 rounded-full border border-brand-border bg-brand-surface hover:bg-brand-bg text-xs font-semibold text-brand-textPrimary transition-all flex items-center justify-center gap-2">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                <span>Copy Telemetry Report Certificate</span>
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 4: Sunbeam Window Seat Availability Matrix (Live Solarium Schedule) -->
+    <section id="solarium-matrix" class="py-20 bg-brand-surface/70 border-t border-brand-border/80 relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+          <div>
+            <span class="text-xs uppercase tracking-widest font-semibold text-brand-accent block mb-2">Neutral-Territory Reservations</span>
+            <h2 class="font-display text-3xl md:text-4xl font-semibold text-brand-textPrimary tracking-tight">
+              Sunbeam Window Seat Availability Matrix
+            </h2>
+            <p class="text-brand-textMuted text-sm md:text-base mt-2 max-w-xl">
+              Thermal luxury encounters monitored by certified feline behaviorists. South-facing double glazed architectural windows with cedar perches.
+            </p>
+          </div>
+
+          <!-- Date / Solarium Location Selector -->
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-brand-textMuted font-medium">Solarium Atrium:</span>
+            <select id="atriumSelect" onchange="renderMatrixSlots()" class="px-3.5 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs font-semibold text-brand-textPrimary focus:outline-none focus:ring-1 focus:ring-brand-accent">
+              <option value="kensington">Kensington Terrace (South Bay)</option>
+              <option value="chelsea">Chelsea Solarium Loft (Skylight)</option>
+              <option value="mayfair">Mayfair Courtyard Suite (Ground)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Matrix Schedule Table / Card Grid -->
+        <div class="bg-brand-bg rounded-3xl border border-brand-border overflow-hidden shadow-tactile">
+          
+          <div class="p-4 sm:p-6 border-b border-brand-border/80 bg-brand-surface/70 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4 text-xs">
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span> Available Spot</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-brand-accent/20 border border-brand-accent/40"></span> Courtship In Progress</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-brand-card border border-brand-border"></span> Reserved for Grooming</span>
+            </div>
+            <div class="text-xs font-mono text-brand-terracottaDeep font-medium">
+              ☀️ Ambient Solar Lumens: <span id="currentLux">84,500 Lux (Optimal)</span>
+            </div>
+          </div>
+
+          <!-- Live Interactive Time Slot Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-brand-border bg-brand-card/30 font-display text-brand-textPrimary">
+                  <th class="p-4 font-semibold">Seat & Sun Angle</th>
+                  <th class="p-4 font-semibold">Perch Woodwork</th>
+                  <th class="p-4 font-semibold">10:00 - 12:00</th>
+                  <th class="p-4 font-semibold">12:30 - 14:30</th>
+                  <th class="p-4 font-semibold">15:00 - 17:00 (Golden Hour)</th>
+                  <th class="p-4 font-semibold">17:30 - 19:30 (Dusk)</th>
+                </tr>
+              </thead>
+              <tbody id="matrixTableBody" class="divide-y divide-brand-border/60">
+                <!-- Row 1 -->
+                <tr class="hover:bg-brand-surface/60 transition-colors">
+                  <td class="p-4 font-medium">
+                    <span class="block text-brand-textPrimary font-semibold">Bay Window Seat Alpha</span>
+                    <span class="text-[11px] text-brand-textMuted">42° Direct Radiant Angle</span>
+                  </td>
+                  <td class="p-4 text-brand-textMuted">Oiled Scandinavian Oak</td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Bay Window Seat Alpha', '10:00 - 12:00')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                  <td class="p-4">
+                    <span class="block text-center py-2 rounded-xl bg-brand-card/70 text-brand-textMuted cursor-not-allowed">
+                      Reserved (Lord Barnaby)
+                    </span>
+                  </td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Bay Window Seat Alpha', '15:00 - 17:00 (Golden Hour)')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                  <td class="p-4">
+                    <span class="block text-center py-2 rounded-xl bg-brand-accent/15 border border-brand-accent/30 text-brand-accent font-medium">
+                      Live Courtship Playdate
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Row 2 -->
+                <tr class="hover:bg-brand-surface/60 transition-colors">
+                  <td class="p-4 font-medium">
+                    <span class="block text-brand-textPrimary font-semibold">Solarium Skylight Hammock</span>
+                    <span class="text-[11px] text-brand-textMuted">High-Apex Diffused Velvet</span>
+                  </td>
+                  <td class="p-4 text-brand-textMuted">Unbleached Organic Linen</td>
+                  <td class="p-4">
+                    <span class="block text-center py-2 rounded-xl bg-brand-card/70 text-brand-textMuted cursor-not-allowed">
+                      Pheromone Recalibration
+                    </span>
+                  </td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Solarium Skylight Hammock', '12:30 - 14:30')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                  <td class="p-4">
+                    <span class="block text-center py-2 rounded-xl bg-brand-accent/15 border border-brand-accent/30 text-brand-accent font-medium">
+                      Live Courtship Playdate
+                    </span>
+                  </td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Solarium Skylight Hammock', '17:30 - 19:30 (Dusk)')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 3 -->
+                <tr class="hover:bg-brand-surface/60 transition-colors">
+                  <td class="p-4 font-medium">
+                    <span class="block text-brand-textPrimary font-semibold">Terracotta Hearth Lounger</span>
+                    <span class="text-[11px] text-brand-textMuted">Radiant Floor Heat 26°C</span>
+                  </td>
+                  <td class="p-4 text-brand-textMuted">Hand-Turned Raw Clay</td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Terracotta Hearth Lounger', '10:00 - 12:00')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Terracotta Hearth Lounger', '12:30 - 14:30')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                  <td class="p-4">
+                    <span class="block text-center py-2 rounded-xl bg-brand-card/70 text-brand-textMuted cursor-not-allowed">
+                      Reserved (Archibald)
+                    </span>
+                  </td>
+                  <td class="p-4">
+                    <button onclick="bookSeat('Terracotta Hearth Lounger', '17:30 - 19:30 (Dusk)')" class="w-full px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold transition-all">
+                      Available • Book
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bottom Concierge Note -->
+          <div class="p-4 bg-brand-surface/50 border-t border-brand-border flex items-center justify-between text-xs text-brand-textMuted">
+            <span>All sessions include complimentary organic silvervine misting & neutral feline chaperone.</span>
+            <span class="font-medium text-brand-accent">Custom Dietary Requests Honored</span>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 5: Pedigree & Rescue Verified Dossiers (Cryptographic Transparency) -->
+    <section id="verified-dossiers" class="py-24 bg-brand-bg relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-6 space-y-6">
+            <span class="text-xs uppercase tracking-widest font-semibold text-brand-accent block">Uncompromising Veterinary Integrity</span>
+            <h2 class="font-display text-3xl sm:text-4xl font-semibold text-brand-textPrimary tracking-tight">
+              Cryptographically Verified Dossiers for Both Rescues and Pedigrees.
+            </h2>
+            <p class="text-brand-textMuted text-base leading-relaxed">
+              Courtship requires absolute peace of mind. Every cat registered on Purrfect Match maintains an immutable health ledger vetted by certified board veterinary surgeons.
+            </p>
+
+            <div class="space-y-4 pt-2">
+              <div class="flex items-start gap-3.5">
+                <div class="w-8 h-8 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center shrink-0 mt-0.5">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </div>
+                <div>
+                  <h4 class="text-sm font-semibold text-brand-textPrimary">Cardiomyopathy (HCM) & PKD Negative Clearance</h4>
+                  <p class="text-xs text-brand-textMuted mt-0.5">Dual Doppler echocardiograms performed every 12 months for certified peace of mind.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3.5">
+                <div class="w-8 h-8 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center shrink-0 mt-0.5">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </div>
+                <div>
+                  <h4 class="text-sm font-semibold text-brand-textPrimary">Microchip & FeLV / FIV Cryptographic Ledger</h4>
+                  <p class="text-xs text-brand-textMuted mt-0.5">Signed by accredited UK/EU/US veterinary clinics, verifiable through on-demand hash inspection.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3.5">
+                <div class="w-8 h-8 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center shrink-0 mt-0.5">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </div>
+                <div>
+                  <h4 class="text-sm font-semibold text-brand-textPrimary">Behavioral Neutrality & Claws-In Assessment</h4>
+                  <p class="text-xs text-brand-textMuted mt-0.5">Evaluated in three mock neutral lounge settings before joining the registry.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <button onclick="openVerificationDemo()" class="px-6 py-3 rounded-full bg-brand-surface border border-brand-border hover:bg-brand-cardLight text-xs font-semibold text-brand-textPrimary transition-all shadow-sm">
+                Inspect Sample Verification Hash
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Column: Tactile Certificate Artifact -->
+          <div class="lg:col-span-6">
+            <div class="bg-brand-surface rounded-[36px] border-2 border-brand-border p-7 shadow-tactile-lg ceramic-glaze relative">
+              
+              <div class="border-2 border-dashed border-brand-border rounded-[28px] p-6 space-y-5 bg-brand-bg/40">
+                
+                <div class="flex justify-between items-start">
+                  <div>
+                    <span class="text-[10px] tracking-widest font-mono uppercase text-brand-accent block">OFFICIAL CERTIFICATION</span>
+                    <h3 class="font-display text-xl font-bold text-brand-textPrimary">Royal Veterinary Clearance</h3>
+                    <p class="text-[11px] text-brand-textMuted">Dossier #PM-UK-2026-99214</p>
+                  </div>
+                  <div class="w-12 h-12 rounded-full border-2 border-brand-accent/40 bg-brand-accent/10 flex items-center justify-center text-brand-accent font-serif font-bold text-sm">
+                    100%
+                  </div>
+                </div>
+
+                <!-- Detail Breakdown Rows -->
+                <div class="space-y-2.5 text-xs">
+                  <div class="flex justify-between py-1.5 border-b border-brand-border/60">
+                    <span class="text-brand-textMuted">Registered Name:</span>
+                    <span class="font-semibold text-brand-textPrimary">Sir Archibald of Sussex</span>
+                  </div>
+                  <div class="flex justify-between py-1.5 border-b border-brand-border/60">
+                    <span class="text-brand-textMuted">Microchip Identifier:</span>
+                    <span class="font-mono text-brand-textPrimary">981098102983019</span>
+                  </div>
+                  <div class="flex justify-between py-1.5 border-b border-brand-border/60">
+                    <span class="text-brand-textMuted">FIV/FeLV Serology:</span>
+                    <span class="text-emerald-700 font-semibold">Negative (Verified Oct 2026)</span>
+                  </div>
+                  <div class="flex justify-between py-1.5 border-b border-brand-border/60">
+                    <span class="text-brand-textMuted">Solarium Neutrality Score:</span>
+                    <span class="font-semibold text-brand-accent">Grade A1 (Sovereign Calm)</span>
+                  </div>
+                  <div class="flex justify-between py-1.5">
+                    <span class="text-brand-textMuted">Cryptographic Signature:</span>
+                    <span class="font-mono text-[10px] text-brand-textMuted truncate max-w-[200px]">0x7c4e92a4f...31a</span>
+                  </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-between text-[11px] text-brand-textMuted">
+                  <span>Signatory: Dr. Eleanor Vance, MRCVS</span>
+                  <span class="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Verified Ledger
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 6: Guardian & Feline Dual-Vibe Pairing Philosophy -->
+    <section id="guardian-pairing" class="py-20 bg-brand-surface/60 border-t border-brand-border/70 relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-2xl mx-auto mb-14">
+          <span class="text-xs uppercase tracking-widest font-semibold text-brand-accent block mb-2">The Dual-Vibe Principle</span>
+          <h2 class="font-display text-3xl sm:text-4xl font-semibold text-brand-textPrimary tracking-tight">
+            Because Guardian Harmony Matters Just as Much
+          </h2>
+          <p class="text-brand-textMuted text-sm sm:text-base mt-2">
+            A successful cat match requires guardians whose domestic rhythms, design tastes, and quiet hour boundaries gracefully align.
+          </p>
+        </div>
+
+        <!-- 3 Dual Vibe Architectural Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          <div class="bg-brand-bg rounded-[32px] border border-brand-border p-6 shadow-tactile ceramic-glaze space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-brand-card flex items-center justify-center text-brand-accent text-xl font-display font-bold">
+              01
+            </div>
+            <h3 class="font-display text-xl font-semibold text-brand-textPrimary">The Ceramicist Loft</h3>
+            <p class="text-xs text-brand-textMuted leading-relaxed">
+              For homes filled with warm wheel-thrown stoneware, raw terracotta tiles, and unglazed earthen vessels. Cats are trained in delicate paw placements.
+            </p>
+            <div class="p-3 bg-brand-surface rounded-2xl border border-brand-border text-xs space-y-1">
+              <span class="font-semibold text-brand-accent block">Ideal Pairing:</span>
+              <span class="text-brand-textMuted">Quiet British Shorthairs & Mindful Sculptors</span>
+            </div>
+          </div>
+
+          <div class="bg-brand-bg rounded-[32px] border border-brand-border p-6 shadow-tactile ceramic-glaze space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-brand-card flex items-center justify-center text-brand-accent text-xl font-display font-bold">
+              02
+            </div>
+            <h3 class="font-display text-xl font-semibold text-brand-textPrimary">The Nordic Library</h3>
+            <p class="text-xs text-brand-textMuted leading-relaxed">
+              Quiet sanctuaries layered in birch shelves, wool blankets, and classical literature. Mutual respect for 5-hour uninterrupted reading spells.
+            </p>
+            <div class="p-3 bg-brand-surface rounded-2xl border border-brand-border text-xs space-y-1">
+              <span class="font-semibold text-brand-accent block">Ideal Pairing:</span>
+              <span class="text-brand-textMuted">Philosophical Rescues & Architectural Writers</span>
+            </div>
+          </div>
+
+          <div class="bg-brand-bg rounded-[32px] border border-brand-border p-6 shadow-tactile ceramic-glaze space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-brand-card flex items-center justify-center text-brand-accent text-xl font-display font-bold">
+              03
+            </div>
+            <h3 class="font-display text-xl font-semibold text-brand-textPrimary">The Sunlit Solarium</h3>
+            <p class="text-xs text-brand-textMuted leading-relaxed">
+              High ceilings, monster foliage, and floor-to-ceiling glass where the afternoon light turns into pure liquid honey. Shared sunbeam reverence.
+            </p>
+            <div class="p-3 bg-brand-surface rounded-2xl border border-brand-border text-xs space-y-1">
+              <span class="font-semibold text-brand-accent block">Ideal Pairing:</span>
+              <span class="text-brand-textMuted">Longhair Sunbathers & Botanical Artists</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 7: Concierge Application CTA Banner -->
+    <section class="py-20 bg-brand-card/40 border-t border-brand-border relative overflow-hidden">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+        
+        <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-brand-surface border border-brand-border text-xs uppercase tracking-widest font-semibold text-brand-accent">
+          By Invitation & Selective Application
+        </span>
+
+        <h2 class="font-display text-3xl sm:text-5xl font-semibold text-brand-textPrimary tracking-tight">
+          Is Your Feline Ready for Distinguished Courtship?
+        </h2>
+
+        <p class="text-brand-textMuted text-base max-w-xl mx-auto">
+          We curate only 40 bespoke cat introductions per season to guarantee private solarium availability, personalized treat tasting menus, and uninterrupted serenity.
+        </p>
+
+        <div class="pt-4 flex flex-wrap items-center justify-center gap-4">
+          <button onclick="openBookingDrawer()" class="px-8 py-4 rounded-full bg-brand-accent hover:bg-brand-accentHover text-brand-surface font-semibold text-sm tracking-wide shadow-clay hover:shadow-tactile transition-all">
+            Submit Suitor Application
+          </button>
+          <a href="#solarium-matrix" class="px-8 py-4 rounded-full bg-brand-surface hover:bg-brand-cardLight border border-brand-border text-brand-textPrimary font-semibold text-sm transition-all shadow-sm">
+            Explore Lounge Atriums
+          </a>
+        </div>
+
+        <p class="text-xs text-brand-textMuted font-serif italic pt-2">
+          "The most civilised feline encounter service in modern existence." — Kinfolk Living
+        </p>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Editorial Architectural Footer -->
+  <footer class="bg-brand-bg border-t border-brand-border pt-16 pb-12 text-brand-textMuted text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-brand-border/60">
+        
+        <div class="md:col-span-4 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-pebble bg-brand-accent text-brand-surface flex items-center justify-center shadow-clay">
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 3.31 1.62 6.24 4.12 8.04l.43.3.45-.26c1.46-.86 3.19-1.35 5-1.35 1.81 0 3.54.49 5 1.35l.45.26.43-.3C20.38 18.24 22 15.31 22 12c0-5.52-4.48-10-10-10z"/></svg>
+            </div>
+            <span class="font-display font-semibold text-xl text-brand-textPrimary">Purrfect Match</span>
+          </div>
+          <p class="text-xs text-brand-textMuted leading-relaxed max-w-sm">
+            Curated companionship for distinguished cats. Architectural neutral-territory lounges, cryptographic dossiers, and harmonic multi-axis compatibility.
+          </p>
+          <div class="text-[11px] font-mono text-brand-terracottaDeep">
+            Solarium Temperature: 24.2°C • Humidity: 46%
+          </div>
+        </div>
+
+        <div class="md:col-span-2 space-y-3">
+          <span class="font-semibold text-brand-textPrimary block tracking-wide">Registry</span>
+          <ul class="space-y-2">
+            <li><a href="#feline-capsules" class="hover:text-brand-accent transition-colors">Distinguished Suitors</a></li>
+            <li><a href="#feline-capsules" class="hover:text-brand-accent transition-colors">Noble Rescues</a></li>
+            <li><a href="#verified-dossiers" class="hover:text-brand-accent transition-colors">Veterinary Ledgers</a></li>
+            <li><a href="#telemetry-matrix" class="hover:text-brand-accent transition-colors">Zoomies Telemetry</a></li>
+          </ul>
+        </div>
+
+        <div class="md:col-span-3 space-y-3">
+          <span class="font-semibold text-brand-textPrimary block tracking-wide">Solarium Lounges</span>
+          <ul class="space-y-2">
+            <li><a href="#solarium-matrix" class="hover:text-brand-accent transition-colors">Kensington South Terrace</a></li>
+            <li><a href="#solarium-matrix" class="hover:text-brand-accent transition-colors">Chelsea Skylight Loft</a></li>
+            <li><a href="#solarium-matrix" class="hover:text-brand-accent transition-colors">Mayfair Courtyard Suite</a></li>
+            <li><a href="#solarium-matrix" class="hover:text-brand-accent transition-colors">Acoustic Harp Concierge</a></li>
+          </ul>
+        </div>
+
+        <div class="md:col-span-3 space-y-3">
+          <span class="font-semibold text-brand-textPrimary block tracking-wide">The Gazette</span>
+          <p class="text-xs text-brand-textMuted">Receive seasonal dispatches on feline courtship aesthetics and architectural climbing walls.</p>
+          <form onsubmit="subscribeGazette(event)" class="space-y-2">
+            <div class="flex gap-2">
+              <input type="email" required placeholder="guardian@domain.com" class="w-full px-3.5 py-2 rounded-xl bg-brand-surface border border-brand-border text-xs text-brand-textPrimary focus:outline-none focus:border-brand-accent">
+              <button type="submit" class="px-4 py-2 rounded-xl bg-brand-accent text-brand-surface font-semibold text-xs hover:bg-brand-accentHover transition-colors shrink-0">
+                Join
+              </button>
+            </div>
+            <span id="gazetteMsg" class="text-[11px] text-emerald-700 hidden">Welcome to our seasonal dispatch.</span>
+          </form>
+        </div>
+
+      </div>
+
+      <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
+        <p>© 2026 Purrfect Match Studio Ltd. Inspired by DRĄSA Studio, David Fiz & Kinfolk.</p>
+        <div class="flex items-center gap-6">
+          <a href="#" class="hover:text-brand-accent transition-colors">Privacy Charter</a>
+          <a href="#" class="hover:text-brand-accent transition-colors">Feline Welfare Act 2026</a>
+          <a href="#" class="hover:text-brand-accent transition-colors">Concierge Terms</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- MODAL 1: Dossier Inspection Modal -->
+  <div id="dossierModal" class="fixed inset-0 z-50 bg-brand-textPrimary/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-brand-surface border-2 border-brand-border rounded-[36px] max-w-lg w-full p-6 sm:p-8 shadow-tactile-lg ceramic-glaze relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeDossierModal()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-brand-card hover:bg-brand-border text-brand-textPrimary flex items-center justify-center text-sm font-bold transition-colors">✕</button>
+      
+      <div class="flex items-center gap-4 mb-5">
+        <img id="modalCatImg" src="" alt="Cat Profile" class="w-16 h-16 rounded-2xl object-cover border border-brand-border">
+        <div>
+          <h3 id="modalCatName" class="font-display text-2xl font-bold text-brand-textPrimary">Profile</h3>
+          <p id="modalCatBreed" class="text-xs text-brand-textMuted">Breed & Details</p>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-brand-bg border border-brand-border space-y-3 text-xs mb-6 font-mono">
+        <div class="flex justify-between">
+          <span class="text-brand-textMuted">Status:</span>
+          <span class="text-emerald-700 font-bold">VERIFIED ACTIVE</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-brand-textMuted">Cert Badge:</span>
+          <span id="modalCertBadge" class="text-brand-accent font-semibold">UK-99412</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-brand-textMuted">Harmony Baseline:</span>
+          <span id="modalHarmony" class="font-bold text-brand-textPrimary">98.4%</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-brand-textMuted">Feliway™ Tolerance:</span>
+          <span class="text-brand-textPrimary">Optimal (Zero Agitation)</span>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs text-brand-textMuted leading-relaxed mb-6">
+        <p>This profile holds an active Certificate of Feline Temperament Clearance. Monitored for territorial neutrality across multiple scent-swapping trials.</p>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="bookSuitorFromModal()" class="flex-1 py-3 rounded-full bg-brand-accent hover:bg-brand-accentHover text-brand-surface font-semibold text-xs tracking-wider uppercase transition-all shadow-clay">
+          Request Courtship Intro
+        </button>
+        <button onclick="closeDossierModal()" class="px-5 py-3 rounded-full border border-brand-border hover:bg-brand-bg text-xs font-semibold text-brand-textPrimary transition-all">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Seat Booking Confirmation Modal -->
+  <div id="bookingModal" class="fixed inset-0 z-50 bg-brand-textPrimary/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-brand-surface border-2 border-brand-border rounded-[36px] max-w-md w-full p-6 sm:p-8 shadow-tactile-lg ceramic-glaze relative">
+      <button onclick="closeBookingModal()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-brand-card hover:bg-brand-border text-brand-textPrimary flex items-center justify-center text-sm font-bold transition-colors">✕</button>
+      
+      <div class="text-center space-y-2 mb-6">
+        <div class="w-12 h-12 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center mx-auto mb-3">
+          ☀️
+        </div>
+        <h3 class="font-display text-2xl font-bold text-brand-textPrimary">Confirm Solarium Seat</h3>
+        <p id="bookingSeatDetails" class="text-xs text-brand-textMuted">Bay Window Seat Alpha • 10:00 - 12:00</p>
+      </div>
+
+      <form onsubmit="submitSeatBooking(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-brand-textPrimary mb-1">Your Distinguished Cat's Name</label>
+          <input type="text" required placeholder="e.g. Baron von Whiskers" class="w-full px-3.5 py-2.5 rounded-xl bg-brand-bg border border-brand-border text-brand-textPrimary focus:outline-none focus:border-brand-accent">
+        </div>
+        <div>
+          <label class="block font-semibold text-brand-textPrimary mb-1">Guardian Contact Email</label>
+          <input type="email" required placeholder="guardian@manor.co.uk" class="w-full px-3.5 py-2.5 rounded-xl bg-brand-bg border border-brand-border text-brand-textPrimary focus:outline-none focus:border-brand-accent">
+        </div>
+        <div>
+          <label class="block font-semibold text-brand-textPrimary mb-1">Dietary & Treat Preference</label>
+          <select class="w-full px-3.5 py-2.5 rounded-xl bg-brand-bg border border-brand-border text-brand-textPrimary focus:outline-none focus:border-brand-accent">
+            <option>Freeze-Dried Duck Breast</option>
+            <option>Wild Alaskan Salmon Tartare</option>
+            <option>Organic Silvervine Leaves</option>
+            <option>Warm Organic Goat Milk</option>
+          </select>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-full bg-brand-accent hover:bg-brand-accentHover text-brand-surface font-semibold text-xs tracking-wider uppercase transition-all shadow-clay mt-2">
+          Confirm Solarium Reservation
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 bg-brand-textPrimary text-brand-surface px-5 py-3 rounded-2xl shadow-tactile border border-brand-secondary/40 text-xs font-medium flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300">
+    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+    <span id="toastMsg">Action completed successfully.</span>
+  </div>
+
+  <!-- Bespoke JavaScript Logic -->
+  <script>
+    // 1. Mobile Menu Toggle
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    // 2. Profile Category Filter Logic
+    function filterProfiles(category) {
+      const buttons = document.querySelectorAll('.filter-btn');
+      buttons.forEach(btn => {
+        if (btn.dataset.category === category) {
+          btn.classList.add('bg-brand-accent', 'text-brand-surface', 'shadow-sm');
+          btn.classList.remove('text-brand-textMuted');
+        } else {
+          btn.classList.remove('bg-brand-accent', 'text-brand-surface', 'shadow-sm');
+          btn.classList.add('text-brand-textMuted');
+        }
+      });
+
+      const cards = document.querySelectorAll('.cat-card');
+      cards.forEach(card => {
+        const cardCategories = card.dataset.category || '';
+        if (category === 'all' || cardCategories.includes(category)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // 3. Telemetry Harmony Calculator
+    function calculateHarmony() {
+      const nap = parseFloat(document.getElementById('napSlider').value);
+      const zoomies = parseFloat(document.getElementById('zoomiesSlider').value);
+      const lap = parseFloat(document.getElementById('lapSlider').value);
+
+      document.getElementById('napDisplay').innerText = nap.toFixed(1) + ' hrs';
+      
+      const hour = Math.floor(zoomies);
+      const min = zoomies % 1 === 0 ? '00' : '30';
+      document.getElementById('zoomiesDisplay').innerText = `${hour}:${min} PM`;
+      
+      document.getElementById('lapDisplay').innerText = `${lap} / 100`;
+
+      // Multi-axis algorithmic score
+      const napDelta = 1 - Math.abs(16.5 - nap) / 8; // Optimal is 16.5
+      const zoomDelta = 1 - Math.abs(20.5 - zoomies) / 6; // Optimal is 20:30
+      const lapScore = lap / 100;
+
+      // Active treat affinities
+      const activeTreats = document.querySelectorAll('.treat-btn.active').length;
+      const treatBonus = (activeTreats / 3) * 0.05;
+
+      let score = (napDelta * 35 + zoomDelta * 30 + lapScore * 30 + treatBonus * 100);
+      if (score > 99.8) score = 99.8;
+      if (score < 72.0) score = 72.0;
+
+      const scoreFormatted = score.toFixed(1) + '%';
+      document.getElementById('harmonyScore').innerText = scoreFormatted;
+
+      // Update SVG circular gauge stroke (circumference ~ 251.2)
+      const circle = document.getElementById('scoreCircle');
+      const offset = 251.2 - (251.2 * (score / 100));
+      circle.style.strokeDashoffset = offset;
+
+      // Dynamic recommendation copy
+      const rec = document.getElementById('recommendationText');
+      if (score >= 95) {
+        rec.innerHTML = 'Exceptional harmony! Harmonious circadian cycles and synchronised evening calm. Approved for <strong>Private Solarium Suite B</strong>.';
+      } else if (score >= 85) {
+        rec.innerHTML = 'Favourable pairing. Mild zoomies schedule gap; suggest initial encounter behind transparent French glass divider with catnip tea.';
+      } else {
+        rec.innerHTML = 'Complementary balance. Requires gentle 15-minute scent-swapping period before direct solarium introduction.';
+      }
+    }
+
+    function toggleAffinity(btn) {
+      btn.classList.toggle('active');
+      if (btn.classList.contains('active')) {
+        btn.classList.add('bg-brand-accent', 'text-brand-surface', 'border-brand-accent');
+        btn.classList.remove('bg-brand-bg', 'text-brand-textMuted', 'border-brand-border');
+      } else {
+        btn.classList.remove('bg-brand-accent', 'text-brand-surface', 'border-brand-accent');
+        btn.classList.add('bg-brand-bg', 'text-brand-textMuted', 'border-brand-border');
+      }
+      calculateHarmony();
+    }
+
+    function copyTelemetryLink() {
+      const score = document.getElementById('harmonyScore').innerText;
+      navigator.clipboard?.writeText(window.location.href + '#telemetry?score=' + score);
+      showToast('Telemetry certificate copied to clipboard!');
+    }
+
+    // 4. Dossier Modal Management
+    function openDossierModal(name, breed, harmony, cert, imgSrc) {
+      document.getElementById('modalCatName').innerText = name;
+      document.getElementById('modalCatBreed').innerText = breed;
+      document.getElementById('modalHarmony').innerText = harmony;
+      document.getElementById('modalCertBadge').innerText = cert;
+      document.getElementById('modalCatImg').src = imgSrc;
+
+      const modal = document.getElementById('dossierModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDossierModal() {
+      const modal = document.getElementById('dossierModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function bookSuitorFromModal() {
+      closeDossierModal();
+      bookSeat('Solarium Master Lounge', 'Next Available Golden Hour');
+    }
+
+    function openVerificationDemo() {
+      openDossierModal('Sir Archibald', 'British Shorthair', '99.1%', 'UK-VET-981098', 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80');
+    }
+
+    // 5. Solarium Seat Matrix Booking
+    function bookSeat(seatName, timeSlot) {
+      document.getElementById('bookingSeatDetails').innerText = `${seatName} • ${timeSlot}`;
+      const modal = document.getElementById('bookingModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeBookingModal() {
+      const modal = document.getElementById('bookingModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function submitSeatBooking(e) {
+      e.preventDefault();
+      closeBookingModal();
+      showToast('Seat reserved! Pheromone diffuser configured.');
+    }
+
+    function openBookingDrawer() {
+      bookSeat('Private Solarium Suite Alpha', 'Custom Evening Appointment');
+    }
+
+    // 6. Solarium Location Switcher
+    function renderMatrixSlots() {
+      const loc = document.getElementById('atriumSelect').value;
+      const luxEl = document.getElementById('currentLux');
+      if (loc === 'kensington') {
+        luxEl.innerText = '84,500 Lux (Optimal South Radiance)';
+      } else if (loc === 'chelsea') {
+        luxEl.innerText = '92,100 Lux (Zenith Overhead Skylight)';
+      } else {
+        luxEl.innerText = '68,400 Lux (Soft Courtyard Shimmer)';
+      }
+      showToast('Loaded lounge availability for ' + loc.toUpperCase());
+    }
+
+    // 7. Toast Notification Utility
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    // 8. Newsletter Subscription
+    function subscribeGazette(e) {
+      e.preventDefault();
+      document.getElementById('gazetteMsg').classList.remove('hidden');
+      showToast('Subscribed to Purrfect Match Gazette.');
+    }
+
+    // 9. Web Audio API Synthetic Gentle Cat Purr Generator
+    let audioCtx = null;
+    let isPurring = false;
+    let purrGain = null;
+
+    function togglePurrAmbience() {
+      const btnText = document.getElementById('purrText');
+      const icon = document.getElementById('purrIcon');
+
+      if (!isPurring) {
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+
+          // Gentle low frequency oscillator for purr motor rhythm
+          const osc = audioCtx.createOscillator();
+          const lfo = audioCtx.createOscillator();
+          const lfoGain = audioCtx.createGain();
+          purrGain = audioCtx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(26, audioCtx.currentTime); // Low purr rumble
+
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(22, audioCtx.currentTime); // Rhythmic modulation
+          lfoGain.gain.setValueAtTime(8, audioCtx.currentTime);
+
+          lfo.connect(osc.frequency);
+
+          // Lowpass filter to muffle into soft deep throat purr
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(90, audioCtx.currentTime);
+
+          purrGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+          osc.connect(filter);
+          filter.connect(purrGain);
+          purrGain.connect(audioCtx.destination);
+
+          osc.start();
+          lfo.start();
+
+          isPurring = true;
+          btnText.innerText = 'Loft Purr (Active)';
+          icon.classList.remove('bg-brand-border');
+          icon.classList.add('bg-emerald-500', 'animate-pulse');
+          showToast('Loft Purr Synthesizer Activated 🐾');
+        } catch(err) {
+          console.warn('AudioContext not allowed or supported', err);
+          showToast('Purr Synthesizer ready on interaction');
+        }
+      } else {
+        if (purrGain && audioCtx) {
+          purrGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+          setTimeout(() => {
+            if (audioCtx) audioCtx.suspend();
+          }, 100);
+        }
+        isPurring = false;
+        btnText.innerText = 'Loft Purr (Quiet)';
+        icon.classList.remove('bg-emerald-500', 'animate-pulse');
+        icon.classList.add('bg-brand-border');
+        showToast('Purr Ambience paused');
+      }
+    }
+
+    // Initialize telemetry defaults on load
+    window.addEventListener('DOMContentLoaded', () => {
+      calculateHarmony();
+    });
+  </script>
+
+</body>
+</html>

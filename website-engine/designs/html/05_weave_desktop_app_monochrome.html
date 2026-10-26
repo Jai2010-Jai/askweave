@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weave Desktop App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+            mono: ['"Geist Mono"', 'JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            app: {
+              canvas: '#09090b',
+              window: '#0d0d0f',
+              surface: '#121214',
+              surfaceHover: '#18181b',
+              subtle: '#1f1f23',
+              border: '#27272a',
+              borderSubtle: '#1c1c1f',
+              primary: '#ffffff',
+              secondary: '#a1a1aa',
+              tertiary: '#71717a',
+              dim: '#52525b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Ultra-refined, hairline desktop scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b;
+    }
+    .window-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: opacity 0.15s ease;
+    }
+  </style>
+</head>
+<body class="bg-[#050506] text-app-primary font-sans antialiased min-h-screen flex items-center justify-center p-3 sm:p-6 select-none">
+<!-- Desktop App Window Shell (Monochrome, precision native desktop frame) -->
+<div class="w-full max-w-[940px] bg-app-window border border-app-border rounded-lg shadow-2xl shadow-black/80 overflow-hidden flex flex-col h-[740px] relative">
+<!-- Top Native Title Bar / Header Window Chrome -->
+<header class="h-11 bg-app-canvas border-b border-app-border flex items-center justify-between px-3.5 z-20 shrink-0">
+<!-- Left: Window controls & branding -->
+<div class="flex items-center gap-3">
+<!-- Minimal monochrome window controls -->
+<div class="flex items-center gap-1.5 mr-1 group opacity-60 hover:opacity-100 transition-opacity">
+<span class="window-dot bg-[#27272a] border border-[#3f3f46]/50 cursor-pointer hover:bg-[#3f3f46]"></span>
+<span class="window-dot bg-[#27272a] border border-[#3f3f46]/50 cursor-pointer hover:bg-[#3f3f46]"></span>
+<span class="window-dot bg-[#27272a] border border-[#3f3f46]/50 cursor-pointer hover:bg-[#3f3f46]"></span>
+</div>
+<div class="h-3.5 w-px bg-app-border"></div>
+<!-- App Brand & Connected Badge -->
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded bg-white text-black flex items-center justify-center font-bold text-xs">
+<i class="fa-solid fa-code-merge text-[10px]"></i>
+</div>
+<span class="font-medium text-xs tracking-tight text-white flex items-center gap-1.5 font-mono">
+            weave
+            <span class="text-[10px] text-app-dim font-normal">v1.4.2</span>
+</span>
+<!-- Connected status tag -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-app-surface border border-app-border text-[10px] font-mono tracking-wider text-app-secondary ml-1 uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-white inline-block"></span>
+<span>Connected to WhatsApp</span>
+</div>
+</div>
+</div>
+<!-- Center: Subtle window status title -->
+<div class="hidden md:flex items-center gap-2 text-[11px] text-app-tertiary font-mono">
+<span class="text-white">127.0.0.1:7442</span>
+<span class="text-app-dim">/</span>
+<span>bridge:active</span>
+</div>
+<!-- Right: Connected Google Account Pill -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded bg-app-surface border border-app-border hover:border-app-secondary/40 transition cursor-pointer group">
+<div class="w-4 h-4 rounded-full bg-app-subtle border border-app-border flex items-center justify-center text-[9px] font-mono text-app-secondary font-bold">
+A
+</div>
+<div class="flex items-center gap-1.5">
+<span class="text-xs text-app-secondary group-hover:text-white transition font-mono">alex@gmail.com</span>
+<span class="inline-flex items-center text-[10px] text-app-tertiary font-mono gap-1">
+<i class="fa-solid fa-arrows-rotate text-[8px] animate-spin text-app-tertiary" style="animation-duration: 4s;"></i>
+<span class="hidden sm:inline">sync</span>
+</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-app-canvas">
+<!-- Section 1: Bot Call-Sign & Agent Telemetry Row -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+<!-- Bot Call-Sign Card (5 cols) -->
+<div class="md:col-span-5 bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2.5">
+<span class="text-[10px] font-mono font-medium tracking-wider uppercase text-app-tertiary flex items-center gap-1.5">
+<i class="fa-solid fa-terminal text-[10px] text-white"></i>
+              Bot Call-Sign
+            </span>
+<span class="text-[10px] text-app-secondary bg-app-canvas border border-app-border px-1.5 py-0.5 rounded font-mono">
+              LISTENING
+            </span>
+</div>
+<div class="flex items-center justify-between bg-app-canvas border border-app-border rounded p-2.5">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-app-subtle border border-app-border flex items-center justify-center text-white font-mono font-medium text-xs">
+                @
+              </div>
+<div>
+<div class="font-mono font-medium text-sm text-white tracking-tight flex items-center gap-1.5">
+                  @weave_alex
+                  <i class="fa-solid fa-circle-check text-white text-[11px]" title="Verified Hook"></i>
+</div>
+<p class="text-[11px] text-app-tertiary mt-0.5 font-sans">Trigger via group or direct thread</p>
+</div>
+</div>
+<button class="px-2 py-1 bg-app-subtle hover:bg-app-border text-white border border-app-border rounded text-[11px] font-mono transition flex items-center gap-1.5 active:scale-95" id="copyBtn" onclick="navigator.clipboard.writeText('@weave_alex'); const el=this; el.innerHTML='&lt;i class=\'fa-solid fa-check text-white\'&gt;&lt;/i&gt; Copied'; setTimeout(() =&gt; el.innerHTML='&lt;span class=\'text-app-tertiary\'&gt;⌘C&lt;/span&gt; Copy', 2000)">
+<span class="text-app-tertiary">⌘C</span>
+<span>Copy</span>
+</button>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between text-[11px] text-app-tertiary pt-2 border-t border-app-borderSubtle font-mono">
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-white inline-block"></span>
+<span>latency: <strong class="text-app-secondary font-medium">320ms</strong></span>
+</span>
+<span>tokens: <span class="text-app-secondary">14.2k</span> / 1M</span>
+</div>
+</div>
+<!-- Telemetry & Status Badges (7 cols) -->
+<div class="md:col-span-7 bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2.5">
+<span class="text-[10px] font-mono font-medium tracking-wider uppercase text-app-tertiary flex items-center gap-1.5">
+<i class="fa-solid fa-sliders text-[10px] text-white"></i>
+              Engine Telemetry &amp; Security
+            </span>
+<span class="text-[10px] text-app-secondary font-mono flex items-center gap-1.5 uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+              Ready
+            </span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+<!-- Active Agent Pill -->
+<div class="bg-app-canvas border border-app-border rounded p-2.5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[10px] text-app-tertiary uppercase font-mono">Model</span>
+<i class="fa-solid fa-microchip text-app-secondary text-[11px]"></i>
+</div>
+<div>
+<div class="text-xs font-medium text-white truncate">
+                  Gemini 2.5 Flash
+                </div>
+<div class="text-[10px] text-app-tertiary font-mono mt-0.5">Google Cloud GenAI</div>
+</div>
+</div>
+<!-- Bridge Status -->
+<div class="bg-app-canvas border border-app-border rounded p-2.5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[10px] text-app-tertiary uppercase font-mono">Bridge Queue</span>
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+</div>
+<div>
+<div class="text-xs font-medium text-white">
+                  Active
+                </div>
+<div class="text-[10px] text-app-tertiary font-mono mt-0.5">0 pending tasks</div>
+</div>
+</div>
+<!-- Safety Mode -->
+<div class="bg-app-canvas border border-app-border rounded p-2.5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[10px] text-app-tertiary uppercase font-mono">Sandbox</span>
+<i class="fa-solid fa-shield text-app-secondary text-[10px]"></i>
+</div>
+<div>
+<div class="text-xs font-medium text-white truncate">
+                  Scoped Folders Only
+                </div>
+<div class="text-[10px] text-app-tertiary font-mono mt-0.5">Strict Airgap</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between text-[11px] text-app-tertiary pt-2 border-t border-app-borderSubtle font-mono">
+<span class="flex items-center gap-1.5 text-app-tertiary">
+<i class="fa-solid fa-circle-nodes text-[10px]"></i> tunnel: <span class="text-app-secondary">wss://relay.weave.internal</span>
+</span>
+<span class="text-[10px] text-app-secondary bg-app-canvas border border-app-border px-1.5 py-0.5 rounded uppercase">E2EE Locked</span>
+</div>
+</div>
+</div>
+<!-- Section 2: Split Columns - Connected Workspaces & Live Feed -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+<!-- Connected Workspaces & Projects Panel (5 cols) -->
+<div class="md:col-span-5 bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-1.5">
+<i class="fa-regular fa-folder text-white text-xs"></i>
+<h2 class="text-[10px] font-mono font-medium text-app-tertiary tracking-wider uppercase">Local Workspaces</h2>
+</div>
+<span class="text-[10px] text-app-secondary font-mono bg-app-canvas px-1.5 py-0.5 rounded border border-app-border">2 MOUNTED</span>
+</div>
+<!-- Folders list -->
+<div class="space-y-2">
+<!-- Folder 1: Portfolio Site -->
+<div class="p-2 rounded bg-app-canvas border border-app-border hover:border-app-secondary transition group cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-app-subtle border border-app-border flex items-center justify-center text-white text-xs shrink-0">
+<i class="fa-solid fa-code text-[10px]"></i>
+</div>
+<div>
+<div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      Portfolio Site
+                      <span class="text-[9px] px-1 py-0.2 rounded bg-app-subtle text-app-secondary border border-app-border font-mono uppercase">
+                        [Shared]
+                      </span>
+</div>
+<div class="text-[10px] font-mono text-app-tertiary truncate mt-0.5">~/projects/portfolio</div>
+</div>
+</div>
+<div class="text-[10px] font-mono text-app-secondary flex items-center gap-1 mt-0.5">
+<span class="w-1 h-1 rounded-full bg-white"></span>
+                  R/W
+                </div>
+</div>
+</div>
+<!-- Folder 2: Docs & Resumes -->
+<div class="p-2 rounded bg-app-canvas border border-app-border hover:border-app-secondary transition group cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-app-subtle border border-app-border flex items-center justify-center text-white text-xs shrink-0">
+<i class="fa-regular fa-file text-[10px]"></i>
+</div>
+<div>
+<div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      Docs &amp; Resumes
+                      <span class="text-[9px] px-1 py-0.2 rounded bg-app-subtle text-app-secondary border border-app-border font-mono uppercase">
+                        [Private]
+                      </span>
+</div>
+<div class="text-[10px] font-mono text-app-tertiary truncate mt-0.5">~/Documents</div>
+</div>
+</div>
+<div class="text-[10px] font-mono text-app-tertiary flex items-center gap-1 mt-0.5">
+<i class="fa-solid fa-lock text-[8px]"></i>
+                  RO
+                </div>
+</div>
+</div>
+<!-- Add Folder Button with Dotted Outline -->
+<button class="w-full py-1.5 px-3 rounded border border-dashed border-app-border hover:border-white bg-app-canvas hover:bg-app-subtle text-app-secondary hover:text-white transition text-xs font-mono flex items-center justify-center gap-1.5 group cursor-pointer" onclick="const el=document.getElementById('nativeFileAlert'); el.classList.remove('hidden'); setTimeout(()=&gt;el.classList.add('hidden'), 2500)">
+<i class="fa-solid fa-plus text-[10px]"></i>
+<span>Add directory</span>
+<span class="text-[10px] text-app-dim">(OS dialog)</span>
+</button>
+<!-- Temporary Native Trigger Toast -->
+<div class="hidden text-center py-1 text-[10px] font-mono text-white bg-app-canvas border border-white/40 rounded transition" id="nativeFileAlert">
+<i class="fa-solid fa-spinner fa-spin mr-1"></i> Opening native macOS directory picker...
+            </div>
+</div>
+</div>
+<div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[10px] text-app-tertiary font-mono">
+<span>ALLOW: <strong class="text-app-secondary font-normal">.ts, .md, .py, .pdf</strong></span>
+<button class="hover:text-white transition flex items-center gap-1">
+<i class="fa-solid fa-gear text-[9px]"></i> scopes
+            </button>
+</div>
+</div>
+<!-- Live WhatsApp Activity Feed (7 cols) -->
+<div class="md:col-span-7 bg-app-surface border border-app-border rounded-md p-3.5 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-1.5">
+<i class="fa-solid fa-bolt text-white text-xs"></i>
+<h2 class="text-[10px] font-mono font-medium text-app-tertiary tracking-wider uppercase">Live WhatsApp Event Bus</h2>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+<span class="text-[10px] text-app-secondary font-mono uppercase">STREAMING</span>
+</div>
+</div>
+<!-- Feed Stream List -->
+<div class="space-y-2">
+<!-- Feed Item 1: Sarah Group Command -->
+<div class="p-2.5 rounded bg-app-canvas border border-app-border hover:border-app-secondary/60 transition">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center gap-1.5 text-xs">
+<span class="w-4 h-4 rounded bg-app-subtle border border-app-border text-white flex items-center justify-center text-[9px] font-mono font-bold">
+                    S
+                  </span>
+<span class="font-medium text-white font-mono text-[11px]">Sarah</span>
+<span class="text-app-dim text-[10px]">in</span>
+<span class="px-1 py-0.2 rounded bg-app-subtle text-app-secondary text-[9px] font-mono uppercase">Team Group</span>
+</div>
+<span class="text-[10px] font-mono text-app-tertiary">2m ago</span>
+</div>
+<!-- Message quote -->
+<div class="text-xs font-mono text-white bg-app-window border border-app-border px-2 py-1 rounded mb-2">
+                “@weave_alex fix navbar bug”
+              </div>
+<!-- Action result bar -->
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-1.5 text-app-secondary text-[11px]">
+<i class="fa-solid fa-code-commit text-[10px] text-white"></i>
+<span>3 files modified in <strong class="font-mono text-white">Portfolio Site</strong></span>
+</div>
+<button class="px-2 py-0.5 rounded bg-app-subtle hover:bg-white hover:text-black text-white border border-app-border text-[10px] font-mono transition flex items-center gap-1">
+<i class="fa-solid fa-code-compare text-[9px]"></i>
+                  [View Diff]
+                </button>
+</div>
+</div>
+<!-- Feed Item 2: Alex Direct DM -->
+<div class="p-2.5 rounded bg-app-canvas border border-app-border hover:border-app-secondary/60 transition">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center gap-1.5 text-xs">
+<span class="w-4 h-4 rounded bg-app-subtle border border-app-border text-white flex items-center justify-center text-[9px] font-mono font-bold">
+                    A
+                  </span>
+<span class="font-medium text-white font-mono text-[11px]">Alex</span>
+<span class="text-app-dim text-[10px]">in</span>
+<span class="px-1 py-0.2 rounded bg-app-subtle text-app-secondary text-[9px] font-mono uppercase">Direct DM</span>
+</div>
+<span class="text-[10px] font-mono text-app-tertiary">12m ago</span>
+</div>
+<!-- Message quote -->
+<div class="text-xs font-mono text-white bg-app-window border border-app-border px-2 py-1 rounded mb-2">
+                “Schedule meeting with Liam tomorrow 3pm”
+              </div>
+<!-- Action result bar -->
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-1.5 text-app-secondary text-[11px]">
+<i class="fa-regular fa-calendar-check text-[10px] text-white"></i>
+<span>Added to <strong class="text-white">Google Calendar</strong></span>
+</div>
+<span class="text-[10px] text-white bg-app-subtle border border-app-border px-1.5 py-0.5 rounded font-mono uppercase">
+                  Synced
+                </span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-2 border-t border-app-borderSubtle flex items-center justify-between text-[10px] text-app-tertiary font-mono">
+<span class="flex items-center gap-1.5">
+<span class="w-1 h-1 rounded-full bg-white"></span>
+              socket heartbeat: <span class="text-app-secondary">200 OK</span>
+</span>
+<button class="hover:text-white transition">clear stream</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Control Footer Bar -->
+<footer class="h-12 bg-app-canvas border-t border-app-border px-4 flex items-center justify-between shrink-0 z-20">
+<!-- Quick Toggles -->
+<div class="flex items-center gap-5 sm:gap-6">
+<!-- Toggle 1: Allow Team Edits (Git PRs) -->
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="sr-only peer" id="toggleGit" type="checkbox"/>
+<div class="w-7 h-3.5 bg-app-subtle border border-app-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3.5 peer-checked:after:border-black peer-checked:after:bg-black after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-app-secondary after:border-transparent after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-white relative"></div>
+<div class="flex items-center gap-1.5 font-mono text-xs">
+<i class="fa-brands fa-git-alt text-white text-[11px]"></i>
+<span class="text-app-secondary group-hover:text-white transition">Team Git Edits</span>
+</div>
+</label>
+<!-- Toggle 2: Voice Note Transcription (Whisper) -->
+<label class="flex items-center gap-2 cursor-pointer group hidden sm:flex">
+<input checked="" class="sr-only peer" id="toggleWhisper" type="checkbox"/>
+<div class="w-7 h-3.5 bg-app-subtle border border-app-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3.5 peer-checked:after:border-black peer-checked:after:bg-black after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-app-secondary after:border-transparent after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-white relative"></div>
+<div class="flex items-center gap-1.5 font-mono text-xs">
+<i class="fa-solid fa-microphone text-white text-[11px]"></i>
+<span class="text-app-secondary group-hover:text-white transition">Whisper Transcription</span>
+</div>
+</label>
+</div>
+<!-- Footer Action Buttons: Settings gear & Disconnect -->
+<div class="flex items-center gap-2">
+<button class="w-7 h-7 rounded bg-app-surface hover:bg-app-subtle border border-app-border text-app-secondary hover:text-white transition flex items-center justify-center text-xs cursor-pointer active:scale-95" title="Engine Configuration">
+<i class="fa-solid fa-gear text-[11px]"></i>
+</button>
+<button class="px-2.5 py-1 rounded bg-app-surface hover:bg-white hover:text-black border border-app-border text-app-secondary transition text-xs font-mono font-medium flex items-center gap-1.5 cursor-pointer active:scale-95" onclick="this.innerHTML = '&lt;i class=\'fa-solid fa-spinner fa-spin text-[10px]\'&gt;&lt;/i&gt; Disconnecting...'">
+<i class="fa-solid fa-power-off text-[10px]"></i>
+<span>Disconnect</span>
+</button>
+</div>
+</footer>
+</div>
+</body></html>
+

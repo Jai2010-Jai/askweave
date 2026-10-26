@@ -1,0 +1,8 @@
+.footer { padding: 28px 0 36px; border-top: 1px solid var(--edge); }
+.ft-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.ft-brand { font: 800 16px var(--display); letter-spacing: -0.03em; color: var(--ink); text-decoration: none; }
+.ft-links { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; }
+.ft-links a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.ft-links a:hover { color: var(--ink); }
+.ft-small { margin: 0; font-size: 13px; color: var(--ink-3); }
+.ft-brand .weave-logo { height: 18px; width: 118px; }

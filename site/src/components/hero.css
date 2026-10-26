@@ -1,0 +1,20 @@
+.hero { padding: clamp(40px, 6vw, 72px) 0 clamp(56px, 8vw, 88px); border-bottom: 1px solid var(--edge); }
+.hero-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(40px, 6vw, 80px); align-items: center; }
+.hero-copy { min-width: 0; container-type: inline-size; }
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 22px; padding: 6px 12px;
+  font: 600 12.5px var(--sans); color: var(--mint-ink); background: var(--mint); border-radius: 999px;
+}
+.hero-pill svg { width: 14px; height: 14px; }
+.hero-title { font-size: clamp(40px, 4.9vw, 60px); line-height: 1.02; letter-spacing: -0.045em; margin: 0 0 22px; }
+.hero-lede { font-size: clamp(16px, 1.5vw, 18px); line-height: 1.6; color: var(--ink-2); max-width: 470px; margin: 0 0 30px; }
+.hero-ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; margin-bottom: 30px; }
+.hero-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--ink-2); }
+.hero-checks li { display: flex; align-items: center; gap: 6px; }
+.hero-checks svg { width: 14px; height: 14px; color: var(--green); }
+.hero-phone { min-width: 0; }
+
+@media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+
+:root:is([lang="hi"], [lang="te"], [lang="ta"], [lang="kn"]) .hero-title { font-size: min(8.4cqi, 54px); line-height: 1.35; }
+:root[lang="ta"] .hero-title { font-size: min(7cqi, 46px); }

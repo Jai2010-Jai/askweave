@@ -10,7 +10,7 @@ from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 
 from ..config import Settings
 from ..core.jobs import JobStore
@@ -37,7 +37,7 @@ PREVIEW_CSP = ("sandbox allow-scripts allow-popups allow-popups-to-escape-sandbo
                "https://cdnjs.cloudflare.com; img-src https: data:; media-src https:; connect-src 'none'; "
                "form-action 'none'; frame-ancestors 'none'; base-uri 'none'")
 # Paths reachable from the internet (through the HTTPS tunnel/proxy) without the access code.
-PUBLIC_PREFIXES = ("/api/webhooks/twilio/", "/api/webhooks/whatsapp", "/download/", "/preview/", "/chat", "/api/chat/")
+PUBLIC_PREFIXES = ("/api/webhooks/twilio/", "/api/webhooks/whatsapp", "/download/", "/preview/", "/chat", "/api/chat/", "/pay/")
 
 
 def build_router(settings: Settings, store: SmsStore, service: SmsService, provider: SmsProvider,
@@ -271,6 +271,19 @@ def build_router(settings: Settings, store: SmsStore, service: SmsService, provi
         return FileResponse(path, media_type="text/html; charset=utf-8", headers={
             "Content-Security-Policy": PREVIEW_CSP, "Cache-Control": "private, no-store",
             "X-Robots-Tag": "noindex, nofollow", "Cross-Origin-Opener-Policy": "same-origin"})
+
+    # ---------- UPI payment checkout (public, token-authenticated) ----------
+    @r.get("/pay/{token}")
+    def pay_checkout(token: str):
+        if not token.startswith("pay_") or len(token) > 64:
+            raise HTTPException(404, "Invalid payment link")
+        entry = store.get_udhar_entry_by_token(token)
+        if not entry:
+            raise HTTPException(404, "Payment record not found")
+        upi_settings = store.get_udhar_settings(entry["user_id"])
+        from .pay import render_pay_page
+        html_content = render_pay_page(entry, upi_settings)
+        return HTMLResponse(content=html_content, status_code=200, headers={"Cache-Control": "no-store"})
 
     # ---------- local-only admin (the guard marks loopback dashboard requests as local) ----------
     def require_local(request: Request) -> None:

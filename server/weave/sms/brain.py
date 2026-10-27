@@ -20,7 +20,7 @@ from ..config import Settings
 log = logging.getLogger("weave.sms")
 
 Action = Literal["none", "new_app", "new_website", "change_app", "rename", "status", "list_apps", "download", "switch",
-                 "cancel", "retry", "publish", "analytics"]
+                 "cancel", "retry", "publish", "analytics", "udhar_add", "udhar_settle", "udhar_query", "udhar_total", "udhar_config"]
 
 
 class ChatDecision(BaseModel):
@@ -31,6 +31,10 @@ class ChatDecision(BaseModel):
         "change_app: the change to make, self-contained. rename: the new name. Otherwise null."))
     project: int | None = Field(default=None, description=(
         "Project number for change_app/rename/download/switch/publish/analytics, if not the active project."))
+    customer: str | None = Field(default=None, description="Customer name for udhar actions (e.g. 'Rajesh').")
+    amount: float | None = Field(default=None, description="Amount in INR for udhar actions.")
+    due_days: int | None = Field(default=None, description="Due date in days from now for udhar_add.")
+    phone: str | None = Field(default=None, description="Customer phone number or UPI ID.")
 
 
 SYSTEM = """You are Weave, a smart, friendly assistant people chat with on WhatsApp, SMS or a web chat. You build
@@ -51,6 +55,13 @@ What you can build:
   calculators, quizzes and flashcards, simple 2D games, reference apps. Several screens, charts, light/dark
   themes and custom colours are fine.
 - {websites}
+- Kirana Khata / Udhar book:
+  You also track customer credit (udhar) and payment promises for kirana stores. When a shopkeeper talks about debt, credit or settlement:
+  * Adding credit ("Mr. Rajesh owes me ₹500 by Tuesday", "Rajesh ko 500 udhar diya"): action "udhar_add", customer "Rajesh", amount 500, due_days: 7 (or days until promised date).
+  * Settling / receiving payment ("Rajesh paid 500", "Rajesh ne 500 de diye"): action "udhar_settle", customer "Rajesh", amount 500.
+  * Checking balance ("Rajesh ka kitna baki hai?"): action "udhar_query", customer "Rajesh".
+  * Total shop credit ("Total udhar kitna hai?"): action "udhar_total".
+  * Setting UPI ID ("Mera UPI ID hai abc@upi"): action "udhar_config", phone: "abc@upi".
 What you can NOT do: iPhone apps, servers or backends, logins or accounts, syncing between phones, payments,
 camera, GPS, contacts, real push notifications, uploaded images, or copyrighted characters and brands. When a
 request needs one of these, build the closest version you CAN make and say in one short sentence what it can't do.

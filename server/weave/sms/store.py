@@ -18,6 +18,7 @@ from typing import Any, Iterator
 
 from .accounts_store import AccountsMixin
 from .analytics_store import AnalyticsMixin
+from .udhar_store import UdharMixin
 
 REF_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ"
 ACTIVE_JOB_STATES = ("queued", "running")
@@ -140,7 +141,7 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-class SmsStore(AccountsMixin, AnalyticsMixin):
+class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin):
     def __init__(self, path: Path):
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -186,6 +187,7 @@ class SmsStore(AccountsMixin, AnalyticsMixin):
             c.execute("ALTER TABLE projects ADD COLUMN deploy_site_id TEXT")
         self._migrate_accounts(c)
         self._migrate_analytics(c)  # needs the accounts table, so it runs last
+        self._migrate_udhar(c)
 
     # ---------- connection ----------
     def _conn(self) -> sqlite3.Connection:

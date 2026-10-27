@@ -5,6 +5,7 @@ Gradle or the SMS provider. Replies go to the outbox, which the worker sends."""
 
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 import re
@@ -21,6 +22,8 @@ from .intent import (answer_kind, answer_reply, classify, other_kind_requested, 
                      target_kind)
 from .language import CONFIRM, language_label, needs_translation, requested_language, script_language
 from .store import SmsStore
+from .udhar import (UdharParseResult, clean_indian_phone, make_upi_deep_link,
+                    make_whatsapp_click_to_chat, parse_udhar_message)
 
 MIN_PROMPT, MAX_PROMPT = 10, 4000
 LINK_MAX_FAILURES, LINK_LOCK_S = 5, 3600
@@ -482,6 +485,10 @@ class SmsService:
             if handled is not None:
                 return handled
             user = self.store.user_by_id(user["id"])
+        elif question == "udhar_reminder" and user.get("pending_text"):
+            return self._resolve_udhar_reminder(user, body, sid)
+        elif question == "udhar_phone" and user.get("pending_text"):
+            return self._resolve_udhar_phone(user, body, sid)
         if user.get("pending_text") and answer_reply(body) is not None:
             # "new" / "change" / "no" answers the question we just asked; it is not the NEW command.
             return self._resolve_pending(user, body, sid)
@@ -490,6 +497,11 @@ class SmsService:
             if user.get("pending_text"):
                 self.store.update_user(user["id"], pending_text=None)
             return command
+        parsed_udhar = parse_udhar_message(body, time.time())
+        if parsed_udhar.action != "none":
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_udhar(user, parsed_udhar, body, sid)
         if self.brain is not None:
             # Everything that isn't an exact command is a conversation: the AI answers it, with the full context.
             if user.get("pending_text"):
@@ -636,6 +648,29 @@ class SmsService:
             return self._publish_request(user, project)  # only asks; the owner must reply PUBLISH
         if d.action == "analytics":
             return self._analytics(user, project, body)
+        if d.action == "udhar_add":
+            amount_paise = int((d.amount or 0) * 100)
+            if amount_paise > 0 and d.customer:
+                due_day = int(time.time() // 86400) + (d.due_days if d.due_days is not None else 7)
+                parsed = UdharParseResult(action="add_credit", customer_name=d.customer, amount_paise=amount_paise, due_day=due_day, phone=d.phone)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_settle":
+            amount_paise = int((d.amount or 0) * 100) if d.amount else None
+            if d.customer:
+                parsed = UdharParseResult(action="settle_payment", customer_name=d.customer, amount_paise=amount_paise)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_query":
+            if d.customer:
+                parsed = UdharParseResult(action="check_balance", customer_name=d.customer)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_total":
+            parsed = UdharParseResult(action="total_summary")
+            return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_config":
+            upi_id = d.phone or d.customer or ""
+            if "@" in upi_id:
+                parsed = UdharParseResult(action="set_upi", upi_id=upi_id)
+                return self._handle_udhar(user, parsed, body, sid)
         if reply:
             self._reply(user["phone"], user, reply, localized=True)
         else:
@@ -650,6 +685,13 @@ class SmsService:
             text = self._present("help", {"commands": help_text}, help_text, user_query=word)
             self._reply(user["phone"], user, text)
             return "help"
+        if word in ("UDHAR", "KHATA"):
+            if not rest:
+                return self._handle_udhar(user, UdharParseResult(action="total_summary"), rest, sid)
+            return self._handle_udhar(user, UdharParseResult(action="check_balance", customer_name=rest), rest, sid)
+        if word == "SET" and rest.upper().startswith("UPI "):
+            vpa = rest[4:].strip()
+            return self._handle_udhar(user, UdharParseResult(action="set_upi", upi_id=vpa), rest, sid)
         if word == "NEW":
             if len(rest) >= MIN_PROMPT:
                 return self._start_new(user, rest, sid)
@@ -973,6 +1015,221 @@ class SmsService:
         self._reply(user["phone"], user, f"Publishing {M.name_of(project)} now. Build ID: {job['ref']}. "
                                          "I'll send the public address when Netlify confirms it.", job_id=job["id"])
         return "queued_publish"
+
+    # ---------- udhar / kirana khata handlers ----------
+    def _resolve_udhar_reminder(self, user: dict, body: str, sid: str) -> str:
+        clean = body.strip().lower()
+        try:
+            entry_id = int(user["pending_text"])
+        except (ValueError, TypeError):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            return "udhar_reminder_invalid"
+
+        entry = self.store.get_udhar_entry(entry_id)
+        if not entry:
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "That reminder has already been resolved.")
+            return "udhar_reminder_gone"
+
+        cust_name = entry["customer_name"]
+        amt_paise = entry["amount_paise"]
+        amt_inr = f"{amt_paise / 100:g}"
+        upi_settings = self.store.get_udhar_settings(user["id"])
+        store_name = upi_settings.get("payee_name") if upi_settings else "Kirana Store"
+
+        # Option 1: Send link
+        if clean in ("1", "send", "send link", "bhejo", "link bhejo", "yes", "ha", "haan"):
+            cust_phone = entry.get("customer_phone")
+            pay_token = entry["payment_token"]
+            base_url = self.s.public_base_url or "https://askweave.xyz"
+            pay_url = f"{base_url}/pay/{pay_token}"
+
+            if cust_phone:
+                wa_link = make_whatsapp_click_to_chat(cust_phone, cust_name, store_name, amt_paise, pay_url)
+                reply = (
+                    f"Payment link for {cust_name}:\n{pay_url}\n\n"
+                    f"📲 Tap here to send WhatsApp reminder to {cust_name}:\n{wa_link}"
+                )
+                self.store.update_user(user["id"], pending_question=None, pending_text=None)
+                self.store.mark_udhar_customer_reminded(entry["id"])
+                self._reply(user["phone"], user, reply)
+                return "udhar_reminder_sent"
+            else:
+                self.store.update_user(user["id"], pending_question="udhar_phone", pending_text=str(entry["id"]))
+                reply = f"{cust_name} ka WhatsApp number kya hai?\nPlease send their 10-digit number."
+                self._reply(user["phone"], user, reply)
+                return "udhar_ask_phone"
+
+        # Option 2: Paid
+        elif clean in ("2", "paid", "cash", "de diya", "jama", "settle", "already paid"):
+            res = self.store.settle_udhar(user["id"], cust_name, amt_paise)
+            bal_inr = f"{res['balance_paise'] / 100:g}"
+            reply = f"✅ Marked ₹{amt_inr} as settled for {cust_name}!\nRemaining balance: ₹{bal_inr}."
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, reply)
+            return "udhar_settled"
+
+        # Option 3: Snooze
+        elif clean in ("3", "snooze", "wait", "baad me", "time do", "later"):
+            self.store.snooze_udhar_entry(entry["id"], 3)
+            reply = "👍 Snoozed for 3 days. I will remind you again."
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, reply)
+            return "udhar_snoozed"
+
+        return "udhar_reminder_unhandled"
+
+    def _resolve_udhar_phone(self, user: dict, body: str, sid: str) -> str:
+        try:
+            entry_id = int(user["pending_text"])
+        except (ValueError, TypeError):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            return "udhar_phone_invalid"
+
+        entry = self.store.get_udhar_entry(entry_id)
+        if not entry:
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            return "udhar_phone_gone"
+
+        clean_digits = "".join(ch for ch in body if ch.isdigit())
+        if len(clean_digits) >= 10:
+            phone_10 = clean_digits[-10:]
+            e164_phone = f"+91{phone_10}"
+            self.store.update_customer_phone(entry["customer_id"], e164_phone)
+
+            cust_name = entry["customer_name"]
+            amt_paise = entry["amount_paise"]
+            pay_token = entry["payment_token"]
+            base_url = self.s.public_base_url or "https://askweave.xyz"
+            pay_url = f"{base_url}/pay/{pay_token}"
+            upi_settings = self.store.get_udhar_settings(user["id"])
+            store_name = upi_settings.get("payee_name") if upi_settings else "Kirana Store"
+
+            wa_link = make_whatsapp_click_to_chat(e164_phone, cust_name, store_name, amt_paise, pay_url)
+            reply = (
+                f"✅ Saved number for {cust_name}!\n\n"
+                f"Payment link:\n{pay_url}\n\n"
+                f"📲 Tap here to send WhatsApp reminder to {cust_name}:\n{wa_link}"
+            )
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self.store.mark_udhar_customer_reminded(entry["id"])
+            self._reply(user["phone"], user, reply)
+            return "udhar_phone_saved"
+
+        self._reply(user["phone"], user, "Please send a valid 10-digit mobile number.")
+        return "udhar_phone_invalid"
+
+    def _handle_udhar(self, user: dict, parsed: UdharParseResult, raw_body: str, sid: str) -> str:
+        now = time.time()
+        today = int(now // 86400)
+        account = self.store.account_for_user(user["id"]) if user.get("account_id") else None
+        account_id = account["id"] if account else None
+
+        if parsed.action == "add_credit":
+            amt_inr = f"{(parsed.amount_paise or 0) / 100:g}"
+            entry = self.store.record_udhar_entry(
+                user_id=user["id"],
+                customer_name=parsed.customer_name or "Unknown",
+                amount_paise=parsed.amount_paise or 0,
+                due_day=parsed.due_day,
+                voice_transcript=raw_body,
+                customer_phone=parsed.phone,
+                account_id=account_id,
+            )
+            # Format due date nicely
+            due_str = "soon"
+            if parsed.due_day:
+                diff = parsed.due_day - today
+                due_dt = datetime.datetime.fromtimestamp(parsed.due_day * 86400, tz=datetime.timezone.utc)
+                date_fmt = due_dt.strftime("%A, %-d %b")
+                if diff == 0:
+                    due_str = f"today ({date_fmt})"
+                elif diff == 1:
+                    due_str = f"tomorrow ({date_fmt})"
+                elif diff == 2:
+                    due_str = f"day after tomorrow ({date_fmt})"
+                else:
+                    due_str = f"{date_fmt} (in {diff} days)"
+
+            total_bal_inr = f"{entry['total_balance_paise'] / 100:g}"
+            reply = (
+                f"✅ Noted! ₹{amt_inr} recorded for {entry['customer_name']}.\n"
+                f"Due date: {due_str}.\n"
+                f"Total balance: ₹{total_bal_inr}.\n\n"
+                f"I will inform you on the due date."
+            )
+            # Gentle hint if no UPI ID set
+            upi_settings = self.store.get_udhar_settings(user["id"])
+            if not upi_settings or not upi_settings.get("upi_id"):
+                reply += "\n\n💡 Tip: Reply with your UPI ID (e.g. 9876543210@paytm) so I can generate direct WhatsApp payment links for your customers."
+
+            self._reply(user["phone"], user, reply)
+            event("sms.udhar_added", user_id=user["id"], customer=entry["customer_name"], amount=amt_inr)
+            return "udhar_added"
+
+        elif parsed.action == "settle_payment":
+            res = self.store.settle_udhar(user["id"], parsed.customer_name or "", parsed.amount_paise)
+            if not res["found"]:
+                self._reply(user["phone"], user, f"Couldn't find any customer named {parsed.customer_name} in your khata.")
+                return "udhar_settle_not_found"
+            settled_inr = f"{res['settled_paise'] / 100:g}"
+            bal_inr = f"{res['balance_paise'] / 100:g}"
+            reply = f"✅ Marked ₹{settled_inr} as received from {res['customer']}!\nRemaining balance: ₹{bal_inr}."
+            self._reply(user["phone"], user, reply)
+            event("sms.udhar_settled", user_id=user["id"], customer=res["customer"], amount=settled_inr)
+            return "udhar_settled"
+
+        elif parsed.action == "check_balance":
+            khata = self.store.get_customer_khata(user["id"], parsed.customer_name or "")
+            if not khata:
+                self._reply(user["phone"], user, f"No khata found for {parsed.customer_name}.")
+                return "udhar_query_not_found"
+            cust = khata["customer"]
+            bal_inr = f"{cust['total_balance_paise'] / 100:g}"
+            entries = khata["entries"]
+            lines = [f"📋 Khata for *{cust['name']}*:", f"Total Balance: *₹{bal_inr}*"]
+            if entries:
+                lines.append("\nPending entries:")
+                for e in entries[:5]:
+                    amt_str = f"₹{e['amount_paise'] / 100:g}"
+                    d_dt = datetime.datetime.fromtimestamp(e['created_at'], tz=datetime.timezone.utc)
+                    lines.append(f"• {amt_str} on {d_dt.strftime('%-d %b')}")
+            self._reply(user["phone"], user, "\n".join(lines))
+            return "udhar_queried"
+
+        elif parsed.action == "total_summary":
+            summary = self.store.get_total_market_udhar(user["id"])
+            total_inr = f"{summary['total_paise'] / 100:g}"
+            lines = [
+                f"📊 *Market Udhar Summary*:",
+                f"Total Outstanding: *₹{total_inr}*",
+                f"Total Customers: *{summary['total_customers']}*",
+            ]
+            if summary["top_debtors"]:
+                lines.append("\nTop pending:")
+                for d in summary["top_debtors"][:5]:
+                    lines.append(f"• {d['name']}: ₹{d['total_balance_paise'] / 100:g}")
+            self._reply(user["phone"], user, "\n".join(lines))
+            return "udhar_summary"
+
+        elif parsed.action == "set_upi":
+            self.store.set_udhar_settings(
+                user_id=user["id"],
+                upi_id=parsed.upi_id or "",
+                payee_name=parsed.payee_name or "Kirana Store",
+                account_id=account_id,
+            )
+            reply = f"✅ Saved your UPI ID as `{parsed.upi_id}` for *{parsed.payee_name}*!\nCustomer payment links will now use this ID."
+            self._reply(user["phone"], user, reply)
+            return "udhar_upi_saved"
+
+        elif parsed.action == "reminder_reply":
+            due_entries = self.store.get_due_udhar_entries_for_owner(user["id"], today)
+            if due_entries:
+                self.store.update_user(user["id"], pending_question="udhar_reminder", pending_text=str(due_entries[0]["id"]))
+                return self._resolve_udhar_reminder(user, parsed.reminder_choice or "send", sid)
+
+        return "udhar_ignored"
 
     def _start_change(self, user: dict, project: dict, change: str, sid: str, lead: str = "") -> str:
         current = project.get("kind") or "android"

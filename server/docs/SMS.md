@@ -78,6 +78,9 @@ phone ──HTTPS GET /download/<token>──► expiring, hashed, per-build tok
 | `CHANGE <request>` | change the active app |
 | `STATUS [G-XXXXX]` | real stage + progress of the active/last build |
 | `PROJECTS` | list your apps (`*` = active) |
+| `STATS` / `ANALYTICS` / `VISITORS` / `TRAFFIC` | visits to your live website this week (see [ANALYTICS.md](ANALYTICS.md)) |
+| `LEADS` / `ENQUIRIES` | the last few enquiries left on your sites (each one is also sent when it arrives) |
+| `SALES` / `REVENUE` / `PROFIT` | revenue, profit and what's selling, from the CSV uploaded on the dashboard |
 | `USE <n>` | switch the active app |
 | `OPEN [n]` | fresh download link for the latest successful build |
 | `ABORT` / `CANCEL BUILD` (bare `CANCEL` on WhatsApp and web chat) | stop the queued or running build |
@@ -239,7 +242,8 @@ Checked October 2026 against Twilio's India guidelines and help center:
 AI (GLM-4.7-Flash, or Gemini; see `WEAVE_AI_PROVIDER`) with the last 12 messages, the user's apps and any running build.
 It answers like a person (questions, brainstorming, one clarifying question when an idea is vague) and picks
 one action: reply only, build a new app (with a full spec from the conversation), change an app, status,
-list, download link, switch, cancel or retry. Weave carries the action out with its normal checks (one
+list, download link, switch, cancel, retry or visitor numbers. It is told never to invent a figure: if a
+reply changes any number the server stated, the server's own wording is sent instead. Weave carries the action out with its normal checks (one
 build at a time, quotas, the user's own apps only), so the model can't do more than the user's own commands.
 If the AI fails or takes longer than `WEAVE_CHAT_TIMEOUT_SECONDS` (25), the built-in rules below answer.
 

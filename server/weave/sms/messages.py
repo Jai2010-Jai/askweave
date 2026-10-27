@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import unicodedata
+from datetime import date as _date, timedelta as _timedelta
 
 MAX_CHARS = 450  # three concatenated GSM-7 segments (153 chars each)
 MAX_CHARS_CHAT = 1500  # WhatsApp and the web chat have no segment pricing
@@ -14,6 +15,9 @@ HELP = ("Just talk to me normally (text or voice note):\n"
         "- \"how's it going?\" for progress\n"
         "- \"send the link\" to download\n"
         "- \"show my apps\" / \"switch to 2\"\n"
+        "- \"how's my site doing?\" for visitor numbers\n"
+        "- LEADS to read enquiries from your site\n"
+        "- SALES for revenue and profit from your uploaded figures\n"
         "- \"cancel it\" or \"try again\"\n"
         "- INVITE to get a code for friends\n"
         "Say \"new app: <idea>\" to start a separate app.")
@@ -46,6 +50,114 @@ def fit(text: str, limit: int = MAX_CHARS, unicode: bool = False) -> str:
     character (Hindi, Telugu, Kannada and Tamil scripts, emoji), so pass unicode=True for those."""
     text = (text if unicode else ascii_safe(text)).strip()
     return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
+
+
+SPARK = "_.-~=#"  # ASCII-safe daily bars; WhatsApp gets the block characters instead
+
+
+def _spark(series: list, unicode: bool) -> str:
+    """A week of daily visits as one small picture."""
+    values = [v for _, v in series]
+    if not values or not max(values):
+        return ""
+    blocks = "▁▂▃▅▆▇" if unicode else SPARK
+    top = max(values)
+    return "".join(blocks[min(len(blocks) - 1, round(v / top * (len(blocks) - 1)))] for v in values)
+
+
+def analytics_text(facts: dict, site: str, limit: int = MAX_CHARS, unicode: bool = False,
+                   dashboard: str = "") -> str:
+    """How a site is doing, in one message.
+
+    Assembled clause by clause and stopped before the limit rather than trimmed at the end: `fit` would
+    happily cut "142 views" down to "14 views", and a wrong number is worse than a missing sentence.
+    """
+    if not facts["views"]:
+        if facts.get("leads"):
+            return f"No visits counted for {site} yet, but {facts['leads']} enquiries came in. Say LEADS to read them."
+        return (f"No visits to {site} yet. Share the link and I'll start counting."
+                if facts["seen_days"] else f"Nothing yet for {site} - I start counting from the first visit.")
+
+    people = f"{facts['visitors']} {'person' if facts['visitors'] == 1 else 'people'}"
+    head = f"{site}, last {facts['days']} days: {facts['views']} visits from {people}"
+    # A percentage off two tiny numbers is noise dressed up as a trend.
+    if facts["delta_pct"] is not None and not facts["low_data"]:
+        head += f", {'up' if facts['delta_pct'] >= 0 else 'down'} {abs(facts['delta_pct'])}%"
+    parts = [head + "."]
+
+    extras = []
+    if facts["busiest_day"]:
+        extras.append(f"Busiest day {facts['busiest_day']}.")
+    if facts["top_pages"]:
+        extras.append(f"Most viewed: {facts['top_pages'][0]['label']}.")
+    if facts["top_refs"]:
+        extras.append(f"Most came from {facts['top_refs'][0]['host']}.")
+    if facts.get("leads"):  # the thing an owner actually cares about, so it goes before the decorations
+        n = facts["leads"]
+        extras.insert(0, f"{n} {'enquiry' if n == 1 else 'enquiries'} this week - say LEADS to read them.")
+    if unicode and (spark := _spark(facts["series"][-7:], unicode)):
+        extras.append(f"Last 7 days: {spark}")
+    if facts["low_data"]:
+        extras.append("Early days yet - worth another look next week.")
+    if dashboard:
+        extras.append(f"Full charts: {dashboard}")
+
+    for clause in extras:
+        if len(" ".join([*parts, clause])) > limit:
+            break
+        parts.append(clause)
+    return " ".join(parts)
+
+
+def day_name(day: int) -> str:
+    """A day number as "2 Mar", for naming a week that isn't the current one."""
+    return (_date(1970, 1, 1) + _timedelta(days=int(day))).strftime("%-d %b")
+
+
+def money(value: float, currency: str = "") -> str:
+    """An amount as a shopkeeper would say it. No decimals: nobody wants "1250.00" in a text message."""
+    sign = "-" if value < 0 else ""
+    n = abs(value)
+    body = f"{n:,.0f}" if n >= 100 else f"{n:,.2f}".rstrip("0").rstrip(".")
+    return f"{sign}{SYMBOL.get(currency, currency + ' ' if currency else '')}{body}"
+
+
+SYMBOL = {"INR": "Rs ", "USD": "$", "EUR": "EUR ", "GBP": "GBP ", "JPY": "JPY ", "NGN": "NGN ", "BRL": "BRL "}
+
+
+def sales_text(f: dict, limit: int = MAX_CHARS, unicode: bool = False) -> str:
+    """How the shop is doing, from their own numbers. Clause by clause, stopping before the limit."""
+    if not f.get("has_sales"):
+        return "No sales data yet. Upload a CSV of your sales on the dashboard and I'll work it out."
+    cur = f.get("currency", "")
+    week = f["this_week"]
+    if f.get("stale"):
+        head = f"Sales in the week of {day_name(f['week_start'])}"
+    else:
+        head = "Sales so far this week" if f.get("in_progress") else "Sales last week"
+    parts = [f"{head}: {money(week['revenue'], cur)}"]
+    if f["delta_pct"] is not None:
+        same = " of last week" if f.get("in_progress") else " on the week before"
+        parts[0] += f", {'up' if f['delta_pct'] >= 0 else 'down'} {abs(f['delta_pct'])}% on the same days{same}" \
+            if f.get("in_progress") else \
+            f", {'up' if f['delta_pct'] >= 0 else 'down'} {abs(f['delta_pct'])}% on the week before"
+    parts[0] += "."
+
+    extras = []
+    # Without a cost column there is no profit to speak of, and guessing one would be inventing a number.
+    if f["has_cost"]:
+        word = "Loss" if f["losing_money"] else "Profit"
+        extras.append(f"{word}: {money(abs(week['profit']), cur)}.")
+    if f["top_products"]:
+        extras.append(f"Best seller: {f['top_products'][0]['product']}.")
+    if f["projection"] is not None:
+        hedge = " (rough - not many weeks yet)" if f["low_confidence"] else ""
+        extras.append(f"Next week looks like about {money(f['projection'], cur)}{hedge}.")
+    for clause in extras:
+        if len(" ".join([*parts, clause])) > limit:
+            break
+        parts.append(clause)
+    return " ".join(parts)
 
 
 def duration(hours: int) -> str:

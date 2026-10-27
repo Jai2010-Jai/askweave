@@ -115,6 +115,23 @@ STATUS = _rx(r"\b(?:status|progress|updates?|eta)\b\??$", r"\bhow(?:'?s| is)\s+(
              r"\bwhere(?:'s| is) my app\b", r"\bdone yet\b", r"\bready yet\b",
              r"^(?:are\s+|r\s+)?(?:u|you|it)\s+(?:done|finished|ready)\b",
              r"^(?:respond|reply|answer)(?:\s+(?:me|pls|please|bro|brh|bruh|man))*[\s!?.]*$")
+# Visitor numbers, not build progress. Every pattern needs an explicit noun (site, visitors, traffic...), so
+# "how's it going?" stays a question about the build.
+_PLACE = r"(?:web)?site|page|business|shop|store|blog|portfolio"
+ANALYTICS = _rx(rf"\bhow(?:'?s| is|'?re| are)\s+(?:my|the|our)\s+(?:{_PLACE})\s+(?:doing|performing)\b",
+                rf"\b(?:is|was)\s+(?:anyone|anybody|someone|nobody|no one)\s+(?:visit|view|see|look)",
+                r"\bhow many\s+(?:people|visitors?|views?|hits?|clicks?)\b",
+                r"\b(?:web\s*)?traffic\b", r"\bvisitor\s*(?:count|numbers?|stats?)\b",
+                rf"\b(?:any|many|more|some)\s+(?:visits?|visitors?|views?)\b.*\b(?:{_PLACE}|week|month|today|yet)\b",
+                rf"\b(?:views?|visits?|visitors?)\s+(?:on|to|for)\s+(?:my|the|our)\s+(?:{_PLACE})\b",
+                r"^(?:site\s+)?(?:stats|analytics)\??$",
+                r"\bhow(?:'?s| is|'?re| are)\s+(?:my|the|our)\s+(?:sales|revenue|profit|takings|business)\b",
+                r"\b(?:sales|revenue|profit|takings)\s+(?:this|last)\s+(?:week|month)\b",
+                r"^(?:sales|revenue|profit)\??$",
+                r"^(?:weekly\s+)?(?:digest|tips?)\??$",
+                r"\b(?:weekly\s+)?digest\b",
+                r"\bweekly\s+(?:update|summary|report)\b",
+                r"\bbusiness\s+tips?\b")
 # "don't make a new site, just update that": a change, even though it says "make a new site".
 NOT_NEW = _rx(r"\b(?:don'?t|dont|do not|not|no|without)\s+(?:make|making|create|creating|build|building|start)?\s*"
               r"(?:a\s+|another\s+)?(?:new|another|separate)\b")
@@ -153,6 +170,8 @@ def classify(text: str, *, has_projects: bool, has_active: bool, project_names: 
     low = t.lower()
     if not t:
         return Intent("unclear")
+    if ANALYTICS.search(t):  # before status: "how's my site doing" is about visitors, not the build
+        return Intent("analytics")
     if STATUS_WHAT.search(t):
         return Intent("status")
     if PUBLISH_REQ.match(t) and re.search(r"\b(?:publish|deploy|live|online|public|netlify)", t, re.I):

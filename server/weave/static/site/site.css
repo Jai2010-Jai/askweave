@@ -81,6 +81,9 @@ input:focus, textarea:focus, select:focus { outline: 2px solid var(--blue); outl
 .stat { background: var(--sheet-2); border-radius: 8px; padding: 10px 12px; }
 .stat b { display: block; font-size: 22px; }
 .stat span { font-size: 13px; color: var(--ink-2); }
+.chart { display: block; width: 100%; height: 96px; }
+.chart .bar { fill: var(--blue); }
+.chart .bar.empty { fill: var(--edge); }
 .legal h2 { font-size: 19px; }
 .legal p, .legal li { color: var(--ink-2); }
 footer.site { text-align: center; font-size: 13.5px; color: var(--ink-3); padding: 24px 16px 40px; }

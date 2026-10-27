@@ -7,6 +7,7 @@ customer sites on the subdomains), and every POST needs the X-Weave header, so n
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import re
@@ -20,6 +21,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 
+from ..analytics.collector import Beacon, client_ip, is_bot, utc_day, visitor_hash
+from ..analytics.metrics import WINDOWS, sales_summary, traffic_summary
+from ..analytics.sales import read_csv
 from ..config import Settings
 from ..core.jobs import JobStore
 from ..sms import messages as M
@@ -37,9 +41,10 @@ STATIC = Path(__file__).resolve().parent.parent / "static" / "site"
 COOKIE = "weave_session"
 PENDING_COOKIE = "weave_google"
 SESSION_TTL_S = 30 * 86_400
-PAGES = {"start", "dashboard", "terms", "privacy", "report"}
+PAGES = {"start", "dashboard", "terms", "privacy", "report", "contact"}
 ASSETS = {"site.css": "text/css", "site.js": "text/javascript", "start.js": "text/javascript",
-          "dashboard.js": "text/javascript", "report.js": "text/javascript"}
+          "dashboard.js": "text/javascript", "report.js": "text/javascript", "chart.js": "text/javascript",
+          "contact.js": "text/javascript"}
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; "
        "frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://accounts.google.com")
 REPORT_REASONS = {"phishing", "scam", "malware", "impersonation", "adult", "hate", "copyright", "other"}
@@ -70,10 +75,15 @@ class Pending:
         return item[1] if item and item[0] > time.time() else None
 
 
-def build_site_router(settings: Settings, store: SmsStore, service: SmsService, builds: JobStore) -> APIRouter:
+def build_site_router(settings: Settings, store: SmsStore, service: SmsService, builds: JobStore,
+                      worker=None) -> APIRouter:
     r = APIRouter()
     signups = AttemptLimiter(max_failures=40, window_s=3600)  # counts every sign-up, not just failures
     reports = AttemptLimiter(max_failures=30, window_s=3600)
+    # Both are reachable from any hosted page, so they are capped globally rather than per visitor.
+    beacons = AttemptLimiter(max_failures=20_000, window_s=3600)
+    leads = AttemptLimiter(max_failures=300, window_s=3600)
+    imports = AttemptLimiter(max_failures=60, window_s=3600)
     google = Pending()
     states = Pending(ttl_s=600)
     base = settings.public_base_url
@@ -292,6 +302,137 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
             "invite": store.referral_code(user["id"]) if user and settings.sms_referrals else None,
         }
 
+    @r.get("/api/account/analytics")
+    async def account_analytics(request: Request, days: int = 7):
+        """Visits to this account's sites. Scoped by account id, never by anything in the request."""
+        account = current(request)
+        if not settings.analytics:
+            raise HTTPException(404, "Analytics is switched off on this server.")
+        window = days if days in WINDOWS else 7
+        facts = await run_in_threadpool(traffic_summary, store, account["id"], days=window)
+        return {**facts, "counting": (account.get("analytics") or "on") == "on"}
+
+    @r.post("/api/account/analytics")
+    async def set_account_analytics(request: Request):
+        require_csrf(request)
+        account = current(request)
+        on = bool((await body(request)).get("on", True))
+        store.update_account(account["id"], analytics="on" if on else "off")
+        return {"ok": True, "counting": on}
+
+    @r.get("/api/account/digest")
+    async def account_digest(request: Request):
+        account = current(request)
+        if not settings.analytics:
+            raise HTTPException(404, "Analytics is switched off on this server.")
+        digest = await run_in_threadpool(store.latest_digest, account["id"])
+        if not digest:
+            return {"has_digest": False}
+        return {
+            "has_digest": True,
+            "week": digest["week"],
+            "body": digest["body"],
+            "at": digest["at"],
+        }
+
+    @r.post("/api/account/digest/generate")
+    async def generate_account_digest(request: Request):
+        require_csrf(request)
+        account = current(request)
+        if not settings.analytics:
+            raise HTTPException(404, "Analytics is switched off on this server.")
+        import json
+        from ..analytics.digest import generate_digest
+        from ..analytics.metrics import week_of
+
+        today = utc_day()
+        week = week_of(today)
+        nlg_pres = getattr(worker, "nlg", None)
+        facts, text = await run_in_threadpool(
+            generate_digest, store, account["id"], nlg=nlg_pres,
+            limit=M.MAX_CHARS_CHAT, unicode=True,
+        )
+        now = time.time()
+        await run_in_threadpool(store.save_digest, account["id"], week, text, json.dumps(facts), now)
+        return {
+            "has_digest": True,
+            "week": week,
+            "body": text,
+            "has_data": facts.get("has_data", False),
+            "at": now,
+        }
+
+    @r.get("/api/account/leads")
+    async def account_leads(request: Request):
+        account = current(request)
+        rows = await run_in_threadpool(store.leads, account["id"], 50)
+        return {"leads": [{"id": r["id"], "site": r["slug"] or account["username"], "name": r["name"],
+                           "contact": r["contact"], "message": r["message"], "at": r["at"],
+                           "read": r["read_at"] is not None} for r in rows],
+                "unread": sum(1 for r in rows if r["read_at"] is None)}
+
+    @r.post("/api/account/leads/read")
+    def read_leads(request: Request):
+        require_csrf(request)
+        account = current(request)
+        return {"ok": True, "marked": store.mark_leads_read(account["id"], time.time())}
+
+    # ---------- sales ----------
+    @r.post("/api/account/sales/import")
+    async def import_sales(request: Request):
+        """Step one parses and shows what it found; step two, with confirm, stores it.
+
+        Two steps because 03/04 is the 3rd of April in most of the world and the 4th of March in some of it,
+        and quietly picking one would move a month's takings into the wrong week with nothing to show for it.
+        The uploaded file is never written to disk; only the rows read out of it are kept.
+        """
+        require_csrf(request)
+        account = current(request)
+        if imports.blocked():
+            raise HTTPException(429, "Too many uploads just now. Try again shortly.")
+        # The file arrives as the raw body rather than a multipart form: one fewer dependency
+        # (python-multipart), and the size cap in the middleware reads Content-Length either way.
+        data = await request.body()
+        if not data:
+            raise HTTPException(400, "Attach a .csv file.")
+        yes = ("1", "true", "yes")
+        confirm = request.query_params.get("confirm", "").lower() in yes
+        dayfirst = None if not confirm else request.query_params.get("dayfirst", "true").lower() in yes
+        try:
+            parsed = await run_in_threadpool(read_csv, data, dayfirst=dayfirst)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+
+        preview = {"rows": len(parsed.rows), "skipped": parsed.skipped, "problems": parsed.problems,
+                   "sample": parsed.sample, "currency": parsed.currency, "dayfirst": parsed.dayfirst,
+                   "columns": {role: (parsed.headers[i] if i is not None and i < len(parsed.headers) else None)
+                               for role, i in parsed.columns.items()},
+                   "date_ambiguous": parsed.ambiguity == "unclear"}
+        if not confirm:
+            return {"stored": False, **preview}
+
+        imports.record()
+        name = re.sub(r"[^\w.\- ]", "", request.query_params.get("filename", ""))[:120] or "sales.csv"
+        import_id = await run_in_threadpool(store.add_sales, account["id"], name, parsed.rows,
+                                            parsed.skipped, parsed.currency, time.time())
+        event("site.sales_import", account=account["id"], rows=len(parsed.rows))
+        return {"stored": True, "import_id": import_id, **preview}
+
+    @r.get("/api/account/sales")
+    async def account_sales(request: Request):
+        account = current(request)
+        facts = await run_in_threadpool(sales_summary, store, account["id"])
+        return {**facts, "imports": [{"id": i["id"], "filename": i["filename"], "rows": i["rows"],
+                                      "skipped": i["skipped"], "at": i["at"]}
+                                     for i in store.sales_imports(account["id"])]}
+
+    @r.post("/api/account/sales/{import_id}/delete")
+    def delete_sales(request: Request, import_id: int):
+        require_csrf(request)
+        account = current(request)
+        removed = store.delete_sales_import(account["id"], import_id)
+        return {"ok": True, "removed": removed}
+
     @r.post("/api/account/phone-code")
     def phone_code(request: Request):
         require_csrf(request)
@@ -446,8 +587,75 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
                                "Text TAKEDOWN <username> or TAKEDOWN <username>/<project> to take it offline.")
         return {"ok": True, "id": rid}
 
+    # ---------- what a hosted site sends back ----------
+    # These are reached from inside the CSP sandbox, where fetch and form posts are blocked. The pixel is an
+    # <img>, and the contact form is a popup that escapes the sandbox onto this origin.
+    @r.get("/px/{username}/{slug}.gif")
+    def beacon(request: Request, username: str, slug: str):
+        """A page telling us a real browser rendered it. It only ever flags a visit we already counted."""
+        views = getattr(worker, "views", None)
+        account = store.account_by("username", username) if views is not None else None
+        if (account is not None and account["status"] == "active"
+                and (account.get("analytics") or "on") == "on" and not beacons.blocked()):
+            ua = request.headers.get("user-agent", "")
+            if not is_bot(ua):
+                beacons.record()
+                ip = client_ip(request.headers, request.client.host if request.client else "",
+                               settings.trust_proxy)
+                now = time.time()
+                views.record_beacon(Beacon(account_id=account["id"], slug="" if slug == "-" else slug,
+                                           visitor=visitor_hash(ip, ua, username, now), ts=now))
+        return Response(PIXEL, media_type="image/gif",
+                        headers={"Cache-Control": "no-store", "Content-Security-Policy": "default-src 'none'"})
+
+    @r.get("/c/{username}/{slug}")
+    def contact_page(username: str, slug: str):
+        account = store.account_by("username", username)
+        if account is None or account["status"] != "active":
+            raise HTTPException(404, "That site doesn't exist.")
+        return page("contact")
+
+    @r.get("/api/leads/{username}/{slug}")
+    def lead_target(username: str, slug: str):
+        """Who the enquiry is going to, so the form can say so instead of asking people to trust a bare page."""
+        account = store.account_by("username", username)
+        if account is None or account["status"] != "active":
+            raise HTTPException(404, "That site doesn't exist.")
+        return {"site": slug if slug != "-" else account["username"], "owner": account["call_sign"]}
+
+    @r.post("/api/leads/{username}/{slug}")
+    async def new_lead(request: Request, username: str, slug: str):
+        require_csrf(request)
+        account = store.account_by("username", username)
+        if account is None or account["status"] != "active":
+            raise HTTPException(404, "That site doesn't exist.")
+        data = await body(request)
+        if str(data.get("website", "")).strip():
+            return {"ok": True}  # a hidden field only a bot would fill in; answer as if it worked
+        if leads.blocked() or store.lead_count(account["id"], time.time() - 86_400) >= MAX_LEADS_PER_DAY:
+            raise HTTPException(429, "Too many messages right now. Try again later.")
+        name = str(data.get("name", "")).strip()[:80]
+        contact = str(data.get("contact", "")).strip()[:120]
+        message = str(data.get("message", "")).strip()[:1000]
+        if not message or not contact:
+            raise HTTPException(400, "Leave a message and a way to reach you.")
+        leads.record()
+        site = slug if slug != "-" else account["username"]
+        lead_id = store.add_lead(account["id"], "" if slug == "-" else slug, name, contact, message, time.time())
+        event("site.lead", account=account["id"], lead=lead_id)
+        owner = store.account_user(account["id"])
+        if owner is not None:  # tell them on WhatsApp straight away; an enquiry is worth interrupting for
+            who = f"{name} ({contact})" if name else contact
+            service._reply(owner["phone"], owner,
+                           f"New enquiry on {site} from {who}: {message[:220]}")
+        return {"ok": True}
+
     return r
 
 
+MAX_LEADS_PER_DAY = 100
+# A 1x1 transparent GIF: the smallest thing a sandboxed page is allowed to send us.
+PIXEL = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+
 PUBLIC_PREFIXES = ("/start", "/dashboard", "/terms", "/privacy", "/report", "/site/", "/auth/google",
-                   "/api/account/", "/api/report")
+                   "/api/account/", "/api/report", "/px/", "/c/", "/api/leads/")

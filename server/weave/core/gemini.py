@@ -31,9 +31,9 @@ def thinking_config(model: str, level: str | None):
         return None
     if model.startswith("gemini-2.5-flash"):
         return types.ThinkingConfig(thinking_budget=0)
-    if model.startswith("gemini-2.5"):
-        return types.ThinkingConfig(thinking_budget=128)
-    return types.ThinkingConfig(thinking_level=level)
+    if hasattr(types.ThinkingConfig, "model_fields") and "thinking_level" in types.ThinkingConfig.model_fields:
+        return types.ThinkingConfig(thinking_level=level)
+    return types.ThinkingConfig(thinking_budget=0 if level == "minimal" else 128)
 
 
 class GeminiError(RuntimeError):
@@ -137,14 +137,19 @@ class GeminiClient:
             contents = user if attempt == 1 else (
                 f"{user}\n\nYour previous reply was rejected: {last_err}\nReturn ONLY valid JSON matching the schema.")
             started = time.monotonic()
+            schema_arg = (
+                {"response_json_schema": schema.model_json_schema()}
+                if "response_json_schema" in types.GenerateContentConfig.model_fields
+                else {"response_schema": schema}
+            )
             config = types.GenerateContentConfig(
                 system_instruction=system,
                 response_mime_type="application/json",
-                response_json_schema=schema.model_json_schema(),
                 temperature=0.4,
                 max_output_tokens=max_tokens,
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
                 thinking_config=thinking_config(model, thinking),
+                **schema_arg,
             )
             resp = self._call_with_retry(client, model, contents, config)
             meta = {

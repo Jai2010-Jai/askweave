@@ -1,0 +1,102 @@
+/* Weave: warm cream, deep WhatsApp-style green, heavy grotesk headings. */
+:root {
+  --paper: #f4f1ea;
+  --sheet: #ffffff;
+  --sheet-2: #f4f1ea;
+  --ink: #10261d;
+  --ink-2: #4b5a53;
+  --ink-3: #7d8a84;
+  --edge: #e4dfd3;
+  --green: #1d7a50;
+  --green-dark: #0f2a20;
+  --band: #173f30;
+  --mint: #d8f0e1;
+  --mint-ink: #0f5c3a;
+  --red: #c4432f;
+  --hl: rgba(16, 38, 29, 0.06);
+  --shadow: rgba(16, 38, 29, 0.14);
+  --nav-bg: rgba(244, 241, 234, 0.86);
+
+  /* Names some component styles still use. */
+  --accent: var(--green);
+  --accent-ink: var(--mint-ink);
+  --blue: var(--ink);
+  --ochre: var(--ink);
+
+  --indic: var(--font-deva), var(--font-telu), var(--font-taml), var(--font-knda);
+  --sans: var(--font-sans), var(--indic), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--font-display), var(--indic), var(--sans);
+  --mono: var(--font-mono), var(--indic), ui-monospace, "SF Mono", Menlo, monospace;
+  --serif: var(--sans);
+  --hand: var(--sans);
+  --type: var(--mono);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; overflow-x: clip; }
+html, body { margin: 0; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.6;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--mint); color: var(--ink); }
+a { color: var(--ink); }
+img, svg { display: block; }
+button { font: inherit; color: inherit; }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--hl); padding: 1px 6px; border-radius: 6px; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+section { padding: clamp(72px, 10vw, 112px) 0; position: relative; }
+
+.label { margin: 0 0 14px; font: 700 12px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--green); }
+h1, h2, h3, h4 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.035em; color: var(--ink); }
+h2 { font-size: clamp(32px, 4.4vw, 48px); line-height: 1.08; max-width: 640px; margin-bottom: clamp(32px, 5vw, 48px); }
+h3 { font-size: 20px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 700; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; cursor: pointer;
+  font: 600 15px var(--sans); color: #fff; background: var(--green);
+  padding: 13px 24px; border: 0; border-radius: 999px;
+  transition: background-color 0.2s, transform 0.2s var(--ease);
+}
+.btn:hover { background: #17673f; transform: translateY(-1px); }
+.btn:active { transform: none; }
+.btn.dark { background: var(--green-dark); }
+.btn.dark:hover { background: #1b3d30; }
+.btn.ghost { background: transparent; color: var(--ink); padding: 0; border-radius: 0; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
+.btn.ghost:hover { transform: none; color: var(--green); }
+.btn svg { width: 16px; height: 16px; }
+
+.chip {
+  display: inline-flex; align-items: center; font: 500 13px var(--sans);
+  padding: 4px 12px; border-radius: 999px; background: var(--mint); color: var(--mint-ink); white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
+/* While a saved language loads, keep the English text from flashing. */
+html.lang-pending body > *:not(.intro) { visibility: hidden; }
+
+/* Indian scripts: letter-spacing breaks their joined letters, and their marks need taller lines. */
+:root:is([lang="hi"], [lang="te"], [lang="ta"], [lang="kn"]) * { letter-spacing: 0 !important; }
+:root:is([lang="hi"], [lang="te"], [lang="ta"], [lang="kn"]) :is(h1, h2, h3) { line-height: 1.4; font-weight: 700; }
+:root:is([lang="hi"], [lang="te"], [lang="ta"], [lang="kn"]) body { line-height: 1.75; }
+:root:is([lang="hi"], [lang="te"], [lang="ta"], [lang="kn"]) .label { text-transform: none; font-size: 13px; }
+:root:is([lang="hi"], [lang="te"], [lang="ta"], [lang="kn"]) h2 { font-size: clamp(26px, 3.6vw, 40px); }
+:root[lang="ta"] h2 { font-size: clamp(24px, 3.2vw, 36px); }
+
+/* Long words in some languages must wrap instead of stretching cards past the screen. */
+h1, h2, h3, h4, p, li, a, button, span { overflow-wrap: break-word; }
+
+/* Cards used by the legal and account pages */
+.sheet { background: var(--sheet); border: 1px solid var(--edge); border-radius: 22px; position: relative; }

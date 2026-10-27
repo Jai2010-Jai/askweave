@@ -1,0 +1,8 @@
+{
+  "name": "weave-website-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website generator run by the Weave server through server/weave/web/bridge.mjs",
+  "type": "module",
+  "license": "MIT"
+}

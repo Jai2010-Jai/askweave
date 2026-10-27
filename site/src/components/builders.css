@@ -1,0 +1,21 @@
+.b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+.b-card { padding: clamp(24px, 3vw, 30px); border-radius: 20px; min-width: 0; display: flex; flex-direction: column; transition: transform 0.3s var(--ease); }
+.b-card:hover { transform: translateY(-4px); }
+.b-card h3 { font-size: clamp(20px, 2vw, 24px); margin: 22px 0 14px; }
+.b-card p { margin: 0; font-size: 14.5px; line-height: 1.65; }
+.b-ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; }
+.b-ico svg { width: 20px; height: 20px; }
+
+.b-android { background: var(--green-dark); color: #d6e3dc; }
+.b-android h3 { color: #fff; }
+.b-android .b-ico { background: rgba(255, 255, 255, 0.08); color: var(--mint); }
+.b-tags { margin-top: 16px !important; font-size: 13px !important; font-weight: 600; color: #6ee0a0; }
+
+.b-web { background: var(--sheet); border: 1px solid var(--edge); color: var(--ink-2); }
+.b-web .b-ico { background: var(--mint); color: var(--mint-ink); }
+.b-publish {
+  margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px;
+  border-radius: 12px; background: var(--paper); font-size: 13px; color: var(--ink-2);
+}
+.b-publish code { background: var(--green-dark); color: #6ee0a0; font: 700 12px var(--mono); letter-spacing: 0.06em; padding: 5px 9px; border-radius: 6px; }
+@media (max-width: 860px) { .b-grid { grid-template-columns: 1fr; } }

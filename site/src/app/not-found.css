@@ -1,0 +1,5 @@
+.nf { min-height: 100svh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; }
+.nf-logo { width: min(70vw, 360px); margin-bottom: 12px; }
+.nf-logo .weave-logo { width: 100%; height: auto; }
+.nf h1 { font-size: clamp(28px, 4vw, 42px); }
+.nf p { margin: 0 0 10px; color: var(--ink-2); }

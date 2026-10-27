@@ -1,4 +1,4 @@
-// Genesis Studio — the phone client for a Genesis server.
+// Weave Studio — the phone client for a Weave server.
 pluginManagement {
     repositories {
         google()
@@ -13,5 +13,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "GenesisStudio"
+rootProject.name = "WeaveStudio"
 include(":app")

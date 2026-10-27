@@ -1,0 +1,10 @@
+.how { background: var(--sheet); }
+.how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.how-card { padding: 26px 24px 30px; border-radius: 18px; background: var(--paper); min-width: 0; transition: transform 0.3s var(--ease); }
+.how-card:hover { transform: translateY(-4px); }
+.how-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.how-num { font: 800 28px var(--display); letter-spacing: -0.04em; color: var(--ink); }
+.how-top svg { width: 20px; height: 20px; color: var(--ink-2); }
+.how-card h3 { margin-bottom: 10px; }
+.how-card p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+@media (max-width: 860px) { .how-grid { grid-template-columns: 1fr; } }

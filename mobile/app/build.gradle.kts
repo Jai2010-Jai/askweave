@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.genesis.studio"
+    namespace = "com.weave.studio"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.genesis.studio"
+        applicationId = "com.weave.studio"
         minSdk = 26
         targetSdk = 35
         versionCode = 3

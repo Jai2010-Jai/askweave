@@ -1,98 +1,29 @@
-# -----------------------------------------------------------------------------
-# Secrets & Environment Files (NEVER COMMIT REAL CREDENTIALS)
-# -----------------------------------------------------------------------------
+# Secrets and local settings: never commit
 .env
 .env.*
-.env.local
-.env.*.local
 !.env.example
-
-# Private keys, certificates, keystores, and credentials
 *.pem
-*.key
-*.pkcs12
-*.p12
-*.pfx
-*.keystore
-*.jks
-id_rsa*
-id_ed25519*
+local.properties
 
-# -----------------------------------------------------------------------------
-# Databases & Local State
-# -----------------------------------------------------------------------------
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
-*.sqlite3-shm
-*.sqlite3-wal
-/data/
-data/
+# Runtime data (users, builds, backups)
+server/data/
+server/dist/
 
-# Logs & Tunnel Dumps
-*.log
-cloudflared.log
-public_url
-access_code
-
-# User Audio & Media Caches
-*.ogg
-*.mp3
-*.wav
-*.m4a
-*.webm
-
-# -----------------------------------------------------------------------------
-# Python
-# -----------------------------------------------------------------------------
+# Dependencies and build output
+node_modules/
 .venv/
-venv/
-env/
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
 .pytest_cache/
-.coverage
-htmlcov/
-.ruff_cache/
-
-# -----------------------------------------------------------------------------
-# Android & Gradle Build Artifacts
-# -----------------------------------------------------------------------------
-*.apk
-*.aab
-.gradle/
+site/.next/
+site/out/
+*.tsbuildinfo
 build/
-android_template/.gradle/
-android_template/build/
-android_template/app/build/
-android_template/local.properties
-android_template/genesis.properties
-android_template/weave.properties
+.gradle/
+.netlify/
 
-mobile/.gradle/
-mobile/build/
-mobile/app/build/
-mobile/local.properties
-mobile/.kotlin/
-
-# -----------------------------------------------------------------------------
-# Distribution & Temporary Dirs
-# -----------------------------------------------------------------------------
-dist/
-tmp/
-temp/
-
-# -----------------------------------------------------------------------------
-# OS & Editor Specific
-# -----------------------------------------------------------------------------
+# OS / editor
 .DS_Store
-Thumbs.db
 .idea/
 .vscode/
 .claude/
-*.swp
-*.swo
-*~

@@ -1,0 +1,36 @@
+.cp {
+  width: 100%; max-width: 360px; height: 560px; margin-left: auto; display: flex; flex-direction: column; overflow: hidden;
+  border: 10px solid var(--green-dark); border-radius: 40px; background: #ece5d8;
+  box-shadow: 0 40px 80px -40px rgba(15, 42, 32, 0.55), 0 12px 24px -12px rgba(15, 42, 32, 0.25);
+}
+.cp-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--green-dark); color: #fff; }
+.cp-avatar { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #fff; }
+.cp-avatar .brand-mark { width: 34px; height: 34px; }
+.cp-who { display: grid; line-height: 1.2; }
+.cp-who b { font: 700 15px var(--sans); }
+.cp-who small { font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+.cp-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 14px 12px; overflow: hidden; }
+.cp-item { display: flex; flex-direction: column; }
+.cp-row.me { display: flex; flex-direction: column; align-items: flex-end; }
+.cp-bubble { max-width: 82%; padding: 8px 11px; border-radius: 10px; font-size: 13px; line-height: 1.4; color: #111b21; box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.12); }
+.cp-bubble.bot { align-self: flex-start; background: #fff; border-top-left-radius: 3px; }
+.cp-bubble.me { background: #d9fdd3; border-top-right-radius: 3px; }
+.cp-caption { margin: 4px 2px 0; font-size: 11px; font-style: italic; color: #6b7a72; }
+.cp-voice { display: flex; align-items: center; gap: 8px; min-width: 200px; }
+.cp-play { width: 22px; height: 22px; display: grid; place-items: center; color: var(--green); }
+.cp-play svg { width: 16px; height: 16px; }
+.cp-wave { flex: 1; display: flex; align-items: center; gap: 2px; height: 18px; }
+.cp-wave i { flex: 1; max-width: 3px; border-radius: 2px; background: var(--green); }
+.cp-voice small { font-size: 10px; color: #6b7a72; }
+.cp-steps { display: grid; gap: 4px; font-size: 12px; }
+.cp-steps span { display: flex; align-items: center; gap: 6px; }
+.cp-steps svg { width: 12px; height: 12px; color: var(--green); }
+.cp-app { padding: 0; overflow: hidden; min-width: 210px; }
+.cp-app-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--green-dark); color: #fff; }
+.cp-app-ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--green); }
+.cp-app-ico svg { width: 15px; height: 15px; }
+.cp-app-head b { display: block; font-size: 13px; }
+.cp-app-head small { display: block; font-size: 11px; color: rgba(255, 255, 255, 0.7); }
+.cp-app-install { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-size: 12px; font-weight: 600; color: var(--green); }
+.cp-app-install svg { width: 13px; height: 13px; }
+@media (max-width: 900px) { .cp { margin: 0 auto; } }

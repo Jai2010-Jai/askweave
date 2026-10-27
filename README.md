@@ -1,206 +1,156 @@
-# Weave — Conversational AI Software Development Platform
+# Weave (askweave.xyz)
 
-Weave is a conversational AI-powered software builder that creates real, installable Android apps and websites through plain-language conversations on **WhatsApp**, **SMS**, and **Web Chat**.
+Weave builds real Android apps and websites from plain-language messages on WhatsApp, SMS and web chat.
+Someone texts an idea, Weave talks it through like a friend (in their own style: Gen Z, Hinglish, formal, Hindi
+script...), builds it with AI, and texts back a link. Websites go live at `https://<username>.askweave.xyz/<project>/`.
+
+| Folder | What it is | Stack | Runs on |
+|---|---|---|---|
+| [`server/`](server/) | The Weave server: WhatsApp/SMS/web chat, Google sign-in accounts, the AI conversation, Android and website builds, hosting of user sites | Python 3.12, FastAPI, SQLite, Gradle | Our machine, behind a Cloudflare tunnel |
+| [`website-engine/`](website-engine/) | The website generator the server runs through `server/weave/web/bridge.mjs` (4 files, from [adityapokuri229/weave](https://github.com/adityapokuri229/weave), MIT) | Node 20+ | Same machine (child process) |
+| [`site/`](site/) | The askweave.xyz **marketing page** with the waitlist | Next.js static export, Supabase | **Netlify** (separate from the app) |
+| [`mobile/`](mobile/) | Weave Studio, a phone app that talks to the server over Wi-Fi | Android, Kotlin, Jetpack Compose | Sideloaded APK |
+
+## How it all connects
 
 ```text
-WhatsApp (Meta Cloud API / Twilio) ─┐                          ┌─ Android: Gemini ─► validator ─► Gradle ─► APK verify ─► /download/<token>
-SMS / Web Chat / Voice Notes ──────┼─► conversation + router ─┤
-                                    │   (one SQLite store)     └─ Website: Weave generator (Node bridge) ─► /preview/<token>/
-                                    └──────────── progress and results through the same outbox ─── publish: Netlify (optional)
+askweave.xyz, www.askweave.xyz ─► Netlify ─► site/ (static marketing page)
+                                              └─ waitlist sign-ups ─► Supabase (Auth + `waitlist` table)
+
+app.askweave.xyz ────┐
+*.askweave.xyz ──────┼─► Cloudflare DNS ─► Cloudflare tunnel "weave" ─► server/ on 127.0.0.1:8765
+Twilio (WhatsApp/SMS)┘                                                   │
+                                                                         ├─ AI: one model (Groq gpt-oss-120b by default)
+                                                                         ├─ Sign-in: Google OAuth (name + email only)
+                                                                         ├─ Android builds: Gradle ─► /download/<token>
+                                                                         ├─ Websites: website-engine ─► <username>.askweave.xyz/<project>/
+                                                                         ├─ Voice notes: faster-whisper, on this machine
+                                                                         └─ Data: server/data/ (SQLite + site files + backups)
 ```
 
-> **Note on internal naming:** Weave was originally developed under the internal code name **Genesis**. To preserve backward compatibility with existing databases, migrations, and CLI tools, the core Python package remains `genesis`, and environment variables use the `GENESIS_*` prefix.
+**Two separate systems:**
+- **Marketing site + waitlist** (`site/`): a static Next.js export on **Netlify**. Its only backend is **Supabase**
+  (Supabase Auth for the waitlist login and a `waitlist` table with referrals, schema in `site/supabase/`). It does
+  not talk to the Weave server.
+- **The product** (`server/`): everything users actually use, `app.askweave.xyz` and every user subdomain, served
+  by the Weave server through a Cloudflare tunnel. It has its own accounts in SQLite. **No Supabase, no Netlify.**
 
----
+### Every external service
 
-## Key Features
+| Service | Used for | Configured in |
+|---|---|---|
+| **Cloudflare** | DNS for askweave.xyz, HTTPS certificates, named tunnel `weave` (`app` and `*` CNAMEs), Email Routing for @askweave.xyz | Cloudflare dashboard; tunnel token in `~/.cloudflared/weave.token` |
+| **Twilio** | WhatsApp and SMS on one number; webhook `https://app.askweave.xyz/api/webhooks/twilio/sms` (set on the number, the WhatsApp sender and the Messaging Service) | `TWILIO_*` in `server/.env`, Twilio Console |
+| **Groq** (default AI) | Every AI call: chat, Android app code, websites. Model `openai/gpt-oss-120b`. Free tier: 1,000 requests/day, 8,000 tokens/min | `WEAVE_AI_PROVIDER=groq`, `GROQ_API_KEY`, `GROQ_MODEL` |
+| Gemini or GLM (optional) | Drop-in replacements for Groq; still one model, never a fallback | `WEAVE_AI_PROVIDER=gemini` or `glm` with its key |
+| **Google OAuth** | "Continue with Google", the only way to sign in or sign up; asks for name and email only | `GOOGLE_CLIENT_ID/SECRET`; redirect `https://app.askweave.xyz/auth/google/callback` |
+| faster-whisper | Voice-note transcription, locally, no outside service | `WEAVE_VOICE_MODEL` |
+| minimal.gallery, Tailwind CDN, Google Fonts | Design inspiration while building; loaded by visitors' browsers on generated sites | none |
+| **Netlify** | Only the marketing page (`site/`) | Netlify site `weave-ai-704` |
+| **Supabase** | Only the waitlist on the marketing page | `site/.env.local` / Netlify env vars |
 
-- **Multi-Channel Conversational Interface**: Access Weave via Meta WhatsApp Cloud API, Twilio SMS/WhatsApp, or the built-in Progressive Web App (PWA) Web Chat.
-- **Natural Language Generation (NLG)**: Friendly, context-aware conversational replies powered by Google Gemini, paired with strict factual verification so build statuses, links, and tokens are never hallucinated.
-- **Voice Note Understanding**: Send voice notes over WhatsApp or MMS, transcribed locally on-device using `faster-whisper`.
-- **Android App Factory**: Turn prompts into native Kotlin + Jetpack Compose apps. Builds are compiled locally via Gradle, verified with Android build tools (`aapt2`, `apksigner`), and delivered as debug `.apk` downloads. Includes automatic error repair loops (up to 2 iterations).
-- **Website Generator**: Build tailored multi-page websites and interactive previews served with sandboxed Content Security Policy (`CSP`).
-- **Secure by Design**: Minimal process environments, strict path traversal checks, rate limiting, and zero secret leakage into child processes.
+## The product, end to end
 
----
+1. **Sign up.** On `app.askweave.xyz/start` a person taps **Continue with Google**. A new account picks a permanent
+   username (their subdomain) and what Weave should call them (pre-filled from Google); a returning account goes
+   straight to the dashboard. The dashboard shows a `LINK <code>` to text from WhatsApp, which ties their number
+   to the account.
+2. **Chat.** Every message that isn't an exact command (`STATUS`, `HELP`, `STOP`, ...) goes to the AI with the full
+   picture: the last 20 messages, every project (idea, recent changes, live link, last error), any running build
+   and the person's own address. It replies like a friend, mirrors how they write, and picks one action: reply,
+   build an app, build a website, change a project, rename it, status, list, send a link, switch, cancel, retry.
+   The server carries the action out with its own checks (ownership, quotas, one build at a time). If the AI
+   can't answer, the person is told honestly to try again; nothing is guessed by scripts.
+3. **Build.**
+   - *Website:* the bridge runs the engine (design research, then the page, then optional extra pages), the
+     output is validated (complete HTML, CDN-only scripts, no forms posting elsewhere; embedded iframes are
+     stripped), and it goes live at `https://<username>.askweave.xyz/<project-slug>/` in an atomic swap.
+   - *Android app:* the AI writes a Kotlin + Jetpack Compose app, it's validated, built with Gradle (up to 2
+     repair rounds), verified, and sent as a `/download/<token>` link (expires after 72 h).
+4. **Change, rename, delete.** "make the header dark brown" builds a new version (the old one stays until the new
+   one passes). Renaming a project (in chat or on the dashboard) moves its live address to match the new name.
+   Deleted projects go to a 30-day trash.
+5. **Hosting.** The `*.askweave.xyz` record points at the same tunnel as the app; the server tells sites apart by
+   the Host header and serves them from `server/data/hosted-users/<username>/<slug>/` inside a CSP sandbox, so a
+   site can't read Weave cookies or call its APIs.
 
-## Supported Platforms & Prerequisites
+## Where the data lives
 
-Weave runs on **Windows (native)**, **macOS**, and **Linux**.
+Everything is in `server/data/` (git-ignored) on the machine running the server:
 
-### System Prerequisites
+| Path | Contents |
+|---|---|
+| `sms.sqlite3` | Users (phone numbers), accounts, sessions, projects, messages, build jobs, download links, reports |
+| `builds/<id>/` | Android build folders and APKs |
+| `sites/<id>/` | Every website version |
+| `hosted-users/<username>/<slug>/` | Live websites |
+| `hosted-trash/` | Deleted sites (30 days) |
+| `backups/` | Hourly database backups |
 
-| Component | Minimum Version | Recommended | Notes |
-|---|---|---|---|
-| **Python** | 3.10+ | 3.12+ / 3.13 | Core runtime and API server |
-| **Google Gemini API Key** | — | Required for AI generation | Free tier from [Google AI Studio](https://aistudio.google.com/apikey) |
-| **Java Development Kit (JDK)** | JDK 17+ | JDK 17 / 21 | Eclipse Temurin, Android Studio JBR, or OpenJDK |
-| **Android SDK** | API 35 | `platforms;android-35`, `build-tools;35.0.0` | Required only for Android `.apk` builds |
-| **Node.js** | 20+ | LTS | Required only for the website builder engine |
-| **Cloudflared** | Latest | Optional | For public HTTPS tunneling (WhatsApp webhooks & remote chat) |
+The waitlist is the only data elsewhere (Supabase).
 
----
-
-## Quickstart & Installation
-
-### 1. Clone & Set Up Python Environment
+## Running it
 
 ```bash
-# Clone the repository
-git clone https://github.com/hrizzReal/weave.git
-cd weave
-
-# Create a virtual environment
-python -m venv .venv
-
-# Activate virtual environment
-# Windows (PowerShell):
-.\.venv\Scripts\Activate.ps1
-# Linux / macOS:
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements-dev.txt
+cd server
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+cp .env.example .env          # fill in the keys (see the table above)
+.venv/bin/python -m weave doctor
+scripts/run_prod.sh           # server + Cloudflare tunnel (one-time tunnel setup is in the script)
 ```
 
-### 2. Configuration (`.env`)
+Android builds need JDK 17 and Android SDK 35; websites need Node 20+ (no `npm install` for the engine).
+Marketing site: `cd site && npm install && npm run build` (exports to `site/out`, deployed by Netlify).
+Phone app: `server/scripts/build_phone_app.sh`.
 
-Copy the template configuration file:
+Tests (everything external is faked; nothing leaves the machine):
 
 ```bash
-cp .env.example .env
+cd server && .venv/bin/python -m pytest -q
 ```
 
-Edit `.env` with your preferred settings:
+## What changed (October 2026)
 
-```dotenv
-# Required: Google Gemini AI
-GEMINI_API_KEY=your-gemini-api-key-here
-GEMINI_MODEL=auto
+**Accounts**
+- Sign-in and sign-up are **Google only** ("Continue with Google"); email/password login was removed. Google is
+  asked for name and email only, nothing is stored for later.
+- **Google Stitch removed** completely (code, routes, dashboard card, stored tokens).
 
-# Server & Dashboard
-GENESIS_HOST=127.0.0.1
-GENESIS_PORT=8765
+**AI**
+- **One model for everything, no fallback.** `WEAVE_AI_PROVIDER` picks Groq (default), Gemini or GLM; there is no
+  backup model, no racing between models and no model-health tracking. A busy model is retried in short steps.
+- **Groq** added (`openai/gpt-oss-120b`): chat replies in about 1 second instead of 3-40 s on free GLM; a website
+  builds in 25-50 s instead of about 4 minutes.
+- **Smarter chat:** every non-command message goes to the AI with full project context; scripted shortcuts,
+  numbered menus and rule-based guesses were removed. New **rename** action. Link requests always return the
+  current link from the database.
+- **Adaptive style:** replies mirror the person's language mix, script and tone (Gen Z, Hinglish, Tenglish,
+  formal, Devanagari...).
+- Fixed: the Gemini client was closed by garbage collection, so Gemini calls always failed.
 
-# Conversational Brain & NLG
-GENESIS_CHAT_BRAIN=on
-GENESIS_CHAT_MODEL=gemini-3.5-flash-lite
-GENESIS_NLG=on
-GENESIS_NLG_MODEL=gemini-3.5-flash-lite
-```
+**Websites and hosting**
+- **Renaming moves the live site** (`/old-name/` to `/new-name/`), from chat or the dashboard.
+- Embedded iframes/objects are stripped instead of failing the whole site.
+- Fixed: a relative `WEAVE_WEBSITE_ENGINE_DIR` broke every website build; paths now resolve from `server/`.
 
-> **Security Notice**: `.env` is ignored by Git and must **never** be committed. Keep your keys strictly confidential.
+**Infrastructure**
+- Production runs on our own Cloudflare account with a named tunnel (`scripts/run_prod.sh`), not a temporary URL.
+- Twilio's number, WhatsApp sender and Messaging Service all point at `app.askweave.xyz`.
 
-### 3. Verify Prerequisites
+**Cleanup**
+- The Python package and every setting were renamed from Genesis to **Weave** (`weave`, `WEAVE_*`).
+- `website-engine/` trimmed from ~180 files to the 4 the server loads; the borrowed Gemini CLI OAuth client was
+  removed from it.
+- Removed the Antigravity backend, stale docs and scripts; READMEs and `.env.example` rewritten.
 
-Run the built-in diagnostic tool:
+## Limits to know
 
-```bash
-python -m genesis doctor
-```
+- **Free AI limits:** Groq's free tier allows 1,000 requests/day and 8,000 tokens/minute per model (about 2-3 chat
+  messages a minute before it makes Weave wait). A paid tier or a second model for chat raises this.
+- **One machine:** the server, the database and every user site live on the machine running `run_prod.sh`. If it
+  is off, the bot and all user sites are down. Back up `server/data/` somewhere else.
+- **Builds run as local processes,** not containers; isolate them before running untrusted builds at scale.
+- APKs are debug-signed for sideloading, not the Play Store.
 
-This verifies Python packages, JDK, Android SDK, Gradle wrapper, and Gemini API access without leaking any credentials.
-
----
-
-## Running Weave
-
-### Option A: Local Dashboard & Web Chat
-
-Start the local server:
-
-```bash
-python -m genesis serve
-```
-
-- **Dashboard**: Visit [http://127.0.0.1:8765](http://127.0.0.1:8765) to monitor builds, test prompts, and manage project history.
-- **Web Chat**: Visit [http://127.0.0.1:8765/chat](http://127.0.0.1:8765/chat) to interact with Weave directly in your browser.
-
-### Option B: Public Web Chat & WhatsApp (with Cloudflare Tunnel)
-
-To make Weave accessible from mobile phones and receive Meta WhatsApp webhooks:
-
-**On Windows:**
-```powershell
-.\scripts\genesis_public.ps1
-```
-
-This starts:
-1. The Weave FastAPI application on port 8765.
-2. A Cloudflare Quick Tunnel forwarding traffic to your machine with an HTTPS public URL.
-3. Automatically sets `PUBLIC_BASE_URL` so webhooks and token links work seamlessly.
-
----
-
-## Configuring Meta WhatsApp Cloud API
-
-To connect Weave to WhatsApp:
-
-1. Create a Meta Developer App at [developers.facebook.com](https://developers.facebook.com/) and add the **WhatsApp** product.
-2. In **WhatsApp > API Setup**, retrieve:
-   - **Phone Number ID** (numeric ID)
-   - **WhatsApp Business Account ID**
-   - **Access Token** (System User token recommended for production)
-3. In **App Settings > Basic**, retrieve your **App Secret**.
-4. Configure these in your local `.env`:
-   ```dotenv
-   GENESIS_WHATSAPP_PROVIDER=meta
-   META_ACCESS_TOKEN=your-meta-access-token
-   META_PHONE_NUMBER_ID=your-meta-phone-number-id
-   META_BUSINESS_ACCOUNT_ID=your-meta-business-account-id
-   META_APP_SECRET=your-meta-app-secret
-   META_VERIFY_TOKEN=your-random-verification-token
-   ```
-5. In Meta's WhatsApp **Configuration** tab, set:
-   - **Callback URL**: `https://<your-public-tunnel-url>/api/webhooks/whatsapp`
-   - **Verify Token**: Match `META_VERIFY_TOKEN` configured above.
-   - **Webhook Fields**: Subscribe to `messages`.
-
-> **Note regarding Meta Error 131037**: If you use a custom phone number, Meta requires you to submit the display name for approval in WhatsApp Manager before outbound messages can be sent. Meta pre-approved test numbers have no such restriction.
-
----
-
-## Running the Automated Test Suite
-
-Weave includes a comprehensive automated test suite covering all modules offline:
-
-```bash
-pytest -v
-```
-
-Tests verify:
-- Webhook signature authentication (Meta HMAC-SHA256 and Twilio SHA1)
-- Natural Language Generation (NLG) and factual integrity enforcement
-- Gemini model discovery and graceful fallback
-- Conversational chat brain routing and project selection
-- Path traversal defense, file type validation, and forbidden API blocking
-- APK verification (dex, manifest, zip structure, signatures)
-- Sandboxed HTML website previews and security headers
-
----
-
-## Security Architecture
-
-Weave follows defensive security principles:
-
-1. **No Secret Leakage**: API keys and tokens are server-side only. Child processes (such as Gradle builds) receive a scrubbed environment stripped of `GEMINI_API_KEY` and other sensitive variables.
-2. **Path Traversal Defense**: All file creation in Android templates and website previews is strictly confined to designated workspace roots and cannot escape or traverse symlinks.
-3. **Strict Content Security Policy (CSP)**: Website previews run in an isolated sandbox (`sandbox allow-scripts allow-popups`) with an opaque origin and strict CSP preventing script access to host cookies or APIs.
-4. **Rate Limiting & Abuse Prevention**: Built-in sliding-window rate limiters protect against resource exhaustion and brute-force attempts on linking codes.
-5. **No Dangerous Shell Subprocesses**: Subprocesses are invoked with explicit argument arrays, preventing command injection vulnerabilities.
-
----
-
-## Important Disclaimers & Deployment Limitations
-
-- **Publication on GitHub**: Pushing this codebase to GitHub does **not** automatically deploy Weave or host it 24/7. Weave is designed to run locally on developer hardware with GPU or CPU acceleration.
-- **Debug Builds**: Generated Android APKs are signed with debug keys for testing. They are not intended for Google Play Store distribution without proper release key management.
-- **Untrusted Code Execution**: While generated Kotlin source code undergoes strict AST and pattern validation, running builds on multi-tenant production systems should be paired with OS-level virtualization or containerization.
-
----
-
-## License & Ownership
-
-Copyright © 2026. All rights reserved.
-
-This repository is published for source reference. All rights are reserved by the author. No license is granted to reproduce, distribute, or create derivative works without explicit written permission.
+More detail: [`server/README.md`](server/README.md), [`server/docs/SMS.md`](server/docs/SMS.md),
+[`server/docs/WEBSITES.md`](server/docs/WEBSITES.md).

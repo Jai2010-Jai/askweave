@@ -3,6 +3,7 @@
   const params = new URLSearchParams(location.search);
   const errors = { google: "Google sign-in didn't work. Try again.", google_off: "Google sign-in isn't set up yet.",
     closed: "That account is closed." };
+  let stitchOn = false;
 
   // Sign-in and sign-up are both "Continue with Google". A returning account lands on the dashboard straight from
   // Google; a new one comes back here with google_pending set and picks a username to finish.
@@ -18,11 +19,18 @@
       $("#google-box").hidden = true;
       $("#google-off").hidden = false;
     }
+    if (cfg.stitch) {
+      // One Google consent covers sign-in and Stitch; email sign-ups get one more click right after.
+      stitchOn = true;
+      $("#google-btn").href = "/auth/google?stitch=1";
+      $("#google-stitch-note").hidden = false;
+    }
     if (cfg.google_pending) {
       $("#google-box").hidden = true;
       $("#signup-form").hidden = false;
       $("#google-pending").hidden = false;
-      $("#google-pending").textContent = `Signed in with Google as ${cfg.google_pending.email}. Pick your username to finish.`;
+      $("#google-pending").textContent = `Signed in with Google as ${cfg.google_pending.email}` +
+        (cfg.google_pending.stitch ? " (Google Stitch connected)" : "") + ". Pick your username to finish.";
       const first = (cfg.google_pending.name || "").split(" ")[0];
       if (first && !$("#call-sign").value) $("#call-sign").value = first;
     }

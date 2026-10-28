@@ -195,6 +195,7 @@ export class GeminiClient {
     if (system.includes('page structure')) return { text: JSON.stringify({ pages: [{ slug: 'About', title: 'About', purpose: 'story' },
       { slug: 'index', title: 'Home', purpose: 'dup' }, { slug: '../evil', title: 'Evil', purpose: 'x' }, { slug: 'contact', title: 'Contact', purpose: 'reach us' }] }), raw: {} };
     if (system.includes('matching page')) return { text: '```html\\n<!DOCTYPE html><html><body><nav><a href="index.html">Home</a><a href="about.html">About</a><a href="contact.html">Contact</a></nav>page</body></html>\\n```', raw: {} };
+    if (system.includes('approved designs')) return { text: '<!DOCTYPE html><html><body>coded from the design</body></html>', raw: {} };
     if (mode === 'nohtml') return { text: 'Sorry, I cannot.', raw: {} };
     if (system.includes('critique')) return { text: mode === 'same' ? CURRENT : '<!DOCTYPE html><html><body>changed</body></html>', raw: {} };
     const budget = system.includes('LENGTH BUDGET') ? ' budgeted' : '';

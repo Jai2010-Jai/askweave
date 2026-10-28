@@ -74,6 +74,7 @@ class SmsService:
         self._req = threading.local()  # per-request: our number the inbound message was sent to
         self.brain = None  # ChatBrain when plain-language chat runs through the AI backend
         self.web = None  # weave.web.builder.WebsiteBuilder; None = no website builder in this process
+        self.researcher = None  # weave.web.research.Researcher: researches a website idea and asks tailored questions
         self.nlg = None  # weave.sms.nlg.NlgPresenter; presents verified facts naturally
         self.translator = None  # weave.sms.translate.Translator; puts messages into each person's language
         self.owners = {n for n in (normalize_e164(x, settings.sms_default_country_code) for x in settings.sms_owner_numbers) if n}
@@ -461,6 +462,12 @@ class SmsService:
             user = self.store.user_by_id(user["id"])
         elif question == "style" and user.get("pending_text"):
             return self._resolve_style(user, body, sid)
+        elif question == "researching" and user.get("pending_text"):
+            self._reply(user["phone"], user, "Still researching your business, give me a few seconds and I'll "
+                                             "send you my questions.")
+            return "researching"
+        elif question == "brief" and user.get("pending_text"):
+            return self._resolve_brief(user, body, sid)
         elif question == "what" and user.get("pending_text"):
             # Answer to "What's the website for?": "fitness" becomes "fitness website".
             self.store.update_user(user["id"], pending_text=None, pending_question=None)
@@ -490,6 +497,12 @@ class SmsService:
             if user.get("pending_text"):
                 self.store.update_user(user["id"], pending_text=None)
             return command
+        if self.researcher is not None and self.websites_available() and target_kind(body) == "website" and classify(
+                body, has_projects=False, has_active=False).kind == "new":
+            # A new website always goes research -> the owner's questions -> design, never straight to a build.
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None, pending_question=None)
+            return self._start_new(user, body, sid, kind="website")
         if self.brain is not None:
             # Everything that isn't an exact command is a conversation: the AI answers it, with the full context.
             if user.get("pending_text"):
@@ -833,7 +846,7 @@ class SmsService:
         return "clarify"
 
     def _start_new(self, user: dict, idea: str, sid: str, lead: str = "", kind: str | None = None,
-                   styled: bool = False) -> str:
+                   styled: bool = False, researched: bool = False) -> str:
         if len(idea) < MIN_PROMPT:
             self._reply(user["phone"], user, "Tell me a bit more about the app (at least 10 characters).")
             return "too_short"
@@ -854,6 +867,13 @@ class SmsService:
             self._reply(user["phone"], user, "Sorry, I can't make websites right now. "
                                              "I can make it as an Android app instead: say \"build it as an app\".")
             return "website_unavailable"
+        if kind == "website" and not researched and self.researcher is not None:
+            self.store.update_user(user["id"], pending_text=idea, pending_question="researching")
+            self._reply(user["phone"], user, "Nice! Let me research your business online first. "
+                                             "I'll send you a few quick questions in a moment.")
+            threading.Thread(target=self._research, args=(user["id"], idea), name="website-research",
+                             daemon=True).start()
+            return "researching"
         if kind == "website" and self.s.website_ask_style and not styled and not STYLE_WORDS.search(idea):
             self.store.update_user(user["id"], pending_text=idea, pending_question="style")
             self._reply(user["phone"], user, STYLE_QUESTION)
@@ -881,6 +901,49 @@ class SmsService:
         self._reply(user["phone"], user, text, job_id=job["id"])
         return "queued_new"
 
+    def _research(self, user_id: int, idea: str) -> None:
+        """Background: web research, then the owner's questions (or the plain style question if research failed)."""
+        found = None
+        try:
+            found = self.researcher.research(idea)
+        except Exception as e:  # never leave the person waiting on a crashed thread
+            event("sms.research_failed", error=str(e)[:200])
+        user = self.store.user_by_id(user_id)
+        if not user or user.get("pending_question") != "researching" or user.get("pending_text") != idea:
+            return  # they moved on (cancelled or asked something else)
+        if found is None:
+            event("sms.research_failed", phone=mask(user["phone"]))
+            self.store.update_user(user_id, pending_question="style")
+            self._reply(user["phone"], user, STYLE_QUESTION)
+            return
+        event("sms.research_done", phone=mask(user["phone"]), questions=len(found.questions))
+        state = json.dumps({"idea": idea, "brief": found.brief, "questions": found.questions})
+        self.store.update_user(user_id, pending_text=state, pending_question="brief")
+        lines = ["I looked into it. A few quick questions so it fits you perfectly:"]
+        lines += [f"{i}. {q}" for i, q in enumerate(found.questions, 1)]
+        lines.append("Answer in one message (numbers help), or say \"skip\" and I'll decide.")
+        self._reply(user["phone"], user, "\n".join(lines))
+
+    def _resolve_brief(self, user: dict, body: str, sid: str) -> str:
+        """Answers to the researched questions: the idea, their answers and the research become the design prompt."""
+        try:
+            state = json.loads(user["pending_text"])
+        except ValueError:
+            state = {"idea": user["pending_text"], "brief": "", "questions": []}
+        self.store.update_user(user["id"], pending_text=None, pending_question=None)
+        answer = body.strip()
+        if STYLE_STOP.fullmatch(answer):
+            self._reply(user["phone"], user, "Okay, I won't build that.")
+            return "pending_dropped"
+        prompt = state["idea"]
+        if answer and not STYLE_SKIP.fullmatch(answer):
+            asked = "\n".join(f"{i}. {q}" for i, q in enumerate(state.get("questions") or [], 1))
+            prompt += f"\n\nThe owner's answers (follow these exactly):\nQuestions:\n{asked}\nAnswers: {answer[:800]}"
+        if state.get("brief"):
+            prompt += f"\n\nWeb research about this business and its market:\n{state['brief']}"
+        event("sms.brief_answered", phone=mask(user["phone"]), skipped=prompt.find("owner's answers") < 0)
+        return self._start_new(user, prompt[:MAX_PROMPT], sid, kind="website", styled=True, researched=True)
+
     def _resolve_style(self, user: dict, body: str, sid: str) -> str:
         """Answer to the style question: a number, free-form preferences, "skip", or "cancel"."""
         idea = user["pending_text"]
@@ -890,11 +953,11 @@ class SmsService:
             self._reply(user["phone"], user, "Okay, I won't build that.")
             return "pending_dropped"
         if not answer or STYLE_SKIP.fullmatch(answer):
-            return self._start_new(user, idea, sid, kind="website", styled=True)
+            return self._start_new(user, idea, sid, kind="website", styled=True, researched=True)
         prefs = re.sub(r"(?<![\d.])([1-4])(?![\d.])", lambda m: STYLES[m.group(1)], answer, count=1)[:400]
         event("sms.style_chosen", phone=mask(user["phone"]))
         return self._start_new(user, f"{idea}\n\nDesign preferences from the customer: {prefs}", sid,
-                               kind="website", styled=True)
+                               kind="website", styled=True, researched=True)
 
     def _resolve_kind(self, user: dict, body: str, sid: str) -> str | None:
         """Answer to "Android app or website?". None = they said something else (handled as a new message)."""

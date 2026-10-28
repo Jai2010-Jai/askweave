@@ -89,21 +89,25 @@ globalThis.fetch = async (input, init = {}) => {
   });
 };
 
-// The exact shape weave's researcher reads. With a schema Gemini must return valid JSON (JSON mode alone still
-// produced invalid JSON in real runs). weave's long `stitchPrompt` is left out: it's only used for Google Stitch.
+// The exact shape the engine's creative brief reads. With a schema Gemini must return valid JSON (JSON mode alone
+// still produced invalid JSON in real runs). Design directions are choices from the engine's design system (ids),
+// which the engine turns into fonts and colours itself.
 const STR = { type: 'string' };
+const STRS = { type: 'array', items: STR };
 const RESEARCH_SCHEMA = {
   type: 'object',
   properties: {
     topicAnalysis: {
       type: 'object',
       properties: {
-        domain: STR, brandName: STR, tagline: STR, headline: STR, targetAudience: STR,
-        benchmarkSites: { type: 'array', items: STR },
+        domain: STR, brandName: STR, tagline: STR, headline: STR, targetAudience: STR, location: STR, currency: STR, voice: STR,
+        benchmarkSites: STRS, facts: STRS,
+        offerings: { type: 'array', items: { type: 'object', properties: { name: STR, description: STR, price: STR },
+          required: ['name', 'description'] } },
         keyFeatures: { type: 'array', items: { type: 'object', properties: { title: STR, description: STR, metric: STR },
           required: ['title', 'description', 'metric'] } },
       },
-      required: ['domain', 'brandName', 'tagline', 'headline', 'keyFeatures'],
+      required: ['domain', 'brandName', 'tagline', 'headline', 'keyFeatures', 'offerings'],
     },
     inspirations: {
       type: 'array', minItems: 3, maxItems: 3,
@@ -111,13 +115,10 @@ const RESEARCH_SCHEMA = {
         type: 'object',
         properties: {
           option: { type: 'integer' }, id: STR, name: STR, sourceInspiration: STR, aestheticDescription: STR,
-          fontHeading: STR, fontBody: STR, googleFontsUrl: STR, stitchHeadlineFont: STR, stitchBodyFont: STR,
-          colors: { type: 'object', properties: { bg: STR, bgCard: STR, accent: STR, accentSecondary: STR, textPrimary: STR,
-            textMuted: STR, border: STR }, required: ['bg', 'bgCard', 'accent', 'accentSecondary', 'textPrimary', 'textMuted', 'border'] },
-          components: { type: 'array', items: STR },
+          typePair: STR, palette: STR, layout: STR, photoTags: STRS, components: STRS,
         },
-        required: ['option', 'id', 'name', 'sourceInspiration', 'aestheticDescription', 'fontHeading', 'fontBody',
-          'googleFontsUrl', 'colors', 'components'],
+        required: ['option', 'id', 'name', 'sourceInspiration', 'aestheticDescription', 'typePair', 'palette', 'layout',
+          'photoTags', 'components'],
       },
     },
   },
@@ -269,13 +270,19 @@ function failure(p, fallbackMessage) {
   return c && !c.ok ? `${fallbackMessage}: ${c.error}` : fallbackMessage;
 }
 
-// True when `html` came out of the model's reply (weave only strips code fences), not a canned template.
+// Visible text only, letters and digits: survives the engine's clean-up of the model's markup.
+const textKey = (html) => String(html || '').replace(/<(script|style|head)\b[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' ')
+  .replace(/&[a-z#0-9]+;/gi, ' ').replace(/[^\p{L}\p{N}]+/gu, '').toLowerCase();
+
+// True when `html` came out of the model's reply, not a canned template: the page's opening text must be in what
+// the model wrote (the engine adds its own <head> and tidies the markup, so the text is compared, not the tags).
 function fromModel(p, html) {
   const text = aiText[p] || '';
   const c = lastCall(p);
   if (!c || !c.ok || !text || !html) return false;
-  const probe = html.slice(0, 300).trim();
-  return probe.length > 0 && text.includes(probe);
+  const body = (String(html).match(/<body\b[^>]*>([\s\S]*)/i) || [null, html])[1];
+  const probe = textKey(body).slice(0, 80);
+  return probe.length >= 6 && textKey(text).includes(probe);
 }
 
 async function generate(req, engine) {
@@ -404,10 +411,15 @@ async function addPages(req, engine, topic, out, extra) {
   phase = 'pages';
   let closed = false;  // set when out of time: late pages are dropped, never half-linked
   const finished = [];
+  // Pages for a home page built on the engine's design system come from the engine, in the same design.
+  const designed = typeof engine.bespoke.generateExtraPage === 'function' && /<meta name="weave-design"/.test(index);
   const all = Promise.all(wanted.map(async (p) => {
     let res;
     try {
-      res = await withRetry(() => engine.gemini.generateContent(
+      res = designed
+        ? { text: await withRetry(() => engine.bespoke.generateExtraPage({ indexHtml: index, page: p, navList, prompt: req.prompt,
+          topicAnalysis: topic })) }
+        : await withRetry(() => engine.gemini.generateContent(
       `Write the "${p.title}" page (${p.file}) of this website. Purpose: ${p.purpose}\n` +
       `Original request: ${req.prompt}\n\nThe site's pages (link to them with these exact relative file names):\n${navList}\n\n` +
       'Reuse the home page\'s exact <head> setup (fonts, Tailwind config, colors), header, <nav> and footer, ' +

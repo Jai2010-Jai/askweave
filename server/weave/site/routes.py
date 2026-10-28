@@ -36,6 +36,7 @@ from ..sms.store import SmsStore
 from ..web.hosting import dir_size
 from ..web.validate import PAGE_NAME_RE
 from .names import clean_call_sign, username_problem
+from .stitch import SCOPE as STITCH_SCOPE, StitchLinks
 
 STATIC = Path(__file__).resolve().parent.parent / "static" / "site"
 COOKIE = "weave_session"
@@ -76,7 +77,7 @@ class Pending:
 
 
 def build_site_router(settings: Settings, store: SmsStore, service: SmsService, builds: JobStore,
-                      worker=None) -> APIRouter:
+                      worker=None, stitch: StitchLinks | None = None) -> APIRouter:
     r = APIRouter()
     signups = AttemptLimiter(max_failures=40, window_s=3600)  # counts every sign-up, not just failures
     reports = AttemptLimiter(max_failures=30, window_s=3600)
@@ -170,7 +171,9 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
     def config(request: Request):
         pending = google.get(request.cookies.get(PENDING_COOKIE, ""))
         return {"google": bool(settings.google_client_id and settings.google_client_secret), "domain": domain,
-                "google_pending": {"email": pending["email"], "name": pending.get("name", "")} if pending else None}
+                "stitch": stitch_on(),
+                "google_pending": {"email": pending["email"], "name": pending.get("name", ""),
+                                   "stitch": bool(pending.get("stitch_refresh"))} if pending else None}
 
     @r.get("/api/account/username")
     def check_username(name: str = ""):
@@ -216,7 +219,9 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
             log.info("signup conflict: %s", e)
             raise HTTPException(400, "That name or email was just taken. Try another.") from None
         google.get(request.cookies.get(PENDING_COOKIE, ""), pop=True)
-        event("site.signup", account=account["id"], google=True)
+        if stitch and pending.get("stitch_refresh"):  # they connected Stitch in the same Google consent
+            stitch.save(account["id"], email, pending["stitch_refresh"])
+        event("site.signup", account=account["id"], google=True, stitch=bool(pending.get("stitch_refresh")))
         return signed_in(JSONResponse({"ok": True}), request, account["id"])
 
     @r.post("/api/account/logout")
@@ -229,31 +234,71 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
         resp.delete_cookie(COOKIE, path="/")
         return resp
 
+    def stitch_on() -> bool:
+        return bool(stitch and stitch.available)
+
+    def google_redirect(*, with_stitch: bool, connect: int | None = None, hint: str | None = None) -> RedirectResponse:
+        """Google's consent page. With Stitch, the same single consent also lets Weave design in the person's own
+        Stitch account: offline access gives a refresh token for building later, while they're away."""
+        params = {"client_id": settings.google_client_id, "redirect_uri": f"{base}/auth/google/callback",
+                  "response_type": "code", "scope": "openid email profile",
+                  "state": states.put({"stitch": with_stitch, "connect": connect}), "prompt": "select_account"}
+        if with_stitch:
+            params.update(scope=f"openid email profile {STITCH_SCOPE}", access_type="offline",
+                          include_granted_scopes="true", prompt="consent select_account")
+        if hint:
+            params["login_hint"] = hint
+        return RedirectResponse(f"{GOOGLE_AUTH}?{urlencode(params)}", status_code=303)
+
     @r.get("/auth/google")
-    def google_start():
-        """Google's consent page: sign-in only (name and email), nothing kept for later."""
+    def google_start(stitch: int = 0):
+        """Google's consent page: sign-in (name and email), plus Stitch access when ?stitch=1."""
         if not (settings.google_client_id and settings.google_client_secret and base):
             return RedirectResponse("/start?error=google_off", status_code=303)
-        params = {"client_id": settings.google_client_id, "redirect_uri": f"{base}/auth/google/callback",
-                  "response_type": "code", "scope": "openid email profile", "state": states.put({}),
-                  "prompt": "select_account"}
-        return RedirectResponse(f"{GOOGLE_AUTH}?{urlencode(params)}", status_code=303)
+        return google_redirect(with_stitch=bool(stitch and stitch_on()))
+
+    @r.get("/auth/stitch")
+    def stitch_start(request: Request):
+        """The dashboard's one-click "Connect Stitch"."""
+        account = current(request)
+        if not stitch_on() or not base:
+            return RedirectResponse("/dashboard?stitch=off", status_code=303)
+        return google_redirect(with_stitch=True, connect=account["id"], hint=account.get("email"))
 
     @r.get("/auth/google/callback")
     async def google_callback(request: Request, code: str = "", state: str = "", error: str = ""):
-        if not code or states.get(state, pop=True) is None:
+        flow = states.get(state, pop=True)
+        if isinstance(flow, dict) and flow.get("connect") and (error or not code):
+            return RedirectResponse("/dashboard?stitch=cancelled", status_code=303)
+        if not code or flow is None:
             return RedirectResponse("/start?error=google", status_code=303)
+        flow = flow if isinstance(flow, dict) else {}
         try:
             info = await run_in_threadpool(google_identity, code)
         except Exception as e:
             log.warning("google sign-in failed: %s", e)
-            return RedirectResponse("/start?error=google", status_code=303)
+            return RedirectResponse("/dashboard?stitch=failed" if flow.get("connect") else "/start?error=google",
+                                    status_code=303)
+        # People can untick Stitch on Google's consent page; then there's no Stitch access to keep.
+        refresh = info.get("refresh_token") if flow.get("stitch") and STITCH_SCOPE in info.get("scopes", ()) else None
+        if flow.get("connect"):
+            account = current(request)
+            if account["id"] != flow["connect"]:
+                raise HTTPException(403, "Signed in as someone else")
+            if not (stitch and refresh):
+                return RedirectResponse("/dashboard?stitch=missing", status_code=303)
+            stitch.save(account["id"], info["email"], refresh)
+            event("site.stitch_connected", account=account["id"])
+            return RedirectResponse("/dashboard?stitch=connected", status_code=303)
         account = store.account_by("google_sub", info["sub"])
         if account is not None and account["status"] == "active":
+            if stitch and refresh:
+                stitch.save(account["id"], info["email"], refresh)
             return signed_in(RedirectResponse("/dashboard", status_code=303), request, account["id"])
         if account is not None:
             return RedirectResponse("/start?error=closed", status_code=303)
-        key = google.put({"sub": info["sub"], "email": info["email"], "name": info.get("name", "")})
+        key = google.put({"sub": info["sub"], "email": info["email"], "name": info.get("name", ""),
+                          "stitch_refresh": refresh})
         resp = RedirectResponse("/start?google=1", status_code=303)
         resp.set_cookie(PENDING_COOKIE, key, max_age=900, httponly=True, samesite="lax", secure=secure(request), path="/")
         return resp
@@ -276,7 +321,8 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
             raise ValueError("token not issued to this app")
         if str(claims.get("email_verified")).lower() != "true" or not claims.get("email"):
             raise ValueError("email not verified")
-        return {"sub": str(claims["sub"]), "email": claims["email"].lower(), "name": claims.get("name", "")}
+        return {"sub": str(claims["sub"]), "email": claims["email"].lower(), "name": claims.get("name", ""),
+                "refresh_token": tokens.get("refresh_token"), "scopes": str(tokens.get("scope", "")).split()}
 
     # ---------- the account ----------
     @r.get("/api/account/me")
@@ -300,6 +346,7 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
                        "projects": settings.max_projects, "storage_mb": settings.user_storage_mb,
                        "trash_days": settings.trash_days},
             "invite": store.referral_code(user["id"]) if user and settings.sms_referrals else None,
+            "stitch": stitch.status(account["id"]) if stitch else {"available": False, "connected": False},
         }
 
     @r.get("/api/account/analytics")
@@ -545,6 +592,15 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
         return Response(json.dumps(data, indent=2, default=str), media_type="application/json", headers={
             "Content-Disposition": f'attachment; filename="weave-{account["username"]}.json"'})
 
+    @r.post("/api/account/stitch/disconnect")
+    def stitch_disconnect(request: Request):
+        require_csrf(request)
+        account = current(request)
+        if stitch:
+            stitch.disconnect(account["id"])
+        event("site.stitch_disconnected", account=account["id"])
+        return {"ok": True}
+
     @r.post("/api/account/delete")
     async def delete_account(request: Request):
         require_csrf(request)
@@ -560,6 +616,8 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
         # The username stays taken forever, so nobody can pick it up and pose as this person.
         store.update_account(account["id"], status="deleted", email=None, google_sub=None, password_hash=None)
         store.delete_account_sessions(account_id=account["id"])
+        if stitch:
+            stitch.disconnect(account["id"])
         event("site.account_deleted", account=account["id"])
         resp = JSONResponse({"ok": True})
         resp.delete_cookie(COOKIE, path="/")
@@ -657,5 +715,5 @@ MAX_LEADS_PER_DAY = 100
 # A 1x1 transparent GIF: the smallest thing a sandboxed page is allowed to send us.
 PIXEL = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
 
-PUBLIC_PREFIXES = ("/start", "/dashboard", "/terms", "/privacy", "/report", "/site/", "/auth/google",
+PUBLIC_PREFIXES = ("/start", "/dashboard", "/terms", "/privacy", "/report", "/site/", "/auth/google", "/auth/stitch",
                    "/api/account/", "/api/report", "/px/", "/c/", "/api/leads/")

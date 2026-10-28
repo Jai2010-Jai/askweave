@@ -103,6 +103,9 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         sms = SmsWorker(s, sms_store, orch, provider, sms_service, publisher=publisher)
         from .sms.voice import VoiceInbox
         sms.voice = VoiceInbox(s)  # tests swap in a fake fetch/transcribe
+        if s.research_model and s.gemini_api_key and sms_service.web is not None:
+            from .web.research import Researcher
+            sms_service.researcher = Researcher(s.gemini_api_key, s.research_model)
         if s.chat_brain and hasattr(orch.gen, "ask"):
             from .sms.brain import ChatBrain
             sms_service.brain = ChatBrain(s, orch.gen, website_problem=sms_service.website_problem)
@@ -408,7 +411,13 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         app.include_router(build_chat_router(s, sms.store, sms.service, orch.store))
         from .site.routes import build_site_router
 
-        app.include_router(build_site_router(s, sms.store, sms.service, orch.store, worker=sms))
+        from .site.stitch import StitchLinks
+
+        stitch = StitchLinks(s, sms.store)
+        if hasattr(sms.service.web, "design_credentials"):
+            # New websites are designed in the owner's own Stitch account when they've connected it.
+            sms.service.web.design_credentials = stitch.credentials
+        app.include_router(build_site_router(s, sms.store, sms.service, orch.store, worker=sms, stitch=stitch))
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     app.state.orchestrator = orch

@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import * as nodeModule from 'node:module';
+import { designHomePage, stitchPrompt } from './stitch.mjs';
 
 const STUB_DOTENV = 'data:text/javascript,' + encodeURIComponent(
   'export function config() { return { parsed: {} }; } export default { config };');
@@ -305,11 +306,50 @@ async function generate(req, engine) {
   }
   const topic = research.topicAnalysis || {};
   const inspirations = (research.inspirations || []).slice(0, 3);
+  // With the owner's Stitch account connected, Stitch designs the home page (on their credits, within the brief's
+  // palette and type) and the AI codes the final page from that design. Any Stitch problem falls back to the AI
+  // designing it alone.
+  let designer = 'ai';
+  let stitchError = '';
+  let stitchHtml = '';
+  if (req.stitch?.access_token) {
+    const budget = Number(req.stitch.timeout_ms) || 240_000;
+    if (timeLeft() < budget + 180_000) {
+      stitchError = 'not enough time left';
+    } else {
+      phase = 'stitch';
+      const started = Date.now();
+      try {
+        const design = await designHomePage({ token: req.stitch.access_token, quotaProject: req.stitch.quota_project,
+          timeoutMs: budget, title: topic.brandName || req.prompt,
+          prompt: stitchPrompt(req.prompt, topic, inspirations[0]) });
+        stitchHtml = design.html;
+        calls.push({ phase, model: 'stitch', ok: true, ms: Date.now() - started });
+      } catch (e) {
+        stitchError = sanitize(e?.message || e);
+        calls.push({ phase, model: 'stitch', ok: false, ms: Date.now() - started, error: stitchError });
+        log(`Stitch design failed; the AI designs it instead: ${stitchError}`);
+      }
+    }
+  }
   const count = Math.max(1, Math.min(3, Number(req.variants) || 1));
   const pages = [];
   for (let i = 0; i < count && i < inspirations.length; i++) {
     phase = `html-${i + 1}`;
-    const html = await engine.bespoke.generateBespokeHtml({ prompt: req.prompt, topicAnalysis: topic, inspiration: inspirations[i] });
+    let html = '';
+    if (i === 0 && stitchHtml) {
+      html = await codeFromDesign(req, engine, topic, stitchHtml).catch((e) => {
+        stitchError = sanitize(e?.message || e);
+        return '';
+      });
+      if (fromModel(phase, html)) designer = 'stitch';
+      else {
+        stitchError ||= 'the AI could not code the Stitch design';
+        log(`coding the Stitch design failed; the AI designs it instead: ${stitchError}`);
+        html = '';
+      }
+    }
+    if (!html) html = await engine.bespoke.generateBespokeHtml({ prompt: req.prompt, topicAnalysis: topic, inspiration: inspirations[i] });
     if (!fromModel(phase, html)) {
       if (i === 0) return { ok: false, error: failure(phase, 'The AI did not produce the website page') };
       break; // extra design options are optional
@@ -337,8 +377,40 @@ async function generate(req, engine) {
     headline: String(topic.headline || '').slice(0, 200),
     research: researchFromModel ? 'ai' : 'fallback',
     brand_from_research: researchFromModel,
+    designer,
+    ...(stitchError ? { stitch_error: stitchError } : {}),
     pages,
   };
+}
+
+// The AI turns Stitch's design into the finished page: same look, real content, working links and no unsafe forms.
+async function codeFromDesign(req, engine, topic, design) {
+  const offerings = (Array.isArray(topic.offerings) ? topic.offerings : [])
+    .map((o) => o && `- ${o.name}${o.price ? ` (${o.price})` : ''}: ${o.description || ''}`).filter(Boolean).join('\n');
+  const res = await engine.gemini.generateContent(
+    `Website request and research:\n${req.prompt}\n\nBrand: ${topic.brandName || ''}\n` +
+    `${topic.headline ? `Headline: ${topic.headline}\n` : ''}${topic.tagline ? `Tagline: ${topic.tagline}\n` : ''}` +
+    `${offerings ? `What they offer:\n${offerings}\n` : ''}\n` +
+    'Below is the home page design made in Google Stitch. Turn it into the finished, production-ready home page: ' +
+    'keep its layout, colours, fonts, spacing and imagery exactly; replace placeholder text with real, specific ' +
+    'content for this business (real item names, local prices, hours, area); make every navigation link point to an ' +
+    'in-page section (#id); make it responsive with a working mobile menu; forms must use action="#"; remove any ' +
+    'login, sign-up or payment UI; no emoji, no invented statistics or awards. Return one complete HTML document only.\n\n' +
+    'Keep the <head> (Tailwind script and tailwind.config) exactly as it is. Headlines must be written for the ' +
+    'business; never reuse the customer\'s chat wording (e.g. "can you make").\n\n' +
+    `STITCH DESIGN:\n${design.slice(0, 40000)}`,
+    'You are a senior front-end developer who turns approved designs into clean, finished HTML. Reply with HTML only.');
+  return keepDesignConfig(stripFences(res?.text), design);
+}
+
+// Stitch's colours live in its tailwind.config (bg-primary, text-on-primary...). When the AI rewrites or trims
+// that config, buttons turn into white text on nothing, so the design's own config always wins.
+function keepDesignConfig(html, design) {
+  const cfg = /<script[^>]*>\s*tailwind\.config\s*=[\s\S]*?<\/script>/i;
+  const original = design.match(cfg);
+  if (!html || !original) return html;
+  if (cfg.test(html)) return html.replace(cfg, () => original[0]);
+  return html.replace(/<\/head>/i, () => `${original[0]}\n</head>`);
 }
 
 // ---------- multi-page sites (Weave addition; weave itself writes one page) ----------

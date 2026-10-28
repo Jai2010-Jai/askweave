@@ -124,6 +124,9 @@ class WebsiteBuilder:
                  model_resolver: Callable[[], str] | None = None):
         self.s = settings
         self.model_resolver = model_resolver
+        # account_id -> what the bridge needs to design in that person's own Google Stitch account, or None
+        # (set by the server; see weave/site/stitch.py).
+        self.design_credentials: Callable[[int], dict | None] | None = None
         self.runner = runner or node_runner(settings)
         self.store = store or JobStore(settings.sites_dir)
         self._slots = threading.BoundedSemaphore(settings.website_workers)
@@ -233,6 +236,16 @@ class WebsiteBuilder:
         else:
             request.update(op="generate", prompt=job["prompt"], variants=self.s.website_variants,
                            extra_pages=self.s.website_pages)
+            creds = None
+            if self.design_credentials and job.get("account_id"):
+                try:
+                    creds = self.design_credentials(job["account_id"])
+                except Exception as e:  # noqa: BLE001 - the AI's own design still works
+                    log.warning("stitch credentials failed: %s", type(e).__name__)
+            if creds:
+                # Goes to the bridge on stdin for this one build; never saved with the job.
+                request["stitch"] = creds
+                self._log(job, "Designing the home page in the owner's Google Stitch account")
             self._stage(job, "generating", "Researching a design direction and writing the website")
         self._log(job, f"== Website engine: {request['op']} (model {self._model()}) ==")
         started = time.monotonic()
@@ -260,6 +273,10 @@ class WebsiteBuilder:
             raise JobCancelled()
         if not result.get("ok"):
             return self._fail(job, f"Website generation failed: {result.get('error') or 'unknown error'}")
+        if result.get("designer") == "stitch":
+            self._log(job, "Home page designed in Google Stitch and coded by the AI.")
+        if result.get("stitch_error"):
+            self._log(job, f"Note: Stitch didn't design this one ({result['stitch_error']}); the AI designed it instead.")
         if result.get("research") == "fallback":
             self._log(job, "Note: design research used weave's built-in directions (the research AI call failed).")
         self._stage(job, "validating", "Checking the generated website")

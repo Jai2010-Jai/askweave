@@ -328,8 +328,10 @@ class Settings:
         """The OpenAI-style chat-completions endpoint for glm and groq (None for gemini): key, base URL, model, and the
         provider's own body fields (thinking/reasoning switched down so replies come back in seconds)."""
         if self.ai_provider == "glm":
-            return {"key": self.glm_api_key, "base_url": self.glm_base_url, "model": self.glm_model,
-                    "extra": {"thinking": {"type": "disabled"}}}
+            # OpenRouter's GLM models must reason; "low" keeps that short. Z.ai's own API can switch it off.
+            extra = ({"reasoning": {"effort": "low"}} if "openrouter.ai" in self.glm_base_url
+                     else {"thinking": {"type": "disabled"}})
+            return {"key": self.glm_api_key, "base_url": self.glm_base_url, "model": self.glm_model, "extra": extra}
         if self.ai_provider == "groq":
             return {"key": self.groq_api_key, "base_url": self.groq_base_url, "model": self.groq_model,
                     "extra": {"reasoning_effort": "low"} if self.groq_model.startswith("openai/gpt-oss") else {}}

@@ -168,7 +168,8 @@ def test_glm_is_the_only_model_even_when_busy(tmp_path):
     from weave.core.gemini import GeminiClient, GeminiError
     from weave.core.glm import GlmError
 
-    s = Settings(data_dir=tmp_path, ai_provider="glm", glm_api_key="glm-test", gemini_api_key="gemini-test",
+    s = Settings(data_dir=tmp_path, ai_provider="glm", glm_api_key="glm-test", glm_model="glm-4.7-flash",
+                 glm_base_url="https://api.z.ai/api/paas/v4", gemini_api_key="gemini-test",
                  gemini_model="auto", chat_model="gemini-3.5-flash-lite")
     assert s.chat_model == s.gemini_model == s.nlg_model == "glm-4.7-flash"
 

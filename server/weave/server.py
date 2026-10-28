@@ -16,11 +16,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from . import auth
+from .analytics.collector import View, client_ip, device_class, is_bot, ref_host, utc_day, visitor_hash
+from .analytics.inject import PageCache, etag_for, snippet_for
 from .config import Settings, settings as default_settings
 from .core.gemini import make_ai_client
 from .core.jobs import JOB_ID_RE, Orchestrator, QueueFullError, public_job
@@ -31,6 +33,15 @@ from .web.hosting import hosted_file, label_for_host, user_file, user_index_html
 log = logging.getLogger("weave.server")
 STATIC = Path(__file__).parent / "static"
 MAX_BODY_BYTES = 16_000
+# One exact path may send more: a sales spreadsheet. An exact match, never a prefix, and the route behind it
+# is signed in and CSRF-checked. Everything else on the internet stays at 16 KB.
+CSV_UPLOAD_PATH = "/api/account/sales/import"
+CSV_BODY_BYTES = 2_200_000
+
+
+def body_limit(path: str) -> int:
+    return CSV_BODY_BYTES if path == CSV_UPLOAD_PATH else MAX_BODY_BYTES
+
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver", "::1"}
 LOOPBACK_CLIENTS = {"127.0.0.1", "::1", "testclient"}
 LOG_TAIL_BYTES = 60_000
@@ -111,19 +122,26 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         public_prefixes = ()
     # The worker also serves the web chat, so it runs whenever messaging isn't switched off.
     run_worker = (sms is not None and s.sms_worker == "embedded") if start_sms_worker is None else start_sms_worker
+    # With an external worker the build and outbox threads live in the other process, but page views are
+    # buffered in *this* one, so the thread that writes them has to stay here or they are never written.
+    flush_here = (sms is not None and not run_worker and start_sms_worker is None
+                  and s.sms_worker == "external")
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         if sms is not None and run_worker:
             sms.start()
+        elif flush_here:
+            sms.start_analytics()
         try:
             yield
         finally:
-            if sms is not None and run_worker:
+            if sms is not None and (run_worker or flush_here):
                 sms.stop()
 
     app = FastAPI(title="Weave", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
+    pages = PageCache()
     access_code = auth.load_or_create_code(s.data_dir)
     failures = auth.FailureLimiter()
 
@@ -139,7 +157,7 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             # A customer site on <name>.<sites_domain>: public, read-only, sandboxed. Never reaches the API.
             if request.method not in ("GET", "HEAD"):
                 return PlainTextResponse("Method not allowed", status_code=405)
-            return serve_hosted(hosted, request.url.path)
+            return serve_hosted(request, hosted, request.url.path)
         if request.method == "GET" and request.url.path == "/get":
             # The phone client APK holds no secrets; anyone on the network may download it.
             return await call_next(request)
@@ -151,7 +169,7 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             # Twilio webhooks verify X-Twilio-Signature, downloads an expiring token, the chat a session cookie.
             # None of them use the access code.
             length = request.headers.get("content-length")
-            if length and length.isdigit() and int(length) > MAX_BODY_BYTES:
+            if length and length.isdigit() and int(length) > body_limit(request.url.path):
                 return JSONResponse({"detail": "request too large"}, status_code=413)
             request.state.local = local
             resp = await call_next(request)
@@ -174,7 +192,7 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
                 and _hostname(origin.split("://")[-1]) not in LOCAL_HOSTS):
             return JSONResponse({"detail": "cross-origin request rejected"}, status_code=403)
         length = request.headers.get("content-length")
-        if length and length.isdigit() and int(length) > MAX_BODY_BYTES:
+        if length and length.isdigit() and int(length) > body_limit(request.url.path):
             return JSONResponse({"detail": "request too large"}, status_code=413)
         request.state.local = local and not authed
         resp = await call_next(request)
@@ -186,11 +204,63 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             resp.headers["Cache-Control"] = "no-cache"
         return resp
 
-    site_headers = {"Cache-Control": "public, max-age=60", "X-Content-Type-Options": "nosniff",
-                    "Referrer-Policy": "no-referrer", "Cross-Origin-Opener-Policy": "same-origin"}
+    # no-cache, not max-age: the browser revalidates every visit, so every visit is counted, but the answer
+    # is a bodyless 304 from the ETag FileResponse already sends.
+    site_headers = {"Cache-Control": "no-cache", "CDN-Cache-Control": "no-store",
+                    "X-Content-Type-Options": "nosniff",
+                    "Referrer-Policy": "no-referrer",
+                    # allow-popups, not same-origin: plain same-origin cuts the link to any cross-origin
+                    # popup, which would silently break the contact form a site opens on our own domain.
+                    # The page is still protected from being opened by someone else, and it is a sandboxed
+                    # opaque origin with no cookies or storage, so there is nothing in it to reach for.
+                    "Cross-Origin-Opener-Policy": "same-origin-allow-popups"}
     missing = "This site doesn't exist (yet). Made with Weave."
 
-    def serve_hosted(label: str, path: str):
+    def count_view(request: Request, account: dict, label: str, slug: str, page: str) -> None:
+        """Note one visit. Buffered in memory and written by the worker, so this never slows the page down."""
+        views = getattr(sms, "views", None) if sms is not None else None
+        if views is None or (account.get("analytics") or "on") != "on":
+            return
+        ua = request.headers.get("user-agent", "")
+        if is_bot(ua):
+            return
+        ip = client_ip(request.headers, request.client.host if request.client else "", s.trust_proxy)
+        now = time.time()
+        views.record(View(
+            account_id=account["id"], slug=slug, page=page, day=utc_day(now), ts=now,
+            visitor=visitor_hash(ip, ua, label, now), device=device_class(ua),
+            country=request.headers.get("cf-ipcountry", "")[:2].upper(),
+            ref=ref_host(request.headers.get("referer", ""), _hostname(request.headers.get("host")))))
+
+    def hosted_page(request: Request, file, headers: dict, snippet: bytes = b""):
+        """A hosted page, with the beacon-and-contact script added if there is one.
+
+        Revalidation is answered with 304 so `no-cache` costs a header rather than the whole page; FileResponse
+        sends an ETag but never checks If-None-Match, so that check is ours to make. Anything unexpected about
+        the file falls back to serving it untouched: a page must never fail because of analytics.
+        """
+        try:
+            stat = file.stat()
+        except OSError:
+            return PlainTextResponse(missing, status_code=404)
+        parts = pages.parts(file, stat) if snippet else None
+        etag = etag_for(stat, snippet if parts else b"")
+        if etag in [t.strip() for t in request.headers.get("if-none-match", "").split(",")]:
+            return Response(status_code=304, headers={**headers, "ETag": etag})
+        if parts is None:
+            return FileResponse(file, media_type="text/html; charset=utf-8",
+                                headers={**headers, "ETag": etag}, stat_result=stat)
+        head, tail = parts
+        return Response(head + snippet + tail, media_type="text/html; charset=utf-8",
+                        headers={**headers, "ETag": etag})
+
+    def site_snippet(account: dict, label: str, slug: str) -> bytes:
+        """The script for one site, or nothing when counting is off or we don't know our own address."""
+        if not s.analytics or not s.public_base_url or (account.get("analytics") or "on") != "on":
+            return b""
+        return snippet_for(s.public_base_url, label, slug)
+
+    def serve_hosted(request: Request, label: str, path: str):
         """<label>.<sites_domain>: an account's projects (/<project>/...) or, for numbers without an account, one
         site at the root. Public, read-only and sandboxed; it never reaches the API."""
         account = sms.store.account_by("username", label) if sms is not None else None
@@ -198,17 +268,19 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             f = hosted_file(s.hosted_dir, label, path)
             if f is None:
                 return PlainTextResponse(missing, status_code=404)
-            return FileResponse(f, media_type="text/html; charset=utf-8",
-                                headers={**site_headers, "Content-Security-Policy": PREVIEW_CSP})
+            return hosted_page(request, f, {**site_headers, "Content-Security-Policy": PREVIEW_CSP})
         if account["status"] != "active":  # suspended (taken down) or deleted
             return PlainTextResponse("This site is unavailable.", status_code=404 if account["status"] == "deleted" else 451)
         kind, value = user_file(s.user_sites_dir / label, path)
         if kind == "redirect":
             return RedirectResponse(value, status_code=308)
         if kind == "file":
-            return FileResponse(value, media_type="text/html; charset=utf-8",
-                                headers={**site_headers, "Content-Security-Policy": PREVIEW_CSP})
+            slug = value.parent.name
+            count_view(request, account, label, slug, value.name)
+            return hosted_page(request, value, {**site_headers, "Content-Security-Policy": PREVIEW_CSP},
+                               site_snippet(account, label, slug))
         if kind == "index":
+            count_view(request, account, label, "", "index.html")
             user = sms.store.account_user(account["id"])
             projects = [(p.get("name") or p["slug"], p["slug"]) for p in sms.store.account_projects(user["id"])
                         if p.get("slug") and p.get("deploy_url")] if user else []
@@ -336,7 +408,7 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         app.include_router(build_chat_router(s, sms.store, sms.service, orch.store))
         from .site.routes import build_site_router
 
-        app.include_router(build_site_router(s, sms.store, sms.service, orch.store))
+        app.include_router(build_site_router(s, sms.store, sms.service, orch.store, worker=sms))
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     app.state.orchestrator = orch

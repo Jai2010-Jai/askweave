@@ -220,6 +220,21 @@ class Settings:
     nlg_enabled: bool = field(default_factory=lambda: _choice_env("WEAVE_NLG", "on", {"on", "off"}) == "on")
     nlg_timeout: int = field(default_factory=lambda: _int_env("WEAVE_NLG_TIMEOUT_SECONDS", 12, 2, 60))
     nlg_model: str = field(default_factory=lambda: _str_env("WEAVE_NLG_MODEL", "gemini-3.5-flash-lite"))
+    # Visits to hosted customer sites, counted by us. No cookies, no third party, no IP or user agent stored.
+    analytics: bool = field(default_factory=lambda: _choice_env("WEAVE_ANALYTICS", "on", {"on", "off"}) == "on")
+    analytics_flush_seconds: int = field(default_factory=lambda: _int_env("WEAVE_ANALYTICS_FLUSH_SECONDS", 10, 1, 120))
+    analytics_raw_days: int = field(default_factory=lambda: _int_env("WEAVE_ANALYTICS_RAW_DAYS", 35, 1, 400))
+    analytics_rollup_days: int = field(default_factory=lambda: _int_env("WEAVE_ANALYTICS_ROLLUP_DAYS", 400, 30, 3650))
+    # On behind a reverse proxy (our Cloudflare tunnel): take the visitor's address from CF-Connecting-IP or
+    # X-Forwarded-For. Off on a proxy, every visitor looks like the proxy and the visitor count collapses to 1.
+    trust_proxy: bool = field(default_factory=lambda: _choice_env("WEAVE_TRUST_PROXY", "off", {"on", "off"}) == "on")
+    # Storage durability. The database is one file; if the disk under it is thrown away on redeploy,
+    # everything goes with it. See weave/safety.py.
+    require_existing_data: bool = field(default_factory=lambda: _choice_env(
+        "WEAVE_REQUIRE_EXISTING_DATA", "off", {"on", "off"}) == "on")
+    init_data: bool = field(default_factory=lambda: _choice_env("WEAVE_INIT_DATA", "off", {"on", "off"}) == "on")
+    backup_upload: str = field(default_factory=lambda: os.environ.get("WEAVE_BACKUP_UPLOAD", "").strip())
+    backup_keep: int = field(default_factory=lambda: _int_env("WEAVE_BACKUP_KEEP", 7, 1, 90))
     # Voice notes (WhatsApp/MMS audio) are transcribed locally with Whisper. Models: tiny | base | small | medium.
     voice_enabled: bool = field(default_factory=lambda: _choice_env("WEAVE_VOICE", "on", {"on", "off"}) == "on")
     voice_model: str = field(default_factory=lambda: _choice_env(
@@ -432,6 +447,31 @@ class Settings:
         wrapper_ok = ((self.template_dir / "gradlew").is_file() or (self.template_dir / "gradlew.bat").is_file()) and (self.template_dir / "gradle/wrapper/gradle-wrapper.jar").is_file()
         add("Gradle wrapper", wrapper_ok, "template wrapper present" if wrapper_ok else "android_template/gradlew or gradlew.bat missing",
             "Restore android_template/gradlew, gradlew.bat and gradle/wrapper from git")
+
+        # Behind the tunnel every request arrives from localhost, so without the proxy header every visitor
+        # hashes alike and each day's visitor count is 1. Counting still works; the number is just wrong.
+        proxy_ok = self.trust_proxy or not pub_ok
+        add("Site analytics", proxy_ok,
+            ("off (WEAVE_ANALYTICS=off)" if not self.analytics else
+             f"counting visits, raw views kept {self.analytics_raw_days} days"
+             + ("" if self.trust_proxy else ", direct connections")),
+            "Set WEAVE_TRUST_PROXY=on: behind a proxy, visitor counts collapse to 1 per day without it")
+
+        # Where the data lives. The one check here that can fail silently in production and lose everything.
+        from .safety import storage_report
+
+        store = storage_report(self)
+        durable = not store["ephemeral"]
+        add("Data directory", durable,
+            f"{store['data_dir']} on {store['fstype'] or 'an unknown filesystem'}"
+            + ("" if store["db_exists"] else ", no database yet"),
+            f"That is a container filesystem wiped on every redeploy - every account, site and enquiry "
+            f"would be lost. Mount a persistent volume and point WEAVE_DATA_DIR at it.")
+        add("Backups", bool(self.backup_upload),
+            (f"copied off this machine ({self.backup_upload.split()[0]})" if self.backup_upload
+             else f"daily, kept {self.backup_keep}, in {store['data_dir']}/backups"),
+            "Backups sit on the same disk as the database, so a lost disk loses both. "
+            "Set WEAVE_BACKUP_UPLOAD to a command that copies a file somewhere else.")
 
         core_checks = [c for c in checks if c["name"] in ("AI API key", "JDK 17+", "Android SDK", "Android platform 35", "Android SDK license", "Gradle wrapper")]
         return {"ready": all(c["ok"] for c in core_checks), "checks": checks}

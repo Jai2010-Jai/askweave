@@ -70,7 +70,18 @@ Twilio (WhatsApp/SMS)┘                                                   │
 4. **Change, rename, delete.** "make the header dark brown" builds a new version (the old one stays until the new
    one passes). Renaming a project (in chat or on the dashboard) moves its live address to match the new name.
    Deleted projects go to a 30-day trash.
-5. **Hosting.** The `*.askweave.xyz` record points at the same tunnel as the app; the server tells sites apart by
+5. **Visitors.** Weave counts the visits to each live site and tells the owner in plain language: "Bakery
+   site, last 7 days: 42 visits from 31 people, up 20%." Ask in chat ("how's my site doing?", or `STATS`),
+   or see the charts on the dashboard. The counting is ours, with no third party and no cookies: a visitor
+   is a keyed hash whose key never leaves memory and is replaced daily, so no IP address or user agent is
+   ever stored and nobody can be followed from one site to another.
+6. **Enquiries.** The contact form on a generated site opens a short form on `app.askweave.xyz` (the site's
+   own sandbox blocks form posts), and the enquiry reaches the owner on WhatsApp within seconds, with the
+   list on their dashboard and under `LEADS` in chat.
+7. **Sales.** Upload a CSV of takings on the dashboard and Weave reports revenue, profit, the best seller
+   and roughly what next week looks like — in chat (`SALES`) and on the dashboard. The file itself is never
+   stored, only the rows read from it, and the AI is shown the totals rather than anybody's records.
+8. **Hosting.** The `*.askweave.xyz` record points at the same tunnel as the app; the server tells sites apart by
    the Host header and serves them from `server/data/hosted-users/<username>/<slug>/` inside a CSP sandbox, so a
    site can't read Weave cookies or call its APIs.
 
@@ -85,6 +96,7 @@ Everything is in `server/data/` (git-ignored) on the machine running the server:
 | `sites/<id>/` | Every website version |
 | `hosted-users/<username>/<slug>/` | Live websites |
 | `hosted-trash/` | Deleted sites (30 days) |
+| `sms.sqlite3` → `site_views`, `site_daily` | Visits to hosted sites (no IP, no user agent, no cookies) |
 | `backups/` | Hourly database backups |
 
 The waitlist is the only data elsewhere (Supabase).
@@ -153,4 +165,4 @@ cd server && .venv/bin/python -m pytest -q
 - APKs are debug-signed for sideloading, not the Play Store.
 
 More detail: [`server/README.md`](server/README.md), [`server/docs/SMS.md`](server/docs/SMS.md),
-[`server/docs/WEBSITES.md`](server/docs/WEBSITES.md).
+[`server/docs/WEBSITES.md`](server/docs/WEBSITES.md), [`server/docs/ANALYTICS.md`](server/docs/ANALYTICS.md).

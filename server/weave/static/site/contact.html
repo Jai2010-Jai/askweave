@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Send a message</title>
+<link rel="stylesheet" href="/site/site.css">
+<script src="/site/site.js" defer></script>
+<script src="/site/contact.js" defer></script>
+</head>
+<body>
+<main class="wrap narrow">
+  <h1 id="title">Send a message</h1>
+  <p class="lead" id="lead">Your message goes straight to the owner of this site.</p>
+  <section class="card">
+    <form id="contact-form" novalidate>
+      <label for="name">Your name</label>
+      <input id="name" type="text" maxlength="80" autocomplete="name">
+      <label for="contact">Email or phone <span class="muted">(so they can reply)</span></label>
+      <input id="contact" type="text" maxlength="120" autocomplete="email" required>
+      <label for="message">Message</label>
+      <textarea id="message" rows="5" maxlength="1000" required></textarea>
+      <!-- Left empty by people and filled in by bots. -->
+      <input id="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true"
+             style="position:absolute;left:-9999px;width:1px;height:1px">
+      <div class="row" style="margin-top:14px"><button class="btn" type="submit" id="send">Send</button></div>
+      <div class="hint" id="hint"></div>
+    </form>
+  </section>
+  <section class="card" id="done" hidden>
+    <p><strong>Sent.</strong> They'll get your message on WhatsApp and can reply to you directly.</p>
+    <p class="small muted">You can close this window.</p>
+  </section>
+  <p class="small muted">Sent through Weave, which hosts this site. Weave keeps your message only to pass it on.</p>
+</main>
+<footer class="site"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/report">Report abuse</a></footer>
+</body>
+</html>

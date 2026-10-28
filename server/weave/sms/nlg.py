@@ -134,4 +134,11 @@ class NlgPresenter:
                     )
                     return fallback
 
+        # Numbers are facts too. Left to itself the model rounds "42 visits" to "about 40", which turns a
+        # measurement into a guess, so every multi-digit figure we stated has to survive verbatim.
+        missing = [n for n in set(re.findall(r"\d{2,}", fallback)) if n not in candidate]
+        if missing:
+            log.warning("NLG output changed the numbers (%s); reverting to fallback", ", ".join(sorted(missing)[:3]))
+            return fallback
+
         return candidate

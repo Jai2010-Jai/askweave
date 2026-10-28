@@ -27,7 +27,187 @@
     if (me.invite) { $("#invite-line").hidden = false; $("#invite").textContent = me.invite; }
     renderProjects();
     renderStats();
+    loadTraffic();
+    loadLeads();
+    loadSales();
+    loadDigest();
   }
+
+  // ---------- sales ----------
+  const money = (n, cur) => {
+    const sym = { INR: "Rs ", USD: "$", EUR: "EUR ", GBP: "GBP " }[cur] || (cur ? cur + " " : "");
+    return sym + Math.round(Math.abs(n)).toLocaleString() ;
+  };
+
+  async function loadSales() {
+    let f;
+    try {
+      f = await api("/api/account/sales");
+    } catch (e) {
+      return;
+    }
+    $("#sales-imports").replaceChildren(...f.imports.map((i) => el("li", { class: "project" },
+      el("div", { class: "top" },
+        el("span", { class: "name" }, i.filename),
+        el("span", { class: "tag" }, `${i.rows} rows`),
+        i.skipped ? el("span", { class: "tag fail" }, `${i.skipped} skipped`) : null),
+      el("div", { class: "row actions" },
+        el("button", { class: "btn danger small", type: "button",
+          onclick: () => removeImport(i) }, "Remove")))));
+
+    if (!f.has_sales) {
+      $("#sales-stats").hidden = true;
+      $("#sales-chart").replaceChildren();
+      return;
+    }
+    const w = f.this_week, cur = f.currency;
+    const stat = (value, label) => el("div", { class: "stat" }, el("b", {}, value), el("span", {}, label));
+    const tiles = [stat(money(w.revenue, cur), "revenue last week")];
+    // No cost column means profit is unknowable, so we show nothing rather than a misleading zero.
+    if (f.has_cost) tiles.push(stat(money(w.profit, cur), f.losing_money ? "LOSS last week" : "profit last week"));
+    if (f.delta_pct !== null) tiles.push(stat(`${f.delta_pct >= 0 ? "+" : ""}${f.delta_pct}%`, "vs week before"));
+    if (f.top_products.length) tiles.push(stat(f.top_products[0].product, "best seller"));
+    $("#sales-stats").replaceChildren(...tiles);
+    $("#sales-stats").hidden = false;
+    $("#sales-chart").replaceChildren(window.weaveChart.bars(
+      f.weeks.map((x) => ({ key: x.week_start, value: Math.max(0, x.revenue) })),
+      { label: (d) => new Date(d * 86400000).toLocaleDateString() }));
+    $("#sales-note").textContent = f.projection === null ? `${f.rows} rows of sales.`
+      : `Next week looks like about ${money(f.projection, cur)}`
+        + (f.low_confidence ? " — a rough guess, there aren't many weeks yet." : ", if things carry on as they are.");
+  }
+
+  async function removeImport(i) {
+    if (!confirm(`Remove ${i.filename} and its ${i.rows} rows?`)) return;
+    await api(`/api/account/sales/${i.id}/delete`, {});
+    loadSales();
+  }
+
+  async function upload(confirmIt) {
+    const file = $("#sales-file").files[0];
+    if (!file) { $("#sales-note").textContent = "Pick a .csv file first."; return; }
+    const qs = new URLSearchParams({ filename: file.name });
+    if (confirmIt) { qs.set("confirm", "1"); qs.set("dayfirst", $("#sales-dayfirst").value); }
+    $("#sales-note").textContent = confirmIt ? "Saving…" : "Reading…";
+    let res;
+    try {
+      res = await fetch(`/api/account/sales/import?${qs}`, {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "text/csv", "X-Weave": "1" }, body: file,
+      });
+    } catch (e) {
+      $("#sales-note").textContent = "Upload failed. Try again."; return;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      $("#sales-preview").hidden = true;
+      $("#sales-note").textContent = data.detail || "That file couldn't be read.";
+      return;
+    }
+    if (data.stored) {
+      $("#sales-preview").hidden = true;
+      $("#sales-file").value = "";
+      loadSales();
+      return;
+    }
+    const cols = Object.entries(data.columns).filter(([, v]) => v).map(([k, v]) => `${k} → "${v}"`).join(", ");
+    $("#sales-found").textContent = `${data.rows} rows read${data.skipped ? `, ${data.skipped} skipped` : ""}. ${cols}`;
+    $("#sales-problems").replaceChildren(...data.problems.map((t) => el("li", {}, t)));
+    $("#sales-dayfirst-box").hidden = !data.date_ambiguous;
+    $("#sales-dayfirst").value = String(data.dayfirst);
+    $("#sales-preview").hidden = false;
+    $("#sales-note").textContent = "Check this looks right before saving.";
+  }
+
+  $("#sales-upload").addEventListener("click", () => upload(false));
+  $("#sales-confirm").addEventListener("click", () => upload(true));
+  $("#sales-cancel").addEventListener("click", () => { $("#sales-preview").hidden = true; });
+
+  async function loadLeads() {
+    let data;
+    try {
+      data = await api("/api/account/leads");
+    } catch (e) {
+      return;
+    }
+    $("#leads-box").hidden = !data.leads.length;
+    if (!data.leads.length) return;
+    $("#leads-unread").hidden = !data.unread;
+    $("#leads-unread").textContent = `${data.unread} new`;
+    $("#leads").replaceChildren(...data.leads.map((l) => el("li", { class: "project" },
+      el("div", { class: "top" },
+        el("span", { class: "name" }, l.name || l.contact),
+        el("span", { class: "tag" }, l.site),
+        l.read ? null : el("span", { class: "tag ok" }, "new")),
+      el("div", { class: "small muted" }, `${l.contact} · ${new Date(l.at * 1000).toLocaleDateString()}`),
+      el("div", {}, l.message))));
+  }
+
+  $("#leads-read").addEventListener("click", async () => {
+    await api("/api/account/leads/read", {});
+    loadLeads();
+  });
+
+  const DAYS = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];  // day 0 of the epoch was a Thursday
+
+  async function loadTraffic() {
+    // Its own request, and not part of the 20s poll: visitor numbers don't change by the second.
+    let t;
+    try {
+      t = await api("/api/account/analytics?days=7");
+    } catch (e) {
+      return;  // switched off on this server, or not signed in: the section just stays hidden
+    }
+    $("#traffic-box").hidden = false;
+    const stat = (value, label) => el("div", { class: "stat" }, el("b", {}, String(value)), el("span", {}, label));
+    const tiles = [
+      stat(t.views, t.views === 1 ? "visit this week" : "visits this week"),
+      stat(t.visitors, t.visitors === 1 ? "person" : "people"),
+    ];
+    if (t.top_pages.length) tiles.push(stat(t.top_pages[0].views, `top page: ${t.top_pages[0].label}`));
+    if (t.top_refs.length) tiles.push(stat(t.top_refs[0].views, `from ${t.top_refs[0].host}`));
+    else if (t.busiest_day) tiles.push(stat(t.busiest_views, `busiest day: ${t.busiest_day}`));
+    $("#traffic-stats").replaceChildren(...tiles);
+
+    const items = t.series.map(([day, value]) => ({ key: day, value }));
+    $("#traffic-chart").replaceChildren(
+      window.weaveChart.bars(items, { label: (d) => DAYS[((d % 7) + 7) % 7] }));
+    $("#traffic-note").textContent = !t.counting
+      ? "Counting is off for your sites. Visits aren't being recorded."
+      : t.views === 0
+        ? "No visits yet. Share your link and check back in a few days."
+        : t.low_data
+          ? "Early days — these numbers will mean more after a week or two."
+          : `Last 14 days. ${t.mobile_pct === null ? "" : `${t.mobile_pct}% on a phone.`}`;
+  }
+
+  async function loadDigest() {
+    let d;
+    try {
+      d = await api("/api/account/digest");
+    } catch (e) {
+      return;
+    }
+    if (!d || !d.has_digest) {
+      $("#digest-box").hidden = true;
+      return;
+    }
+    $("#digest-box").hidden = false;
+    $("#digest-body").textContent = d.body;
+  }
+
+  $("#digest-refresh").addEventListener("click", async () => {
+    $("#digest-refresh").disabled = true;
+    try {
+      const res = await api("/api/account/digest/generate", {});
+      if (res && res.has_digest) {
+        $("#digest-body").textContent = res.body;
+        $("#digest-box").hidden = false;
+      }
+    } finally {
+      $("#digest-refresh").disabled = false;
+    }
+  });
 
   function project(p, deleted) {
     const [label, cls] = STATE[p.status] || [p.ready ? "ready" : "—", p.ready ? "ok" : ""];

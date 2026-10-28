@@ -6,6 +6,7 @@
 <title>Weave · Dashboard</title>
 <link rel="stylesheet" href="/site/site.css">
 <script src="/site/site.js" defer></script>
+<script src="/site/chart.js" defer></script>
 <script src="/site/dashboard.js" defer></script>
 </head>
 <body>
@@ -49,6 +50,60 @@
     <h2>Recently deleted</h2>
     <p class="small muted" id="trash-note"></p>
     <section class="card"><ul class="projects" id="trash"></ul></section>
+  </div>
+
+  <h2>Your sales</h2>
+  <section class="card">
+    <div class="stats" id="sales-stats" hidden></div>
+    <div id="sales-chart"></div>
+    <div class="hint" id="sales-note">Upload a CSV of your sales and I'll work out revenue, profit and what's selling.</div>
+    <div class="row" style="margin-top:12px">
+      <input id="sales-file" type="file" accept=".csv,text/csv">
+      <button class="btn ghost small" type="button" id="sales-upload">Upload</button>
+    </div>
+    <div id="sales-preview" hidden>
+      <p class="small" id="sales-found"></p>
+      <ul class="small muted" id="sales-problems"></ul>
+      <div class="check" id="sales-dayfirst-box" hidden>
+        <label for="sales-dayfirst">Dates like 03/04 mean</label>
+        <select id="sales-dayfirst">
+          <option value="true">3rd of April (day first)</option>
+          <option value="false">4th of March (month first)</option>
+        </select>
+      </div>
+      <div class="row actions">
+        <button class="btn small" type="button" id="sales-confirm">Looks right, save it</button>
+        <button class="btn ghost small" type="button" id="sales-cancel">Cancel</button>
+      </div>
+    </div>
+    <ul class="projects" id="sales-imports"></ul>
+  </section>
+
+  <div id="leads-box" hidden>
+    <h2>Enquiries <span class="tag" id="leads-unread" hidden></span></h2>
+    <section class="card">
+      <ul class="projects" id="leads"></ul>
+      <div class="row actions"><button class="btn ghost small" type="button" id="leads-read">Mark all read</button></div>
+    </section>
+  </div>
+
+  <div id="traffic-box" hidden>
+    <h2>Your visitors</h2>
+    <div class="stats" id="traffic-stats"></div>
+    <section class="card">
+      <div id="traffic-chart"></div>
+      <div class="hint" id="traffic-note"></div>
+    </section>
+  </div>
+
+  <div id="digest-box" hidden>
+    <h2>Weekly digest & tips</h2>
+    <section class="card">
+      <div id="digest-body" style="white-space:pre-wrap;line-height:1.55"></div>
+      <div class="row actions" style="margin-top:14px">
+        <button class="btn ghost small" type="button" id="digest-refresh">Refresh digest</button>
+      </div>
+    </section>
   </div>
 
   <h2>Usage</h2>

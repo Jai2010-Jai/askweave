@@ -20,6 +20,7 @@ Dashboard (Google) ────┘                            └─ Website: AI
 | `weave/site/` | askweave.xyz accounts: Google sign-in, dashboard API, abuse reports |
 | `weave/core/` | AI clients (`gemini.py`, `glm.py`), Android build pipeline (`jobs.py`, `builder.py`, `validation.py`, `prompts.py`) |
 | `weave/web/` | Website builds (`builder.py` + `bridge.mjs`), validation, hosting, optional Netlify publish |
+| `weave/analytics/` | Visits to hosted sites: counting and buffering (`collector.py`), the numbers people are shown (`metrics.py`). See [`docs/ANALYTICS.md`](docs/ANALYTICS.md) |
 | `weave/static/` | Pages served by the server: local dashboard, `/chat`, `/start`, `/dashboard`, terms, privacy |
 | `android_template/` | The Gradle project generated apps are built in |
 | `scripts/run_prod.sh` | Production: server + the named Cloudflare tunnel `weave` |
@@ -46,6 +47,21 @@ scripts/run_prod.sh                  # production at https://app.askweave.xyz (o
 Other commands: `doctor`, `build "<idea>"`, `sms-simulate --from +1555... "hi"` (replies printed, nothing sent),
 `sms-check`, `sms-link-code`, `sms-worker`.
 
+## Deploying
+
+Everything lives in one SQLite file under `data/`. On a container platform without a mounted volume that
+disk is wiped on every redeploy, and Weave now **refuses to start** rather than come back up empty and let
+the nightly backup overwrite the good copies. Mount a volume, set `WEAVE_DATA_DIR` to it, and set
+`WEAVE_BACKUP_UPLOAD` to copy backups off the machine.
+
+```bash
+python -m weave doctor      # checks the data directory and the backup setup
+python -m weave backups     # what you have, and whether each one opens
+python -m weave restore data/backups/sms-20261028-000102.sqlite3
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Tests
 
 ```bash
@@ -59,5 +75,7 @@ Everything external (AI, Twilio, Google, Gradle, the website engine) is faked; n
 - Secrets stay server-side; child processes (Gradle, the website bridge) get a scrubbed environment.
 - Generated files are confined to their build folders; Kotlin is checked for forbidden APIs before building.
 - Previews and hosted sites are served with a CSP sandbox, so they can't read Weave cookies or call its APIs.
+- Visitor analytics stores no IP address, no user agent and no cookie; visitors are a keyed hash whose key
+  lives in memory only and is replaced daily, so past hashes cannot be traced to anyone ([`docs/ANALYTICS.md`](docs/ANALYTICS.md)).
 - Builds run as local processes, not containers. Isolate them (VM/container) before running untrusted builds at scale.
 - APKs are debug-signed for sideloading.

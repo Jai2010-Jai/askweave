@@ -16,6 +16,7 @@ import time
 import uuid
 from pathlib import Path
 
+from ..analytics.collector import ViewBuffer, utc_day
 from ..config import Settings
 from ..core.jobs import Orchestrator
 from ..core.schemas import BuildRequest
@@ -51,6 +52,8 @@ class SmsWorker:
         self.service = service
         self.voice = voice
         self.nlg = None
+        # Visits to hosted sites land here from the request path and are written by _analytics_loop.
+        self.views = ViewBuffer() if settings.analytics else None
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
@@ -83,15 +86,35 @@ class SmsWorker:
         if self.websites is not None:
             loops += [(f"sms-jobs-web-{i}", self._job_loop, ("website",)) for i in range(self.s.website_workers)]
         for name, target, args in loops:
-            t = threading.Thread(target=target, args=args, name=name, daemon=True)
-            t.start()
-            self._threads.append(t)
+            self._spawn(name, target, *args)
+        self.start_analytics()
         event("sms.worker_started", worker=self.worker_id, provider=self.provider.name)
+
+    def start_analytics(self) -> None:
+        """Run just the loop that writes buffered page views.
+
+        This one is not really background work: it is the second half of the request path. Views are
+        collected in this process's memory, so the thread that drains them has to live in the same process.
+        When the rest of the worker runs elsewhere (WEAVE_SMS_WORKER=external) it stays behind with the
+        buffer, otherwise every visit would pile up unwritten and the numbers would quietly read zero.
+        """
+        if self.views is None or any(t.name == "sms-analytics" for t in self._threads):
+            return
+        self._spawn("sms-analytics", self._analytics_loop)
+
+    def _spawn(self, name: str, target, *args) -> None:
+        t = threading.Thread(target=target, args=args, name=name, daemon=True)
+        t.start()
+        self._threads.append(t)
 
     def stop(self, timeout: float = 5) -> None:
         self._stop.set()
         for t in self._threads:
             t.join(timeout)
+        try:  # whatever is still buffered would otherwise be lost
+            self.flush_analytics()
+        except Exception:  # noqa: BLE001 - shutting down is not the time to raise
+            logging.getLogger("weave.sms").exception("final analytics flush failed")
 
     def _job_loop(self, lane: str | None = None) -> None:
         while not self._stop.is_set():
@@ -123,6 +146,30 @@ class SmsWorker:
                 logging.getLogger("weave.sms").exception("sms inbound loop error")
                 self._stop.wait(3)
 
+    def _analytics_loop(self) -> None:
+        """Every few seconds: write the visits buffered by the request path."""
+        while not self._stop.is_set():
+            try:
+                self.flush_analytics()
+            except Exception:  # noqa: BLE001 - losing counts must never stop the loop
+                logging.getLogger("weave.sms").exception("analytics flush error")
+            self._stop.wait(self.s.analytics_flush_seconds)
+
+    def flush_analytics(self) -> dict:
+        """Drain the view buffer into the database and refresh the daily totals it touched."""
+        if self.views is None:
+            return {"rows": 0, "dropped": 0}
+        views, beacons = self.views.drain(), self.views.drain_beacons()
+        if not views and not beacons:
+            return {"rows": 0, "beacons": 0, "dropped": self.views.stats()["dropped"]}
+        rows = self.store.record_views(views)
+        # After the views, never before: a beacon flags a visit we already wrote, it never adds one.
+        marked = self.store.mark_beacons(beacons)
+        self.store.roll_up_days(sorted({v.day for v in views} | {utc_day(b.ts) for b in beacons}))
+        stats = self.views.stats()
+        event("sms.analytics_flush", rows=rows, beacons=marked, dropped=stats["dropped"])
+        return {"rows": rows, "beacons": marked, "dropped": stats["dropped"]}
+
     def _housekeeping_loop(self) -> None:
         """Once a day: empty trash older than trash_days and back up the database."""
         self._stop.wait(60)
@@ -133,13 +180,75 @@ class SmsWorker:
                 logging.getLogger("weave.sms").exception("housekeeping error")
             self._stop.wait(86_400)
 
-    def housekeeping(self) -> dict:
+    def housekeeping(self, now: float | None = None, force_digest: bool = False) -> dict:
+        from ..analytics.metrics import MONDAY_OFFSET
         from ..web.hosting import purge_trash
 
+        now_ts = time.time() if now is None else now
+        today = utc_day(now_ts)
         purged = purge_trash(self.s.trash_dir, self.s.trash_days)
-        backup = self.store.backup(self.s.data_dir / "backups", keep=7)
-        event("sms.housekeeping", purged=purged, backup=backup.name if backup else None)
-        return {"purged": purged, "backup": backup}
+        pruned = self.store.prune_analytics(self.s.analytics_raw_days, self.s.analytics_rollup_days, today)
+        backup = self.store.backup(self.s.data_dir / "backups", keep=self.s.backup_keep)
+        copied = self._copy_backup_off_box(backup)
+
+        # Weekly branch: run Monday digest for active accounts
+        is_monday = ((today - MONDAY_OFFSET) % 7) == 0
+        digests = 0
+        if (is_monday or force_digest) and self.s.analytics:
+            digests = self._run_weekly_digests(now_ts)
+
+        event("sms.housekeeping", purged=purged, pruned=pruned["views"],
+              backup=backup.name if backup else None, copied=copied, digests=digests)
+        return {"purged": purged, "pruned": pruned, "backup": backup, "copied": copied, "digests": digests}
+
+    def _run_weekly_digests(self, now: float) -> int:
+        import json
+        from ..analytics.digest import generate_digest
+        from ..analytics.metrics import week_of
+
+        today = utc_day(now)
+        week = week_of(today)
+        accounts = self.store.all("SELECT id, username, analytics FROM accounts WHERE status = 'active'")
+        sent = 0
+        for acct in accounts:
+            if (acct.get("analytics") or "on") != "on":
+                continue
+            if self.store.digest_for_week(acct["id"], week):
+                continue
+            user = self.store.account_user(acct["id"])
+            if not user or not user.get("phone"):
+                continue
+
+            chat = user["phone"].startswith(("whatsapp:", "web:"))
+            limit = M.MAX_CHARS_CHAT if chat else M.MAX_CHARS
+            nlg_pres = self.nlg or getattr(self.service, "nlg", None)
+            facts, text = generate_digest(self.store, acct["id"], nlg=nlg_pres, now=now, limit=limit, unicode=chat)
+            if not facts.get("has_data"):
+                continue
+
+            self.store.save_digest(acct["id"], week, text, facts=json.dumps(facts), now=now)
+            if self.service is not None:
+                self.service.queue_text(user["phone"], user["id"], text, limit=limit, job_id=None, sender=None)
+            sent += 1
+            event("sms.digest_delivered", account=acct["id"], week=week)
+        return sent
+
+    def _copy_backup_off_box(self, backup) -> bool:
+        """Send the fresh backup somewhere that is not this disk.
+
+        A backup with no accounts in it is never sent. On a wiped disk the startup guard should have
+        stopped the server long before this, but if anything slips past, an empty database must not be
+        allowed to overwrite good copies at the far end.
+        """
+        from ..safety import upload_backup
+
+        if backup is None or not self.s.backup_upload:
+            return False
+        if not (self.store.one("SELECT COUNT(*) AS n FROM accounts") or {}).get("n"):
+            logging.getLogger("weave.sms").warning(
+                "Not copying %s off this machine: the database has no accounts in it", backup.name)
+            return False
+        return upload_backup(backup, self.s.backup_upload)
 
     # ---------- jobs ----------
     def recover(self) -> int:

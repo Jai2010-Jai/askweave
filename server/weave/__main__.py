@@ -21,6 +21,10 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("prompt")
     b.add_argument("--name", default=None)
     sub.add_parser("sms-worker", help="Run the SMS build worker as its own process (set WEAVE_SMS_WORKER=external)")
+    rs = sub.add_parser("restore", help="Put a backup back in place (stop the server first)")
+    rs.add_argument("backup", help="Path to a data/backups/sms-*.sqlite3 file")
+    rs.add_argument("--force", action="store_true", help="Replace the current database if there is one")
+    sub.add_parser("backups", help="List the backups and check they can be opened")
     sub.add_parser("sms-whatsapp-template",
                    help="Create the {{1}} WhatsApp Content template (needs a non-trial Twilio account)")
     sub.add_parser("sms-check", help="Check SMS configuration and the Twilio number (read-only, sends nothing)")
@@ -33,6 +37,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     args.cmd = args.cmd or "serve"
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    if args.cmd in ("restore", "backups"):
+        from .restore import list_backups, restore
+        return (restore(settings, args.backup, force=args.force) if args.cmd == "restore"
+                else list_backups(settings))
 
     if args.cmd == "doctor":
         report = settings.doctor()
@@ -80,8 +89,10 @@ def main(argv: list[str] | None = None) -> int:
     lan = getattr(args, "lan", False) or settings.host not in ("127.0.0.1", "localhost", "::1")
     if lan:
         settings.host = "0.0.0.0" if settings.host in ("127.0.0.1", "localhost", "::1") else settings.host
+    from .safety import guard
     from .server import create_app
 
+    guard(settings)   # stop here rather than start on a disk that has already lost the database
     app = create_app()
     print(f"\n  Weave dashboard:  http://127.0.0.1:{settings.port}")
     if lan:

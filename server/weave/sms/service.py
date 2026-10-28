@@ -51,7 +51,8 @@ STYLE_WORDS = re.compile(r"\b(colou?rs?|dark|light|minimal\w*|vintage|retro|past
                          r"aesthetic|style[ds]?|black|white|blue|red|green|pink|purple|gold(en)?|orange|yellow|beige|"
                          r"brown|navy|teal|cream|monochrome|brutalist|glass\w*)\b", re.I)
 REF_RE = re.compile(r"^G-[2-9A-HJ-NP-TV-Z]{5}$", re.I)
-NEVER_BUILDS = {"greeting", "thanks", "help", "status", "projects", "download", "cancel", "publish"}
+ASKS_SALES = re.compile(r"\b(?:sales?|revenue|profit|loss|takings|earning|income|turnover|money|business)\b", re.I)
+NEVER_BUILDS = {"greeting", "thanks", "help", "status", "projects", "download", "cancel", "publish", "analytics"}
 
 
 @dataclass
@@ -633,6 +634,8 @@ class SmsService:
             return self._retry(user, sid)
         if d.action == "publish":
             return self._publish_request(user, project)  # only asks; the owner must reply PUBLISH
+        if d.action == "analytics":
+            return self._analytics(user, project, body)
         if reply:
             self._reply(user["phone"], user, reply, localized=True)
         else:
@@ -666,6 +669,14 @@ class SmsService:
             return self._status(user, rest)
         if word in ("PROJECTS", "APPS", "LIST") and not rest:
             return self._projects(user)
+        if word in ("STATS", "ANALYTICS", "VISITORS", "TRAFFIC") and not rest:
+            return self._analytics(user, None, "")
+        if word in ("DIGEST", "WEEKLY", "TIPS") and not rest:
+            return self._digest(user, "")
+        if word in ("LEADS", "ENQUIRIES", "ENQUIRY", "MESSAGES") and not rest:
+            return self._leads(user)
+        if word in ("SALES", "REVENUE", "PROFIT") and not rest:
+            return self._sales(user)
         if word in ("USE", "SWITCH", "SELECT") and number.isdigit():
             return self._use(user, number)
         if word in ("OPEN", "DOWNLOAD") and (not rest or number.isdigit()):
@@ -730,6 +741,8 @@ class SmsService:
             return "help"
         if kind == "publish":
             return self._publish_request(user, None)
+        if kind == "analytics":
+            return self._analytics(user, project, body)
         if kind == "status":
             return self._status(user, "")
         if kind == "projects":
@@ -1132,6 +1145,117 @@ class SmsService:
         text = self._present("projects", {"projects": "\n".join(lines)}, raw_list)
         self._reply(user["phone"], user, text)
         return "projects"
+
+    def _sales(self, user: dict, query: str = "") -> str:
+        """How the shop is doing, from the sales file they uploaded."""
+        from ..analytics.metrics import sales_summary
+
+        account = self.store.account_for_user(user["id"])
+        if account is None:
+            self._reply(user["phone"], user, "Sales figures come with a Weave account.")
+            return "sales_no_account"
+        facts = sales_summary(self.store, account["id"])
+        chat = user["phone"].startswith(("whatsapp:", "web:"))
+        fallback = M.sales_text(facts, M.MAX_CHARS_CHAT if chat else M.MAX_CHARS, unicode=chat)
+        text = self._present("sales", facts, fallback, user_query=query)
+        self._reply(user["phone"], user, text)
+        return "sales" if facts.get("has_sales") else "sales_none"
+
+    def _analytics(self, user: dict, project: dict | None, query: str = "") -> str:
+        """How their live site is doing. Costs nothing and runs during a build, so there's no quota gate."""
+        from ..analytics.metrics import sales_summary, traffic_summary
+
+        # Check if weekly digest / tips were asked for specifically
+        if query and re.search(r"\b(?:digest|weekly\s*(?:update|summary|report)?|tips?)\b", query, re.I):
+            return self._digest(user, query)
+
+        # "How's business?" means the shop when there are sales to talk about, and the website otherwise.
+        account_now = self.store.account_for_user(user["id"])
+        if account_now is not None and ASKS_SALES.search(query or ""):
+            if sales_summary(self.store, account_now["id"]).get("has_sales"):
+                return self._sales(user, query)
+
+        if not self.s.analytics:
+            self._reply(user["phone"], user, "Visitor numbers aren't switched on for this server.")
+            return "analytics_off"
+        account = self.store.account_for_user(user["id"])
+        if account is None:
+            where = f"{self.s.public_base_url}/start" if self.s.public_base_url else "the Weave website"
+            self._reply(user["phone"], user, f"Visitor numbers come with a Weave account. Sign up at {where}.")
+            return "analytics_no_account"
+        live = [p for p in self.store.projects(user["id"]) if p.get("deploy_url")]
+        if not live:
+            self._reply(user["phone"], user, "You don't have a website live yet. Once one is up I'll count its visits.")
+            return "analytics_no_site"
+
+        if project is not None and not project.get("deploy_url"):
+            project = None  # asked about something that isn't live; answer for everything instead
+        slug = project.get("slug") if project else None
+        site = M.name_of(project) if project else (M.name_of(live[0]) if len(live) == 1 else "your sites")
+        facts = traffic_summary(self.store, account["id"], days=7, slug=slug)
+        facts["leads"] = self.store.lead_count(account["id"], time.time() - 7 * 86_400)
+
+        chat = user["phone"].startswith(("whatsapp:", "web:"))
+        dashboard = f"{self.s.public_base_url}/dashboard" if self.s.public_base_url else ""
+        fallback = M.analytics_text(facts, site, M.MAX_CHARS_CHAT if chat else M.MAX_CHARS,
+                                    unicode=chat, dashboard=dashboard)
+        text = self._present("analytics", {**facts, "site": site}, fallback, user_query=query)
+        self._reply(user["phone"], user, text)
+        return "analytics"
+
+    def _digest(self, user: dict, query: str = "") -> str:
+        """Weekly performance digest and tips. Generated on demand or served from the latest snapshot."""
+        import json
+        from ..analytics.collector import utc_day
+        from ..analytics.digest import generate_digest
+        from ..analytics.metrics import week_of
+
+        if not self.s.analytics:
+            self._reply(user["phone"], user, "Visitor numbers aren't switched on for this server.")
+            return "analytics_off"
+        account = self.store.account_for_user(user["id"])
+        if account is None:
+            where = f"{self.s.public_base_url}/start" if self.s.public_base_url else "the Weave website"
+            self._reply(user["phone"], user, f"Weekly digests come with a Weave account. Sign up at {where}.")
+            return "digest_no_account"
+
+        chat = user["phone"].startswith(("whatsapp:", "web:"))
+        limit = M.MAX_CHARS_CHAT if chat else M.MAX_CHARS
+        now = time.time()
+        today = utc_day(now)
+        week = week_of(today)
+
+        facts, text = generate_digest(
+            self.store, account["id"], nlg=self.nlg, now=now,
+            user_query=query, limit=limit, unicode=chat,
+        )
+        if not facts.get("has_data"):
+            self._reply(user["phone"], user, "No activity recorded this week yet. Once visitors arrive or you upload sales, your weekly digest will appear here.")
+            return "digest_empty"
+
+        self.store.save_digest(account["id"], week, text, facts=json.dumps(facts), now=now)
+        self._reply(user["phone"], user, text)
+        return "digest"
+
+    def _leads(self, user: dict) -> str:
+        """The enquiries people have left on their sites. Each one was already sent when it arrived; this is
+        the list, for when they want to look back."""
+        account = self.store.account_for_user(user["id"])
+        if account is None:
+            self._reply(user["phone"], user, "Enquiries come with a Weave account.")
+            return "leads_no_account"
+        rows = self.store.leads(account["id"], limit=5)
+        if not rows:
+            self._reply(user["phone"], user, "No enquiries yet. They arrive here the moment someone writes in.")
+            return "leads_none"
+        chat = user["phone"].startswith(("whatsapp:", "web:"))
+        lines = [f"{r['name'] or 'Someone'} ({r['contact']}): {r['message'][:120]}" for r in rows]
+        total = self.store.lead_count(account["id"])
+        head = f"Your last {len(rows)} of {total} enquiries:" if total > len(rows) else "Your enquiries:"
+        text = M.fit(head + "\n" + "\n".join(lines), M.MAX_CHARS_CHAT if chat else M.MAX_CHARS, unicode=chat)
+        self.store.mark_leads_read(account["id"], time.time())
+        self._reply(user["phone"], user, text)
+        return "leads"
 
     def _use(self, user: dict, rest: str) -> str:
         n = rest.strip().lstrip("#")

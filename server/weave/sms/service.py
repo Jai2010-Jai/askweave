@@ -29,10 +29,12 @@ from .pharmacy import (
     AUTO_PAY_ENABLE_RE,
     INVENTORY_QUERY_RE,
     PAID_CONFIRM_RE,
+    haversine_distance_km,
     parse_business_onboarding_intent,
     parse_business_type,
     parse_csv_inventory,
     parse_inventory_update,
+    parse_location_pin,
     parse_medicine_search_request,
     parse_single_item_addition,
 )
@@ -527,6 +529,8 @@ class SmsService:
             return self._resolve_pharmacy_confirm_order(user, body, sid)
         elif question == "pharmacy_send_payment_link" and user.get("pending_text"):
             return self._resolve_pharmacy_send_payment_link(user, body, sid)
+        elif question == "customer_medicine_location" and user.get("pending_text"):
+            return self._resolve_customer_medicine_location(user, body, sid)
         if user.get("pending_text") and answer_reply(body) is not None:
             # "new" / "change" / "no" answers the question we just asked; it is not the NEW command.
             return self._resolve_pending(user, body, sid)
@@ -579,6 +583,20 @@ class SmsService:
             if user.get("pending_text"):
                 self.store.update_user(user["id"], pending_text=None)
             return self._handle_medicine_search(user, med_search, sid)
+        lat, lon, addr = parse_location_pin(body)
+        if lat is not None and lon is not None:
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            store = self.store.get_pharmacy_store_by_user(user["id"])
+            if store:
+                self.store.set_pharmacy_store_location(store["id"], lat, lon, addr)
+                self.store.update_user(user["id"], latitude=lat, longitude=lon, location_address=addr)
+                self._reply(user["phone"], user, "📍 Store location updated! Nearby customers within 3 km will now easily find and commute to your medical store.")
+                return "pharmacy_store_location_updated"
+            else:
+                self.store.update_user(user["id"], latitude=lat, longitude=lon, location_address=addr)
+                self._reply(user["phone"], user, "📍 Location saved! What medicine are you looking for?")
+                return "customer_location_saved"
         if INVENTORY_QUERY_RE.search(body):
             inv_res = self._handle_inventory_query(user)
             if inv_res:
@@ -1401,9 +1419,11 @@ class SmsService:
             )
             self.store.update_user(user["id"], pending_question="pharmacy_inventory_setup", pending_text=str(store["id"]))
             reply = (
-                "Welcome to Weave for Medical Stores! Can you please send me your CSV file or like "
-                "what all items you have and like the prices of it? (You can upload a CSV, paste rows, "
-                "or text items like: 'Paracetamol 650mg, 50 strips, Rs. 20 per strip')."
+                "Welcome to Weave for Medical Stores!\n\n"
+                "📍 First, please drop your store location pin (share your location on WhatsApp or send your coordinates) "
+                "so nearby customers within 3 km can easily find and commute to your shop.\n\n"
+                "📦 Also, please send your CSV file or list what all items you have and like the prices of it "
+                "(You can upload a CSV, paste rows, or text items like: 'Paracetamol 650mg, 50 strips, Rs. 20 per strip')."
             )
             self._reply(user["phone"], user, reply)
             return "pharmacy_onboarded"
@@ -1417,6 +1437,20 @@ class SmsService:
         if not store_id:
             store = self.store.get_pharmacy_store_by_user(user["id"])
             store_id = store["id"] if store else None
+
+        # Check if shopkeeper dropped location pin
+        lat, lon, addr = parse_location_pin(body)
+        if lat is not None and lon is not None:
+            if store_id:
+                self.store.set_pharmacy_store_location(store_id, lat, lon, addr)
+            self.store.update_user(user["id"], latitude=lat, longitude=lon, location_address=addr)
+            reply = (
+                "📍 Store location saved! Nearby customers within 3 km can now easily find and commute to your medical store.\n\n"
+                "📦 Next, please send your CSV file or list what all items you have and like the prices of it "
+                "(e.g. upload CSV or text: 'Paracetamol 650mg, 50 strips, Rs. 20 per strip')."
+            )
+            self._reply(user["phone"], user, reply)
+            return "pharmacy_store_location_saved"
 
         items = parse_csv_inventory(body)
         if not items:
@@ -1438,7 +1472,7 @@ class SmsService:
 
         self._reply(
             user["phone"], user,
-            "Please send your inventory as a CSV (e.g. 'Item, Price, Stock') or text items like "
+            "Please drop your store location pin or send your inventory as a CSV (e.g. 'Item, Price, Stock') or text items like "
             "'Add 50 strips of Paracetamol 650mg at Rs. 20 per strip'."
         )
         return "pharmacy_inventory_invalid"
@@ -1558,27 +1592,108 @@ class SmsService:
     def _handle_medicine_search(self, user: dict, med_search: dict, sid: str) -> str:
         query = med_search["query"]
         qty = med_search.get("quantity", 1)
-        matches = self.store.search_medicine(query, min_qty=qty)
+        unit = med_search.get("unit", "strip")
+
+        cust_lat = med_search.get("latitude")
+        cust_lon = med_search.get("longitude")
+        if cust_lat is None or cust_lon is None:
+            cust_lat = user.get("latitude")
+            cust_lon = user.get("longitude")
+
+        # If customer location is unknown, ask for location pin before displaying nearest shops
+        if cust_lat is None or cust_lon is None:
+            self.store.update_user(
+                user["id"],
+                pending_question="customer_medicine_location",
+                pending_text=f"{query}:{qty}:{unit}",
+            )
+            self._reply(
+                user["phone"],
+                user,
+                f"Sure! To find the nearest medical store with {query} in stock within 3 km, could you please drop your location pin (or share your coordinates/area)?",
+            )
+            return "pharmacy_customer_location_asked"
+
+        return self._search_and_recommend_medicine(user, query, qty, unit, cust_lat, cust_lon)
+
+    def _resolve_customer_medicine_location(self, user: dict, body: str, sid: str) -> str:
+        t = body.strip().lower()
+        if re.search(r"\b(?:no|nope|cancel|stop|dont|never\s*mind|nah)\b", t):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "Understood, medicine search cancelled.")
+            return "pharmacy_customer_location_cancelled"
+
+        lat, lon, addr = parse_location_pin(body)
+        if lat is None or lon is None:
+            self._reply(
+                user["phone"],
+                user,
+                "Could you please share your WhatsApp location pin or send your coordinates / area (e.g. Indiranagar) so I can find stores near you within 3 km?",
+            )
+            return "pharmacy_customer_location_invalid"
+
+        self.store.update_user(
+            user["id"],
+            latitude=lat,
+            longitude=lon,
+            location_address=addr,
+            pending_question=None,
+        )
+        parts = (user.get("pending_text") or "").split(":")
+        query = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 1
+        unit = parts[2] if len(parts) > 2 else "strip"
+        return self._search_and_recommend_medicine(user, query, qty, unit, lat, lon)
+
+    def _search_and_recommend_medicine(
+        self,
+        user: dict,
+        query: str,
+        qty: int,
+        unit: str,
+        cust_lat: float | None = None,
+        cust_lon: float | None = None,
+    ) -> str:
+        matches = self.store.search_medicine_by_location(
+            query,
+            customer_lat=cust_lat,
+            customer_lon=cust_lon,
+            min_qty=qty,
+            max_radius_km=3.0,
+        )
         if not matches:
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
             self._reply(user["phone"], user, f"Sorry, I couldn't find any medical store with {query} in stock right now.")
             return "pharmacy_medicine_not_found"
 
         best = matches[0]
-        unit = med_search.get("unit") or best["unit"]
+        item_unit = unit or best.get("unit", "strip")
         unit_price = best["price_paise"]
         total_paise = unit_price * qty
         unit_inr = unit_price / 100
         total_inr = total_paise / 100
+        dist = best.get("distance_km")
+        dist_str = f" ({dist:.1f} km away)" if dist is not None else ""
+        within_3km = bool(best.get("within_radius")) or (dist is not None and dist <= 3.0)
 
         self.store.update_user(
             user["id"],
             pending_question="pharmacy_confirm_order",
-            pending_text=f"{best['store_id']}:{best['item_name']}:{qty}:{unit}:{total_paise}",
+            pending_text=f"{best['store_id']}:{best['item_name']}:{qty}:{item_unit}:{total_paise}:{dist}",
         )
-        reply = (
-            f"Found at {best['store_name']}: {best['item_name']} is Rs. {unit_inr:g} per {unit}. "
-            f"{qty} {unit}s for Rs. {total_inr:g}. Do you want me to place an order?"
-        )
+
+        if dist is not None and not within_3km:
+            reply = (
+                f"No medical stores have {query} in stock within 3 km commute radius. "
+                f"The nearest available store is {best['store_name']}{dist_str}: {best['item_name']} is Rs. {unit_inr:g} per {item_unit}. "
+                f"{qty} {item_unit}s for Rs. {total_inr:g}. Do you want me to place an order? Reply YES to confirm."
+            )
+        else:
+            reply = (
+                f"Found at {best['store_name']}{dist_str}: {best['item_name']} is Rs. {unit_inr:g} per {item_unit}. "
+                f"{qty} {item_unit}s for Rs. {total_inr:g}. Do you want me to place an order? Reply YES to confirm."
+            )
+
         self._reply(user["phone"], user, reply)
         return "pharmacy_medicine_found"
 
@@ -1592,6 +1707,12 @@ class SmsService:
                 qty = int(parts[2])
                 unit = parts[3]
                 total_paise = int(parts[4])
+                dist_km = None
+                if len(parts) > 5 and parts[5] != "None":
+                    try:
+                        dist_km = float(parts[5])
+                    except ValueError:
+                        pass
                 store = self.store.get_pharmacy_store(store_id)
                 if not store:
                     self.store.update_user(user["id"], pending_question=None, pending_text=None)
@@ -1611,14 +1732,16 @@ class SmsService:
                     unit=unit,
                     unit_price_paise=unit_price_paise,
                     total_amount_paise=total_paise,
+                    distance_km=dist_km,
                     status="pending_approval",
                 )
                 self.store.update_user(user["id"], pending_question=None, pending_text=None)
 
                 # Customer confirmation
+                dist_info = f" ({dist_km:.1f} km away)" if dist_km is not None else ""
                 self._reply(
                     user["phone"], user,
-                    f"Order placed with {store['name']} for {qty} {unit}s of {item_name} "
+                    f"Order placed with {store['name']}{dist_info} for {qty} {unit}s of {item_name} "
                     f"(Total: Rs. {total_inr:g})! Ref: #{order['order_ref']}."
                 )
 

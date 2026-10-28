@@ -187,6 +187,11 @@ def test_dual_agent_customer_search_order_and_manual_payment_flow(u):
     # 2. Customer user (with their own Weave agent) asks for medicine
     u.link_member(MEMBER)
     u.text(MEMBER, "I need two strips of paracetamol, where can I find it?")
+    cust_loc_ask = u.last(to=MEMBER)
+    assert "drop your location pin" in cust_loc_ask or "within 3 km" in cust_loc_ask
+
+    # Customer drops their WhatsApp location pin
+    u.text(MEMBER, "LOCATION:12.9716,77.5946")
     cust_reply1 = u.last(to=MEMBER)
     assert "Medical Store" in cust_reply1
     assert "Paracetamol" in cust_reply1
@@ -262,9 +267,12 @@ def test_dual_agent_automated_payment_link_flow(u):
     reply_auto = u.last(to=OWNER)
     assert "Automated payment links enabled" in reply_auto
 
-    # 3. Customer asks for paracetamol and confirms order
+    # 3. Customer asks for paracetamol, provides location pin, and confirms order
     u.link_member(MEMBER)
     u.text(MEMBER, "I need two strips of paracetamol, where can I find it?")
+    assert "location pin" in u.last(to=MEMBER)
+    u.text(MEMBER, "LOCATION:12.9716,77.5946")
+    assert "Found at" in u.last(to=MEMBER)
     u.text(MEMBER, "Yes")
 
     # 4. In automated mode, the customer IMMEDIATELY receives payment link without asking shopkeeper first!
@@ -292,6 +300,8 @@ def test_pharmacy_dual_agent_flow_over_whatsapp(u):
     # 2. Customer links and searches for medicine over WhatsApp
     u.link_member(wa_member)
     u.text(wa_member, "I need two strips of paracetamol, where can I find it?")
+    assert "location pin" in u.last(to=wa_member)
+    u.text(wa_member, "LOCATION:12.9716,77.5946")
     cust_reply = u.last(to=wa_member)
     assert "Medical Store" in cust_reply
     assert "Paracetamol" in cust_reply
@@ -341,6 +351,8 @@ def test_pharmacy_payment_completion_is_idempotent_no_duplicate_alerts(u):
     u.text(OWNER, "Add 10 strips of Paracetamol at Rs. 20 each, threshold 2")
     u.link_member(MEMBER)
     u.text(MEMBER, "Where can I find 2 strips of Paracetamol?")
+    assert "location pin" in u.last(to=MEMBER)
+    u.text(MEMBER, "LOCATION:12.9716,77.5946")
     u.text(MEMBER, "Yes")
     u.text(OWNER, "Yes")
 
@@ -368,6 +380,8 @@ def test_pharmacy_low_stock_bulk_reorder_prompt_after_order_approval(u):
     u.text(OWNER, "Add 2 strips of Paracetamol at Rs. 20 each, threshold 3")
     u.link_member(MEMBER)
     u.text(MEMBER, "I need two strips of paracetamol, where can I find it?")
+    assert "location pin" in u.last(to=MEMBER)
+    u.text(MEMBER, "LOCATION:12.9716,77.5946")
     u.text(MEMBER, "Yes")
 
     # Owner approves sending payment link
@@ -382,6 +396,133 @@ def test_pharmacy_low_stock_bulk_reorder_prompt_after_order_approval(u):
     reorder_reply = u.last(to=OWNER)
     assert "Bulk distributor order placed" in reorder_reply
     assert "DIST-" in reorder_reply
+
+
+def test_location_friendly_recommendation_within_3km_commute_radius(u):
+    """Test that stores within 3 km commute radius are prioritized and distance is shown in km."""
+    from test_unified import MEMBER
+
+    # Shopkeeper A: in Indiranagar: 12.9780, 77.6410 (~0.1 km away from customer)
+    owner1 = u.sms.store.create_user("+919800000001", "member")
+    store1 = u.sms.store.register_pharmacy_store(
+        user_id=owner1["id"],
+        name="Indiranagar Meds",
+        phone="+919800000001",
+        latitude=12.9780,
+        longitude=77.6410,
+    )
+    u.sms.store.add_or_update_inventory_item(store1["id"], "Paracetamol 650mg", price_paise=2500, stock_quantity=40)
+
+    # Store 2: in Electronic City: 12.8452, 77.6602 (~15 km away, cheaper price)
+    owner2 = u.sms.store.create_user("+919800000002", "member")
+    store2 = u.sms.store.register_pharmacy_store(
+        user_id=owner2["id"],
+        name="Electronic City Chemist",
+        phone="+919800000002",
+        latitude=12.8452,
+        longitude=77.6602,
+    )
+    u.sms.store.add_or_update_inventory_item(store2["id"], "Paracetamol 650mg", price_paise=1500, stock_quantity=100)
+
+    # Customer searches for Paracetamol
+    u.link_member(MEMBER)
+    u.text(MEMBER, "Where can I get Paracetamol?")
+    ask_msg = u.last(to=MEMBER)
+    assert "drop your location pin" in ask_msg
+    assert "within 3 km" in ask_msg
+
+    # Customer drops location pin in Indiranagar
+    u.text(MEMBER, "LOCATION:12.9784,77.6408")
+    reply = u.last(to=MEMBER)
+
+    # Must recommend Store 1 because it is within 3 km commute radius (even though Store 2 is cheaper)
+    assert "Indiranagar Meds" in reply
+    assert "km away" in reply
+    assert "place an order" in reply
+
+
+def test_location_friendly_recommendation_beyond_3km(u):
+    """When no store has stock within 3 km commute radius, alerts customer and offers nearest store."""
+    from test_unified import MEMBER
+
+    # Store is in Whitefield (12.9698, 77.7500) -> ~12 km away from customer in Indiranagar
+    owner = u.sms.store.create_user("+919800000003", "member")
+    store = u.sms.store.register_pharmacy_store(
+        user_id=owner["id"],
+        name="Whitefield Pharmacy",
+        phone="+919800000003",
+        latitude=12.9698,
+        longitude=77.7500,
+    )
+    u.sms.store.add_or_update_inventory_item(store["id"], "Augmentin 625", price_paise=12000, stock_quantity=20)
+
+    u.link_member(MEMBER)
+    u.text(MEMBER, "Need Augmentin 625")
+    assert "drop your location pin" in u.last(to=MEMBER)
+
+    # Customer drops location pin at Indiranagar (12.9784, 77.6408)
+    u.text(MEMBER, "LOCATION:12.9784,77.6408")
+    reply = u.last(to=MEMBER)
+
+    # Must mention that no store has it within 3 km, and display the nearest available store
+    assert "No medical stores have Augmentin 625 in stock within 3 km" in reply
+    assert "Whitefield Pharmacy" in reply
+    assert "km away" in reply
+    assert "place an order" in reply
+
+
+def test_customer_location_memory_across_multiple_searches(u):
+    """After customer drops their location pin once, subsequent searches don't re-ask."""
+    from test_unified import MEMBER
+
+    owner = u.sms.store.create_user("+919800000004", "member")
+    store = u.sms.store.register_pharmacy_store(
+        user_id=owner["id"],
+        name="Apollo Meds",
+        phone="+919800000004",
+        latitude=12.9780,
+        longitude=77.6410,
+    )
+    u.sms.store.add_or_update_inventory_item(store["id"], "Dolo 650", price_paise=3000, stock_quantity=50)
+    u.sms.store.add_or_update_inventory_item(store["id"], "Cetirizine", price_paise=1000, stock_quantity=50)
+
+    u.link_member(MEMBER)
+    # First search: asks for location pin
+    u.text(MEMBER, "Where can I get Dolo 650?")
+    assert "drop your location pin" in u.last(to=MEMBER)
+
+    # Customer drops pin
+    u.text(MEMBER, "LOCATION:12.9784,77.6408")
+    reply1 = u.last(to=MEMBER)
+    assert "Apollo Meds" in reply1
+
+    # Second search: customer already has location saved, should NOT re-ask!
+    u.text(MEMBER, "Where can I find Cetirizine?")
+    reply2 = u.last(to=MEMBER)
+    assert "Apollo Meds" in reply2
+    assert "drop your location pin" not in reply2
+
+
+def test_shopkeeper_drops_whatsapp_location_pin_onboarding(u):
+    """Shopkeeper drops WhatsApp location pin during onboarding, saving store coordinates."""
+    u.text(OWNER, "I want to integrate Weave for my pharmacy")
+    onboard_msg = u.last()
+    assert "Welcome to Weave for Medical Stores!" in onboard_msg
+    assert "drop your store location pin" in onboard_msg
+
+    # Shopkeeper drops WhatsApp pin
+    u.text(OWNER, "LOCATION:12.9352,77.6245:Koramangala 4th Block")
+    saved_msg = u.last()
+    assert "Store location saved" in saved_msg
+    assert "3 km" in saved_msg
+
+    # Verify store coordinates and address in database
+    store = u.sms.store.get_pharmacy_store_by_user(u.user(OWNER)["id"])
+    assert store is not None
+    assert abs(store["latitude"] - 12.9352) < 0.001
+    assert abs(store["longitude"] - 77.6245) < 0.001
+    assert "Koramangala" in store["address"]
+
 
 
 

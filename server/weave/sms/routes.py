@@ -99,7 +99,12 @@ def build_router(settings: Settings, store: SmsStore, service: SmsService, provi
             num_media = 0
         media_url = p.get("MediaUrl0", "")
         media_type = p.get("MediaContentType0", "")
-        msg = Inbound(from_=p["From"], to=p.get("To", ""), body=p.get("Body", ""), sid=sid,
+        lat = p.get("Latitude")
+        lng = p.get("Longitude")
+        raw_body = p.get("Body", "")
+        if lat and lng and (not raw_body or not raw_body.strip()):
+            raw_body = f"LOCATION:{lat},{lng}"
+        msg = Inbound(from_=p["From"], to=p.get("To", ""), body=raw_body, sid=sid,
                       account_sid=p.get("AccountSid", ""), num_media=num_media,
                       media_url=media_url, media_type=media_type)
         if (settings.voice_enabled and num_media and not msg.body.strip() and is_audio(p.get("MediaContentType0", ""))
@@ -192,6 +197,8 @@ def build_router(settings: Settings, store: SmsStore, service: SmsService, provi
 
             if m.type == "text":
                 body = m.text or ""
+            elif m.type == "location":
+                body = m.text or "[location]"
             elif m.type in ("audio", "voice"):
                 body = "[voice note]"
             else:

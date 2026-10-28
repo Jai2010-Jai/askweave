@@ -171,6 +171,12 @@ class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin, DocprepMixin, Pharmacy
             c.execute("ALTER TABLE users ADD COLUMN bonus_builds INTEGER NOT NULL DEFAULT 0")
         if "language" not in cols:  # weave.sms.language code (hi, te-Latn, ...); NULL = English
             c.execute("ALTER TABLE users ADD COLUMN language TEXT")
+        if "latitude" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN latitude REAL")
+        if "longitude" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN longitude REAL")
+        if "location_address" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN location_address TEXT")
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code ON users(referral_code)")
         mcols = {r["name"] for r in c.execute("PRAGMA table_info(messages)").fetchall()}
         if "sender" not in mcols:

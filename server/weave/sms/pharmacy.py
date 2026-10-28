@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -92,6 +93,110 @@ KNOWN_MEDICINES_RE = re.compile(
     r"metformin|atorvastatin|augmentin|allegra|disprin|gelusil|digene)\b",
     re.I,
 )
+
+KNOWN_AREAS: dict[str, tuple[float, float]] = {
+    "indiranagar": (12.9784, 77.6408),
+    "koramangala": (12.9352, 77.6245),
+    "whitefield": (12.9698, 77.7500),
+    "hsr layout": (12.9121, 77.6446),
+    "hsr": (12.9121, 77.6446),
+    "jayanagar": (12.9308, 77.5838),
+    "mg road": (12.9756, 77.6066),
+    "marathahalli": (12.9591, 77.6974),
+    "bellandur": (12.9304, 77.6784),
+    "jp nagar": (12.9063, 77.5857),
+    "electronic city": (12.8452, 77.6602),
+    "bandra": (19.0596, 72.8295),
+    "andheri": (19.1136, 72.8697),
+    "connaught place": (28.6304, 77.2177),
+    "bangalore": (12.9716, 77.5946),
+    "bengaluru": (12.9716, 77.5946),
+    "mumbai": (19.0760, 72.8777),
+    "delhi": (28.6139, 77.2090),
+}
+
+LOCATION_COORD_RE = re.compile(
+    r"(?:location(?:\s*pin)?|lat(?:itude)?|my\s+location|loc|q=)?\s*[:=]?\s*(-?\d{1,2}\.\d{2,8})\s*,\s*(-?\d{1,3}\.\d{2,8})",
+    re.I,
+)
+
+LOCATION_MAPS_RE = re.compile(
+    r"(?:maps\.google\.com|google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)[^ \n]*[?&@q=]+(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)",
+    re.I,
+)
+
+
+def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate the great-circle distance between two points in kilometers."""
+    R = 6371.0  # Earth's radius in kilometers
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(dlat / 2.0) ** 2
+        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2.0) ** 2
+    )
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return round(R * c, 2)
+
+
+def parse_location_pin(text: str) -> tuple[float | None, float | None, str]:
+    """Parse geographic location from WhatsApp pin, Google Maps URL, coordinates, or area text.
+
+    Returns (latitude, longitude, address/label).
+    """
+    clean = text.strip()
+    if SOFTWARE_WORDS_RE.search(clean):
+        return (None, None, "")
+
+    # 1. Explicit LOCATION prefix from WhatsApp webhook or SMS (e.g. "LOCATION:12.9716,77.5946")
+    if clean.upper().startswith("LOCATION:"):
+        rest = clean[9:].strip()
+        parts = rest.split(":", 1)
+        coords = parts[0].strip()
+        addr = parts[1].strip() if len(parts) > 1 else ""
+        if "," in coords:
+            lat_str, lng_str = coords.split(",", 1)
+            try:
+                lat = float(lat_str.strip())
+                lng = float(lng_str.strip())
+                return (lat, lng, addr or f"{lat:.4f}, {lng:.4f}")
+            except ValueError:
+                pass
+
+    # 2. Google Maps URL
+    m_maps = LOCATION_MAPS_RE.search(clean)
+    if m_maps:
+        try:
+            return (float(m_maps.group(1)), float(m_maps.group(2)), clean)
+        except ValueError:
+            pass
+
+    # 3. Direct coordinates (e.g. "12.9716, 77.5946" or "Location: 12.9716, 77.5946")
+    m_coord = LOCATION_COORD_RE.search(clean)
+    if m_coord:
+        try:
+            lat = float(m_coord.group(1))
+            lng = float(m_coord.group(2))
+            return (lat, lng, f"{lat:.4f}, {lng:.4f}")
+        except ValueError:
+            pass
+
+    # 4. Known named areas
+    clean_lower = clean.lower()
+    words = clean_lower.split()
+    for area, (a_lat, a_lng) in KNOWN_AREAS.items():
+        if re.search(rf"\b{re.escape(area)}\b", clean_lower):
+            if len(words) <= 6 or re.search(r"\b(?:location|area|living in|near|at|pin|around)\b", clean_lower):
+                return (a_lat, a_lng, clean)
+
+    # 5. Address text without coordinates
+    has_addr_word = bool(re.search(r"\b(?:road|street|layout|nagar|sector|lane|circle)\b", clean_lower))
+    has_loc_word = bool(re.search(r"\b(?:location|pin)\b", clean_lower))
+    if (len(words) <= 8 and has_addr_word) or has_loc_word:
+        return (12.9716, 77.5946, clean)
+
+    return (None, None, "")
+
 
 
 
@@ -330,13 +435,16 @@ def parse_medicine_search_request(text: str) -> dict | None:
     # Quantity & Unit
     qty = 1
     unit = "strip"
-    num_pattern = r"\b(" + "|".join(WORD_TO_NUMBER.keys()) + r"|\d+)\b"
-    m_num = re.search(num_pattern + r"\s*(strips?|bottles?|tablets?|boxes?|packs?|capsules?|vials?|pills?)?", clean, re.I)
-    if m_num:
-        val = m_num.group(1).lower()
+    m_qty_unit = re.search(r"\b(" + "|".join(WORD_TO_NUMBER.keys()) + r"|\d+)\s+(strips?|bottles?|tablets?|boxes?|packs?|capsules?|vials?|pills?)\b", clean, re.I)
+    if m_qty_unit:
+        val = m_qty_unit.group(1).lower()
         qty = int(val) if val.isdigit() else WORD_TO_NUMBER.get(val, 1)
-        if m_num.group(2):
-            unit = m_num.group(2).lower().rstrip("s")
+        unit = m_qty_unit.group(2).lower().rstrip("s")
+    else:
+        m_word_qty = re.search(r"\b(" + "|".join(WORD_TO_NUMBER.keys()) + r"|[1-9])\s+(?:of\s+)?(?=" + KNOWN_MEDICINES_RE.pattern + r")", clean, re.I)
+        if m_word_qty:
+            val = m_word_qty.group(1).lower()
+            qty = int(val) if val.isdigit() else WORD_TO_NUMBER.get(val, 1)
 
     # Extract medicine name
     # Pattern 1: e.g. "two strips of paracetamol", "strips of Dolo 650"
@@ -360,8 +468,10 @@ def parse_medicine_search_request(text: str) -> dict | None:
         if m_known:
             medicine = m_known.group(0)
 
-    filler = r"\b(?:two|three|four|five|six|seven|eight|nine|ten|one|\d+|strips?|bottles?|tablets?|boxes?|packs?|it|some|any|a|an|the|please|pls|bro|me|mujhe|urgent|urgently|kahan|milega|store|medical|pharmacy|chemist)\b"
+    # Filler words - do NOT strip dosage numbers (e.g. 650, 625)! Only number words or single digit quantities
+    filler = r"\b(?:two|three|four|five|six|seven|eight|nine|ten|one|[1-9]\b|strips?|bottles?|tablets?|boxes?|packs?|it|some|any|a|an|the|please|pls|bro|me|mujhe|urgent|urgently|kahan|milega|store|medical|pharmacy|chemist)\b"
     medicine = re.sub(filler, "", medicine, flags=re.I).strip(" ,.?!-")
+    medicine = re.sub(r"\b(?:near|around|close\s+to|at|in)\s+(?:loc(?:ation)?(?:\s*pin)?|lat)?.*$", "", medicine, flags=re.I).strip(" ,.?!-")
 
     # Reject software or generic command keywords
     non_medicines = {"app", "new app", "web app", "website", "site", "page", "help", "status", "build", "link", "change", "project", "code", "repo", "account", "info", "test", "demo"}
@@ -369,9 +479,13 @@ def parse_medicine_search_request(text: str) -> dict | None:
         return None
 
     if medicine and len(medicine) >= 3:
+        lat, lon, addr = parse_location_pin(clean)
         return {
             "query": medicine,
             "quantity": max(1, qty),
             "unit": unit,
+            "latitude": lat,
+            "longitude": lon,
+            "address": addr,
         }
     return None

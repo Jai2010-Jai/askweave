@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS pharmacy_stores (
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
     address TEXT NOT NULL DEFAULT '',
+    latitude REAL,
+    longitude REAL,
     auto_payment_link INTEGER NOT NULL DEFAULT 0,
     upi_id TEXT,
     created_at REAL NOT NULL,
@@ -57,6 +59,7 @@ CREATE TABLE IF NOT EXISTS pharmacy_orders (
     unit TEXT NOT NULL DEFAULT 'strip',
     unit_price_paise INTEGER NOT NULL,
     total_amount_paise INTEGER NOT NULL,
+    distance_km REAL,
     status TEXT NOT NULL DEFAULT 'pending_approval',
     payment_token TEXT UNIQUE,
     payment_link TEXT,
@@ -97,30 +100,47 @@ class PharmacyMixin:
 
     def _migrate_pharmacy(self, c) -> None:
         c.executescript(PHARMACY_SCHEMA)
+        s_cols = {r["name"] for r in c.execute("PRAGMA table_info(pharmacy_stores)").fetchall()}
+        if "latitude" not in s_cols:
+            c.execute("ALTER TABLE pharmacy_stores ADD COLUMN latitude REAL")
+        if "longitude" not in s_cols:
+            c.execute("ALTER TABLE pharmacy_stores ADD COLUMN longitude REAL")
+        if "address" not in s_cols:
+            c.execute("ALTER TABLE pharmacy_stores ADD COLUMN address TEXT NOT NULL DEFAULT ''")
+        o_cols = {r["name"] for r in c.execute("PRAGMA table_info(pharmacy_orders)").fetchall()}
+        if "distance_km" not in o_cols:
+            c.execute("ALTER TABLE pharmacy_orders ADD COLUMN distance_km REAL")
 
     # ---------- store profiles ----------
     def register_pharmacy_store(self, user_id: int, name: str, phone: str,
                                 account_id: int | None = None, upi_id: str | None = None,
-                                auto_payment_link: int = 0) -> dict:
+                                auto_payment_link: int = 0, latitude: float | None = None,
+                                longitude: float | None = None, address: str = "") -> dict:
         now = time.time()
         clean_name = name.strip() or "Medical Store"
         clean_phone = phone.strip()
         with self.tx() as c:
             c.execute(
                 """
-                INSERT INTO pharmacy_stores (user_id, account_id, name, phone, auto_payment_link, upi_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO pharmacy_stores (user_id, account_id, name, phone, address, latitude, longitude, auto_payment_link, upi_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id) DO UPDATE SET
                     name = excluded.name,
                     phone = excluded.phone,
                     account_id = COALESCE(excluded.account_id, pharmacy_stores.account_id),
+                    address = CASE WHEN excluded.address != '' THEN excluded.address ELSE pharmacy_stores.address END,
+                    latitude = COALESCE(excluded.latitude, pharmacy_stores.latitude),
+                    longitude = COALESCE(excluded.longitude, pharmacy_stores.longitude),
                     auto_payment_link = excluded.auto_payment_link,
                     upi_id = COALESCE(excluded.upi_id, pharmacy_stores.upi_id),
                     updated_at = excluded.updated_at
                 """,
-                (user_id, account_id, clean_name, clean_phone, auto_payment_link, upi_id, now, now),
+                (user_id, account_id, clean_name, clean_phone, address, latitude, longitude, auto_payment_link, upi_id, now, now),
             )
         return self.get_pharmacy_store_by_user(user_id)  # type: ignore[return-value]
+
+    def set_pharmacy_store_location(self, store_id: int, latitude: float, longitude: float, address: str = "") -> dict | None:
+        return self.update_pharmacy_store(store_id, latitude=latitude, longitude=longitude, address=address)
 
     def get_pharmacy_store_by_user(self, user_id: int) -> dict | None:
         return self.one("SELECT * FROM pharmacy_stores WHERE user_id = ?", (user_id,))
@@ -281,7 +301,8 @@ class PharmacyMixin:
         # Try exact normalized match first, then prefix/contains
         sql = """
         SELECT i.*, s.name as store_name, s.phone as store_phone,
-               s.auto_payment_link, s.upi_id, s.user_id as store_user_id
+               s.auto_payment_link, s.upi_id, s.user_id as store_user_id,
+               s.latitude, s.longitude, s.address as store_address
         FROM pharmacy_inventory i
         JOIN pharmacy_stores s ON i.store_id = s.id
         WHERE i.stock_quantity >= ?
@@ -306,10 +327,56 @@ class PharmacyMixin:
                     return sub_matches
         return []
 
+    def search_medicine_by_location(
+        self,
+        query: str,
+        customer_lat: float | None = None,
+        customer_lon: float | None = None,
+        min_qty: int = 1,
+        max_radius_km: float = 3.0,
+    ) -> list[dict]:
+        """Search available stock matching query, ranked by proximity to customer.
+
+        Calculates distance in km using Haversine formula.
+        Prioritizes stores within max_radius_km (default 3.0 km for easy commute).
+        """
+        all_matches = self.search_medicine(query, min_qty=min_qty)
+        if not all_matches:
+            return []
+
+        from .pharmacy import haversine_distance_km
+
+        annotated = []
+        for m in all_matches:
+            s_lat = m.get("latitude")
+            s_lon = m.get("longitude")
+            if customer_lat is not None and customer_lon is not None and s_lat is not None and s_lon is not None:
+                dist = haversine_distance_km(customer_lat, customer_lon, s_lat, s_lon)
+                m["distance_km"] = dist
+                m["within_radius"] = dist <= max_radius_km
+            else:
+                m["distance_km"] = None
+                m["within_radius"] = False
+            annotated.append(m)
+
+        def sort_key(item: dict) -> tuple:
+            dist = item.get("distance_km")
+            within = bool(item.get("within_radius"))
+            if within and dist is not None:
+                return (0, dist, item["price_paise"])
+            elif dist is not None:
+                return (1, dist, item["price_paise"])
+            else:
+                return (2, 999999, item["price_paise"])
+
+        annotated.sort(key=sort_key)
+        return annotated
+
     # ---------- orders ----------
     def create_pharmacy_order(self, store_id: int, customer_phone: str, item_name: str,
                               quantity: int, unit_price_paise: int, total_amount_paise: int,
                               customer_user_id: int | None = None, unit: str = "strip",
+                              distance_km: float | None = None,
                               payment_token: str | None = None, payment_link: str | None = None,
                               status: str = "pending_approval") -> dict:
         now = time.time()
@@ -320,13 +387,13 @@ class PharmacyMixin:
                 """
                 INSERT INTO pharmacy_orders (
                     order_ref, store_id, customer_user_id, customer_phone, item_name,
-                    quantity, unit, unit_price_paise, total_amount_paise,
+                    quantity, unit, unit_price_paise, total_amount_paise, distance_km,
                     status, payment_token, payment_link, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (order_ref, store_id, customer_user_id, customer_phone, item_name,
-                 quantity, unit, unit_price_paise, total_amount_paise,
+                 quantity, unit, unit_price_paise, total_amount_paise, distance_km,
                  status, token, payment_link, now),
             )
             order_id = cur.lastrowid

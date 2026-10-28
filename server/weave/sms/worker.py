@@ -81,7 +81,8 @@ class SmsWorker:
     def start(self) -> None:
         # Separate lanes: a slow Android build never holds up websites, and websites run side by side.
         loops = [("sms-inbound", self._inbound_loop, ()), ("sms-outbox", self._outbox_loop, ()),
-                 ("sms-housekeeping", self._housekeeping_loop, ())]
+                 ("sms-housekeeping", self._housekeeping_loop, ()),
+                 ("sms-udhar-reminders", self._udhar_reminder_loop, ())]
         loops += [(f"sms-jobs-android-{i}", self._job_loop, ("android",)) for i in range(self.s.max_concurrent_builds)]
         if self.websites is not None:
             loops += [(f"sms-jobs-web-{i}", self._job_loop, ("website",)) for i in range(self.s.website_workers)]
@@ -180,6 +181,58 @@ class SmsWorker:
                 logging.getLogger("weave.sms").exception("housekeeping error")
             self._stop.wait(86_400)
 
+    def _udhar_reminder_loop(self) -> None:
+        """Periodically check for credit entries due today and remind kirana store owners first."""
+        self._stop.wait(10)
+        while not self._stop.is_set():
+            try:
+                self.check_udhar_reminders()
+            except Exception:  # noqa: BLE001
+                event("sms.udhar_reminder_error", logging.ERROR)
+                logging.getLogger("weave.sms").exception("udhar reminder loop error")
+            self._stop.wait(300)
+
+    def check_udhar_reminders(self, current_day: int | None = None) -> int:
+        """Find pending entries due today or earlier and send proactive alerts to the store owner."""
+        now = time.time()
+        day = current_day if current_day is not None else int(now // 86400)
+        due_entries = self.store.get_all_due_udhar_entries(day)
+        notified = 0
+
+        # Group by user_id
+        by_user: dict[int, list[dict]] = {}
+        for e in due_entries:
+            by_user.setdefault(e["user_id"], []).append(e)
+
+        for user_id, entries in by_user.items():
+            user = self.store.user_by_id(user_id)
+            if not user or user.get("status") != "active":
+                continue
+
+            for entry in entries:
+                amt_inr = f"{entry['amount_paise'] / 100:g}"
+                cust_name = entry["customer_name"]
+                total_bal_inr = f"{entry['total_balance_paise'] / 100:g}"
+
+                body = (
+                    f"📢 *Khata Reminder*\n\n"
+                    f"Bhaiya, *{cust_name}* owes *₹{amt_inr}* (due today).\n"
+                    f"Total pending: ₹{total_bal_inr}.\n\n"
+                    f"What would you like to do?\n"
+                    f"1️⃣ *Send WhatsApp Pay Link to {cust_name}*\n"
+                    f"2️⃣ *Already Paid in Cash*\n"
+                    f"3️⃣ *Give 3 more days* (Snooze)\n\n"
+                    f"Reply *1*, *2*, or *3*."
+                )
+
+                self.store.update_user(user_id, pending_question="udhar_reminder", pending_text=str(entry["id"]))
+                self.service._reply(user["phone"], user, body)
+                self.store.mark_udhar_owner_reminded(entry["id"], day)
+                notified += 1
+                event("sms.udhar_reminded_owner", user_id=user_id, entry_id=entry["id"], customer=cust_name)
+
+        return notified
+
     def housekeeping(self, now: float | None = None, force_digest: bool = False) -> dict:
         from ..analytics.metrics import MONDAY_OFFSET
         from ..web.hosting import purge_trash
@@ -187,6 +240,7 @@ class SmsWorker:
         now_ts = time.time() if now is None else now
         today = utc_day(now_ts)
         purged = purge_trash(self.s.trash_dir, self.s.trash_days)
+        purged_docs = self.store.purge_expired_docprep_files()
         pruned = self.store.prune_analytics(self.s.analytics_raw_days, self.s.analytics_rollup_days, today)
         backup = self.store.backup(self.s.data_dir / "backups", keep=self.s.backup_keep)
         copied = self._copy_backup_off_box(backup)

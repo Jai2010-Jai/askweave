@@ -173,6 +173,16 @@ def parse_webhook_payload(payload: dict[str, Any]) -> MetaEvent:
                         text_obj = m.get("text")
                         if isinstance(text_obj, dict):
                             text_body = str(text_obj.get("body") or "")
+                    elif m_type == "location":
+                        loc_obj = m.get("location")
+                        if isinstance(loc_obj, dict):
+                            lat = loc_obj.get("latitude")
+                            lng = loc_obj.get("longitude")
+                            name = loc_obj.get("name") or ""
+                            addr = loc_obj.get("address") or ""
+                            text_body = f"LOCATION:{lat},{lng}"
+                            if name or addr:
+                                text_body += f":{name} {addr}".strip()
 
                     media_id = None
                     media_mime = None

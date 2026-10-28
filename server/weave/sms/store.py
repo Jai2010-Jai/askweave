@@ -18,6 +18,9 @@ from typing import Any, Iterator
 
 from .accounts_store import AccountsMixin
 from .analytics_store import AnalyticsMixin
+from .pharmacy_store import PharmacyMixin
+from .udhar_store import UdharMixin
+from ..docprep.store_mixin import DocprepMixin
 
 REF_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ"
 ACTIVE_JOB_STATES = ("queued", "running")
@@ -140,7 +143,7 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-class SmsStore(AccountsMixin, AnalyticsMixin):
+class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin, DocprepMixin, PharmacyMixin):
     def __init__(self, path: Path):
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -168,6 +171,12 @@ class SmsStore(AccountsMixin, AnalyticsMixin):
             c.execute("ALTER TABLE users ADD COLUMN bonus_builds INTEGER NOT NULL DEFAULT 0")
         if "language" not in cols:  # weave.sms.language code (hi, te-Latn, ...); NULL = English
             c.execute("ALTER TABLE users ADD COLUMN language TEXT")
+        if "latitude" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN latitude REAL")
+        if "longitude" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN longitude REAL")
+        if "location_address" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN location_address TEXT")
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code ON users(referral_code)")
         mcols = {r["name"] for r in c.execute("PRAGMA table_info(messages)").fetchall()}
         if "sender" not in mcols:
@@ -186,6 +195,9 @@ class SmsStore(AccountsMixin, AnalyticsMixin):
             c.execute("ALTER TABLE projects ADD COLUMN deploy_site_id TEXT")
         self._migrate_accounts(c)
         self._migrate_analytics(c)  # needs the accounts table, so it runs last
+        self._migrate_udhar(c)
+        self._migrate_docprep(c)
+        self._migrate_pharmacy(c)
 
     # ---------- connection ----------
     def _conn(self) -> sqlite3.Connection:

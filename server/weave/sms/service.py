@@ -5,12 +5,15 @@ Gradle or the SMS provider. Replies go to the outbox, which the worker sends."""
 
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 import re
 import threading
 import time
 from dataclasses import dataclass
+
+log = logging.getLogger("weave.sms")
 
 from ..config import Settings
 from ..core.jobs import JobStore
@@ -21,6 +24,22 @@ from .intent import (answer_kind, answer_reply, classify, other_kind_requested, 
                      target_kind)
 from .language import CONFIRM, language_label, needs_translation, requested_language, script_language
 from .store import SmsStore
+from .pharmacy import (
+    AUTO_PAY_DISABLE_RE,
+    AUTO_PAY_ENABLE_RE,
+    INVENTORY_QUERY_RE,
+    PAID_CONFIRM_RE,
+    haversine_distance_km,
+    parse_business_onboarding_intent,
+    parse_business_type,
+    parse_csv_inventory,
+    parse_inventory_update,
+    parse_location_pin,
+    parse_medicine_search_request,
+    parse_single_item_addition,
+)
+from .udhar import (UdharParseResult, clean_indian_phone, make_upi_deep_link,
+                    make_whatsapp_click_to_chat, parse_udhar_message)
 
 MIN_PROMPT, MAX_PROMPT = 10, 4000
 LINK_MAX_FAILURES, LINK_LOCK_S = 5, 3600
@@ -64,6 +83,9 @@ class Inbound:
     account_sid: str = ""
     num_media: int = 0
     heard: bool = False  # body is the transcript of a voice note
+    media_url: str = ""
+    media_type: str = ""
+    media_data: bytes | None = None
 
 
 class SmsService:
@@ -160,6 +182,8 @@ class SmsService:
         if body == "[voice note]":
             self._reply(phone, user, "I couldn't hear any audio with that voice note. Describe your app in words, or send a voice note.")
             return "voice_note"
+        if not msg.heard and msg.num_media and (msg.media_data or (msg.media_url and not (msg.media_type or "").startswith("audio/"))):
+            return self._handle_docprep_media(user, msg, body, msg.sid)
         if body.startswith("[") and body.endswith("]"):
             self._reply(phone, user, "I received your message, but I only support text messages right now. Please describe your app or website in words.")
             return "unsupported"
@@ -489,6 +513,24 @@ class SmsService:
             if handled is not None:
                 return handled
             user = self.store.user_by_id(user["id"])
+        elif question == "udhar_reminder" and user.get("pending_text"):
+            return self._resolve_udhar_reminder(user, body, sid)
+        elif question == "udhar_phone" and user.get("pending_text"):
+            return self._resolve_udhar_phone(user, body, sid)
+        elif question == "docprep_exam" and user.get("pending_text"):
+            return self._resolve_docprep_exam(user, body, sid)
+        elif question == "business_onboarding_type":
+            return self._resolve_business_onboarding_type(user, body, sid)
+        elif question == "pharmacy_inventory_setup" and user.get("pending_text"):
+            return self._resolve_pharmacy_inventory_setup(user, body, sid)
+        elif question == "pharmacy_bulk_reorder" and user.get("pending_text"):
+            return self._resolve_pharmacy_bulk_reorder(user, body, sid)
+        elif question == "pharmacy_confirm_order" and user.get("pending_text"):
+            return self._resolve_pharmacy_confirm_order(user, body, sid)
+        elif question == "pharmacy_send_payment_link" and user.get("pending_text"):
+            return self._resolve_pharmacy_send_payment_link(user, body, sid)
+        elif question == "customer_medicine_location" and user.get("pending_text"):
+            return self._resolve_customer_medicine_location(user, body, sid)
         if user.get("pending_text") and answer_reply(body) is not None:
             # "new" / "change" / "no" answers the question we just asked; it is not the NEW command.
             return self._resolve_pending(user, body, sid)
@@ -497,6 +539,70 @@ class SmsService:
             if user.get("pending_text"):
                 self.store.update_user(user["id"], pending_text=None)
             return command
+        parsed_udhar = parse_udhar_message(body, time.time())
+        if parsed_udhar.action != "none":
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_udhar(user, parsed_udhar, body, sid)
+        if self._is_docprep_query(body):
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._answer_docprep_query(user, body)
+        if AUTO_PAY_ENABLE_RE.search(body):
+            res = self._handle_pharmacy_auto_pay(user, enable=True)
+            if res:
+                return res
+        if AUTO_PAY_DISABLE_RE.search(body):
+            res = self._handle_pharmacy_auto_pay(user, enable=False)
+            if res:
+                return res
+        if PAID_CONFIRM_RE.search(body):
+            res = self._handle_order_paid_chat(user, body, sid)
+            if res:
+                return res
+        if parse_business_onboarding_intent(body):
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_business_onboard_ask(user, body, sid)
+        single_item = parse_single_item_addition(body)
+        if single_item:
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_single_item_addition(user, single_item, sid)
+        med_item, new_stock = parse_inventory_update(body)
+        if med_item is not None and new_stock is not None:
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_inventory_update(user, med_item, new_stock, sid)
+        if "\n" in body and len(parse_csv_inventory(body)) >= 2:
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_csv_inventory_direct(user, body, sid)
+        med_search = parse_medicine_search_request(body)
+        if med_search:
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            return self._handle_medicine_search(user, med_search, sid)
+        lat, lon, addr = parse_location_pin(body)
+        if lat is not None and lon is not None:
+            if user.get("pending_text"):
+                self.store.update_user(user["id"], pending_text=None)
+            store = self.store.get_pharmacy_store_by_user(user["id"])
+            if store:
+                self.store.set_pharmacy_store_location(store["id"], lat, lon, addr)
+                self.store.update_user(user["id"], latitude=lat, longitude=lon, location_address=addr)
+                self._reply(user["phone"], user, "📍 Store location updated! Nearby customers within 3 km will now easily find and commute to your medical store.")
+                return "pharmacy_store_location_updated"
+            else:
+                self.store.update_user(user["id"], latitude=lat, longitude=lon, location_address=addr)
+                self._reply(user["phone"], user, "📍 Location saved! What medicine are you looking for?")
+                return "customer_location_saved"
+        if INVENTORY_QUERY_RE.search(body):
+            inv_res = self._handle_inventory_query(user)
+            if inv_res:
+                if user.get("pending_text"):
+                    self.store.update_user(user["id"], pending_text=None)
+                return inv_res
         if self.researcher is not None and self.websites_available() and target_kind(body) == "website" and classify(
                 body, has_projects=False, has_active=False).kind == "new":
             # A new website always goes research -> the owner's questions -> design, never straight to a build.
@@ -649,6 +755,38 @@ class SmsService:
             return self._publish_request(user, project)  # only asks; the owner must reply PUBLISH
         if d.action == "analytics":
             return self._analytics(user, project, body)
+        if d.action == "udhar_add":
+            amount_paise = int((d.amount or 0) * 100)
+            if amount_paise > 0 and d.customer:
+                due_day = int(time.time() // 86400) + (d.due_days if d.due_days is not None else 7)
+                parsed = UdharParseResult(action="add_credit", customer_name=d.customer, amount_paise=amount_paise, due_day=due_day, phone=d.phone)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_settle":
+            amount_paise = int((d.amount or 0) * 100) if d.amount else None
+            if d.customer:
+                parsed = UdharParseResult(action="settle_payment", customer_name=d.customer, amount_paise=amount_paise)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_query":
+            if d.customer:
+                parsed = UdharParseResult(action="check_balance", customer_name=d.customer)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_total":
+            parsed = UdharParseResult(action="total_summary")
+            return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "udhar_config":
+            upi_id = d.phone or d.customer or ""
+            if "@" in upi_id:
+                parsed = UdharParseResult(action="set_upi", upi_id=upi_id)
+                return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "business_onboard":
+            return self._handle_business_onboard_ask(user, body, sid)
+        if d.action == "pharmacy_search":
+            med = parse_medicine_search_request(body) or {"query": d.customer or body, "quantity": int(d.amount or 1), "unit": "strip"}
+            return self._handle_medicine_search(user, med, sid)
+        if d.action == "pharmacy_reorder":
+            item, stock = parse_inventory_update(body)
+            if item:
+                return self._handle_inventory_update(user, item, stock or 0, sid)
         if reply:
             self._reply(user["phone"], user, reply, localized=True)
         else:
@@ -663,6 +801,13 @@ class SmsService:
             text = self._present("help", {"commands": help_text}, help_text, user_query=word)
             self._reply(user["phone"], user, text)
             return "help"
+        if word in ("UDHAR", "KHATA"):
+            if not rest:
+                return self._handle_udhar(user, UdharParseResult(action="total_summary"), rest, sid)
+            return self._handle_udhar(user, UdharParseResult(action="check_balance", customer_name=rest), rest, sid)
+        if word == "SET" and rest.upper().startswith("UPI "):
+            vpa = rest[4:].strip()
+            return self._handle_udhar(user, UdharParseResult(action="set_upi", upi_id=vpa), rest, sid)
         if word == "NEW":
             if len(rest) >= MIN_PROMPT:
                 return self._start_new(user, rest, sid)
@@ -1036,6 +1181,906 @@ class SmsService:
         self._reply(user["phone"], user, f"Publishing {M.name_of(project)} now. Build ID: {job['ref']}. "
                                          "I'll send the public address when Netlify confirms it.", job_id=job["id"])
         return "queued_publish"
+
+    # ---------- udhar / kirana khata handlers ----------
+    def _resolve_udhar_reminder(self, user: dict, body: str, sid: str) -> str:
+        clean = body.strip().lower()
+        try:
+            entry_id = int(user["pending_text"])
+        except (ValueError, TypeError):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            return "udhar_reminder_invalid"
+
+        entry = self.store.get_udhar_entry(entry_id)
+        if not entry:
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "That reminder has already been resolved.")
+            return "udhar_reminder_gone"
+
+        cust_name = entry["customer_name"]
+        amt_paise = entry["amount_paise"]
+        amt_inr = f"{amt_paise / 100:g}"
+        upi_settings = self.store.get_udhar_settings(user["id"])
+        store_name = upi_settings.get("payee_name") if upi_settings else "Kirana Store"
+
+        # Option 1: Send link
+        if clean in ("1", "send", "send link", "bhejo", "link bhejo", "yes", "ha", "haan"):
+            cust_phone = entry.get("customer_phone")
+            pay_token = entry["payment_token"]
+            base_url = self.s.public_base_url or "https://askweave.xyz"
+            pay_url = f"{base_url}/pay/{pay_token}"
+
+            if cust_phone:
+                wa_link = make_whatsapp_click_to_chat(cust_phone, cust_name, store_name, amt_paise, pay_url)
+                reply = (
+                    f"Payment link for {cust_name}:\n{pay_url}\n\n"
+                    f"📲 Tap here to send WhatsApp reminder to {cust_name}:\n{wa_link}"
+                )
+                self.store.update_user(user["id"], pending_question=None, pending_text=None)
+                self.store.mark_udhar_customer_reminded(entry["id"])
+                self._reply(user["phone"], user, reply)
+                return "udhar_reminder_sent"
+            else:
+                self.store.update_user(user["id"], pending_question="udhar_phone", pending_text=str(entry["id"]))
+                reply = f"{cust_name} ka WhatsApp number kya hai?\nPlease send their 10-digit number."
+                self._reply(user["phone"], user, reply)
+                return "udhar_ask_phone"
+
+        # Option 2: Paid
+        elif clean in ("2", "paid", "cash", "de diya", "jama", "settle", "already paid"):
+            res = self.store.settle_udhar(user["id"], cust_name, amt_paise)
+            bal_inr = f"{res['balance_paise'] / 100:g}"
+            reply = f"✅ Marked ₹{amt_inr} as settled for {cust_name}!\nRemaining balance: ₹{bal_inr}."
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, reply)
+            return "udhar_settled"
+
+        # Option 3: Snooze
+        elif clean in ("3", "snooze", "wait", "baad me", "time do", "later"):
+            self.store.snooze_udhar_entry(entry["id"], 3)
+            reply = "👍 Snoozed for 3 days. I will remind you again."
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, reply)
+            return "udhar_snoozed"
+
+        return "udhar_reminder_unhandled"
+
+    def _resolve_udhar_phone(self, user: dict, body: str, sid: str) -> str:
+        try:
+            entry_id = int(user["pending_text"])
+        except (ValueError, TypeError):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            return "udhar_phone_invalid"
+
+        entry = self.store.get_udhar_entry(entry_id)
+        if not entry:
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            return "udhar_phone_gone"
+
+        clean_digits = "".join(ch for ch in body if ch.isdigit())
+        if len(clean_digits) >= 10:
+            phone_10 = clean_digits[-10:]
+            e164_phone = f"+91{phone_10}"
+            self.store.update_customer_phone(entry["customer_id"], e164_phone)
+
+            cust_name = entry["customer_name"]
+            amt_paise = entry["amount_paise"]
+            pay_token = entry["payment_token"]
+            base_url = self.s.public_base_url or "https://askweave.xyz"
+            pay_url = f"{base_url}/pay/{pay_token}"
+            upi_settings = self.store.get_udhar_settings(user["id"])
+            store_name = upi_settings.get("payee_name") if upi_settings else "Kirana Store"
+
+            wa_link = make_whatsapp_click_to_chat(e164_phone, cust_name, store_name, amt_paise, pay_url)
+            reply = (
+                f"✅ Saved number for {cust_name}!\n\n"
+                f"Payment link:\n{pay_url}\n\n"
+                f"📲 Tap here to send WhatsApp reminder to {cust_name}:\n{wa_link}"
+            )
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self.store.mark_udhar_customer_reminded(entry["id"])
+            self._reply(user["phone"], user, reply)
+            return "udhar_phone_saved"
+
+        self._reply(user["phone"], user, "Please send a valid 10-digit mobile number.")
+        return "udhar_phone_invalid"
+
+    def _handle_udhar(self, user: dict, parsed: UdharParseResult, raw_body: str, sid: str) -> str:
+        now = time.time()
+        today = int(now // 86400)
+        account = self.store.account_for_user(user["id"]) if user.get("account_id") else None
+        account_id = account["id"] if account else None
+
+        if parsed.action == "add_credit":
+            amt_inr = f"{(parsed.amount_paise or 0) / 100:g}"
+            entry = self.store.record_udhar_entry(
+                user_id=user["id"],
+                customer_name=parsed.customer_name or "Unknown",
+                amount_paise=parsed.amount_paise or 0,
+                due_day=parsed.due_day,
+                voice_transcript=raw_body,
+                customer_phone=parsed.phone,
+                account_id=account_id,
+            )
+            # Format due date nicely
+            due_str = "soon"
+            if parsed.due_day:
+                diff = parsed.due_day - today
+                due_dt = datetime.datetime.fromtimestamp(parsed.due_day * 86400, tz=datetime.timezone.utc)
+                date_fmt = due_dt.strftime("%A, %-d %b")
+                if diff == 0:
+                    due_str = f"today ({date_fmt})"
+                elif diff == 1:
+                    due_str = f"tomorrow ({date_fmt})"
+                elif diff == 2:
+                    due_str = f"day after tomorrow ({date_fmt})"
+                else:
+                    due_str = f"{date_fmt} (in {diff} days)"
+
+            total_bal_inr = f"{entry['total_balance_paise'] / 100:g}"
+            reply = (
+                f"✅ Noted! ₹{amt_inr} recorded for {entry['customer_name']}.\n"
+                f"Due date: {due_str}.\n"
+                f"Total balance: ₹{total_bal_inr}.\n\n"
+                f"I will inform you on the due date."
+            )
+            # Gentle hint if no UPI ID set
+            upi_settings = self.store.get_udhar_settings(user["id"])
+            if not upi_settings or not upi_settings.get("upi_id"):
+                reply += "\n\n💡 Tip: Reply with your UPI ID (e.g. 9876543210@paytm) so I can generate direct WhatsApp payment links for your customers."
+
+            self._reply(user["phone"], user, reply)
+            event("sms.udhar_added", user_id=user["id"], customer=entry["customer_name"], amount=amt_inr)
+            return "udhar_added"
+
+        elif parsed.action == "settle_payment":
+            res = self.store.settle_udhar(user["id"], parsed.customer_name or "", parsed.amount_paise)
+            if not res["found"]:
+                self._reply(user["phone"], user, f"Couldn't find any customer named {parsed.customer_name} in your khata.")
+                return "udhar_settle_not_found"
+            settled_inr = f"{res['settled_paise'] / 100:g}"
+            bal_inr = f"{res['balance_paise'] / 100:g}"
+            reply = f"✅ Marked ₹{settled_inr} as received from {res['customer']}!\nRemaining balance: ₹{bal_inr}."
+            self._reply(user["phone"], user, reply)
+            event("sms.udhar_settled", user_id=user["id"], customer=res["customer"], amount=settled_inr)
+            return "udhar_settled"
+
+        elif parsed.action == "check_balance":
+            khata = self.store.get_customer_khata(user["id"], parsed.customer_name or "")
+            if not khata:
+                self._reply(user["phone"], user, f"No khata found for {parsed.customer_name}.")
+                return "udhar_query_not_found"
+            cust = khata["customer"]
+            bal_inr = f"{cust['total_balance_paise'] / 100:g}"
+            entries = khata["entries"]
+            lines = [f"📋 Khata for *{cust['name']}*:", f"Total Balance: *₹{bal_inr}*"]
+            if entries:
+                lines.append("\nPending entries:")
+                for e in entries[:5]:
+                    amt_str = f"₹{e['amount_paise'] / 100:g}"
+                    d_dt = datetime.datetime.fromtimestamp(e['created_at'], tz=datetime.timezone.utc)
+                    lines.append(f"• {amt_str} on {d_dt.strftime('%-d %b')}")
+            self._reply(user["phone"], user, "\n".join(lines))
+            return "udhar_queried"
+
+        elif parsed.action == "total_summary":
+            summary = self.store.get_total_market_udhar(user["id"])
+            total_inr = f"{summary['total_paise'] / 100:g}"
+            lines = [
+                f"📊 *Market Udhar Summary*:",
+                f"Total Outstanding: *₹{total_inr}*",
+                f"Total Customers: *{summary['total_customers']}*",
+            ]
+            if summary["top_debtors"]:
+                lines.append("\nTop pending:")
+                for d in summary["top_debtors"][:5]:
+                    lines.append(f"• {d['name']}: ₹{d['total_balance_paise'] / 100:g}")
+            self._reply(user["phone"], user, "\n".join(lines))
+            return "udhar_summary"
+
+        elif parsed.action == "set_upi":
+            self.store.set_udhar_settings(
+                user_id=user["id"],
+                upi_id=parsed.upi_id or "",
+                payee_name=parsed.payee_name or "Kirana Store",
+                account_id=account_id,
+            )
+            reply = f"✅ Saved your UPI ID as `{parsed.upi_id}` for *{parsed.payee_name}*!\nCustomer payment links will now use this ID."
+            self._reply(user["phone"], user, reply)
+            return "udhar_upi_saved"
+
+        elif parsed.action == "reminder_reply":
+            due_entries = self.store.get_due_udhar_entries_for_owner(user["id"], today)
+            if due_entries:
+                self.store.update_user(user["id"], pending_question="udhar_reminder", pending_text=str(due_entries[0]["id"]))
+                return self._resolve_udhar_reminder(user, parsed.reminder_choice or "send", sid)
+
+        return "udhar_ignored"
+
+    # ---------- pharmacy & medical store workflows ----------
+
+    def _handle_business_onboard_ask(self, user: dict, body: str, sid: str) -> str:
+        b_type = parse_business_type(body)
+        if b_type == "pharmacy":
+            return self._resolve_business_onboarding_type(user, body, sid)
+        self.store.update_user(user["id"], pending_question="business_onboarding_type", pending_text="")
+        self._reply(user["phone"], user, "What type of business is it?")
+        return "business_onboard_ask"
+
+    def _resolve_business_onboarding_type(self, user: dict, body: str, sid: str) -> str:
+        b_type = parse_business_type(body)
+        if b_type == "pharmacy":
+            call_sign = self._call_sign(user)
+            store_name = call_sign if call_sign else "Medical Store"
+            store = self.store.register_pharmacy_store(
+                user_id=user["id"],
+                name=store_name,
+                phone=user["phone"],
+            )
+            self.store.update_user(user["id"], pending_question="pharmacy_inventory_setup", pending_text=str(store["id"]))
+            reply = (
+                "Welcome to Weave for Medical Stores!\n\n"
+                "📍 First, please drop your store location pin (share your location on WhatsApp or send your coordinates) "
+                "so nearby customers within 3 km can easily find and commute to your shop.\n\n"
+                "📦 Also, please send your CSV file or list what all items you have and like the prices of it "
+                "(You can upload a CSV, paste rows, or text items like: 'Paracetamol 650mg, 50 strips, Rs. 20 per strip')."
+            )
+            self._reply(user["phone"], user, reply)
+            return "pharmacy_onboarded"
+        self._reply(user["phone"], user, "What type of business is it? (e.g. Pharmacy store, Retail, etc.)")
+        return "business_onboard_retry"
+
+    def _resolve_pharmacy_inventory_setup(self, user: dict, body: str, sid: str) -> str:
+        store_id = None
+        if user.get("pending_text") and str(user["pending_text"]).isdigit():
+            store_id = int(user["pending_text"])
+        if not store_id:
+            store = self.store.get_pharmacy_store_by_user(user["id"])
+            store_id = store["id"] if store else None
+
+        # Check if shopkeeper dropped location pin
+        lat, lon, addr = parse_location_pin(body)
+        if lat is not None and lon is not None:
+            if store_id:
+                self.store.set_pharmacy_store_location(store_id, lat, lon, addr)
+            self.store.update_user(user["id"], latitude=lat, longitude=lon, location_address=addr)
+            reply = (
+                "📍 Store location saved! Nearby customers within 3 km can now easily find and commute to your medical store.\n\n"
+                "📦 Next, please send your CSV file or list what all items you have and like the prices of it "
+                "(e.g. upload CSV or text: 'Paracetamol 650mg, 50 strips, Rs. 20 per strip')."
+            )
+            self._reply(user["phone"], user, reply)
+            return "pharmacy_store_location_saved"
+
+        items = parse_csv_inventory(body)
+        if not items:
+            single = parse_single_item_addition(body)
+            if single:
+                items = [single]
+
+        if items and store_id:
+            self.store.batch_add_inventory(store_id, items)
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            lines = [f"✅ Added {len(items)} items to your pharmacy inventory:"]
+            for it in items[:5]:
+                lines.append(f"• {it['item_name']}: Rs. {it['price_paise'] / 100:g} (Stock: {it['stock_quantity']} {it['unit']}s)")
+            if len(items) > 5:
+                lines.append(f"...and {len(items) - 5} more.")
+            lines.append("\nYour pharmacy database is live! I will track your stock, alert you when supplies get low, and handle orders.")
+            self._reply(user["phone"], user, "\n".join(lines))
+            return "pharmacy_inventory_saved"
+
+        self._reply(
+            user["phone"], user,
+            "Please drop your store location pin or send your inventory as a CSV (e.g. 'Item, Price, Stock') or text items like "
+            "'Add 50 strips of Paracetamol 650mg at Rs. 20 per strip'."
+        )
+        return "pharmacy_inventory_invalid"
+
+    def _resolve_pharmacy_bulk_reorder(self, user: dict, body: str, sid: str) -> str:
+        t = body.strip().lower()
+        if re.search(r"\b(?:yes|y|yeah|yep|order|place\s+order|reorder|sure|do\s+it|ok(?:ay)?)\b", t):
+            parts = (user.get("pending_text") or "").split(":")
+            if len(parts) >= 4:
+                try:
+                    store_id = int(parts[0])
+                    item_name = parts[1]
+                    qty = int(parts[2])
+                    price_paise = int(parts[3])
+                    reorder = self.store.record_bulk_reorder(store_id, item_name, qty, price_paise)
+                    self.store.update_user(user["id"], pending_question=None, pending_text=None)
+                    reply = (
+                        f"✅ Bulk distributor order placed for {qty} strips of {item_name} "
+                        f"(Ref: {reorder['reorder_ref']}, Total: Rs. {price_paise / 100:g})! "
+                        f"Stock will be updated upon delivery."
+                    )
+                    self._reply(user["phone"], user, reply)
+                    return "pharmacy_bulk_reordered"
+                except (ValueError, IndexError):
+                    pass
+        elif re.search(r"\b(?:no|nope|cancel|stop|dont|never\s*mind|nah)\b", t):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "Understood, bulk distributor order cancelled.")
+            return "pharmacy_bulk_cancelled"
+
+        return "pharmacy_bulk_unhandled"
+
+    def _handle_inventory_update(self, user: dict, item_name: str, new_stock: int, sid: str) -> str:
+        store = self.store.get_pharmacy_store_by_user(user["id"])
+        if not store:
+            store = self.store.register_pharmacy_store(user["id"], name=self._call_sign(user) or "Medical Store", phone=user["phone"])
+        updated, is_low = self.store.set_inventory_stock(store["id"], item_name, new_stock)
+        if updated:
+            if is_low:
+                bulk_qty = updated["bulk_reorder_qty"]
+                bulk_price_inr = updated["bulk_reorder_price_paise"] / 100
+                self.store.update_user(
+                    user["id"],
+                    pending_question="pharmacy_bulk_reorder",
+                    pending_text=f"{store['id']}:{updated['item_name']}:{bulk_qty}:{updated['bulk_reorder_price_paise']}"
+                )
+                reply = (
+                    f"⚠️ {updated['item_name']} is less in the inventory (only {new_stock} left). "
+                    f"You can order some. If you want, I can place an order for you in bulk "
+                    f"({bulk_qty} {updated['unit']}s for Rs. {bulk_price_inr:g}). Reply YES to order."
+                )
+                self._reply(user["phone"], user, reply)
+                return "pharmacy_low_stock_alert"
+            else:
+                self._reply(user["phone"], user, f"Updated stock for {updated['item_name']} to {new_stock} {updated['unit']}s.")
+                return "pharmacy_stock_updated"
+        self._reply(user["phone"], user, f"Couldn't find {item_name} in your inventory.")
+        return "pharmacy_stock_not_found"
+
+    def _handle_single_item_addition(self, user: dict, item_info: dict, sid: str) -> str:
+        store = self.store.get_pharmacy_store_by_user(user["id"])
+        if not store:
+            store = self.store.register_pharmacy_store(user["id"], name=self._call_sign(user) or "Medical Store", phone=user["phone"])
+        item = self.store.add_or_update_inventory_item(store["id"], **item_info)
+        self._reply(
+            user["phone"], user,
+            f"✅ Added {item['item_name']} to inventory: {item['stock_quantity']} {item['unit']}s "
+            f"at Rs. {item['price_paise'] / 100:g} each (Threshold: {item['low_stock_threshold']})."
+        )
+        return "pharmacy_item_added"
+
+    def _handle_csv_inventory_direct(self, user: dict, body: str, sid: str) -> str:
+        items = parse_csv_inventory(body)
+        if not items:
+            return "pharmacy_csv_ignored"
+        store = self.store.get_pharmacy_store_by_user(user["id"])
+        if not store:
+            store = self.store.register_pharmacy_store(user["id"], name=self._call_sign(user) or "Medical Store", phone=user["phone"])
+        self.store.batch_add_inventory(store["id"], items)
+        lines = [f"✅ Added {len(items)} items to your pharmacy inventory:"]
+        for it in items[:5]:
+            lines.append(f"• {it['item_name']}: Rs. {it['price_paise'] / 100:g} (Stock: {it['stock_quantity']} {it['unit']}s)")
+        if len(items) > 5:
+            lines.append(f"...and {len(items) - 5} more.")
+        lines.append("\nYour pharmacy database is live! I will track your stock, alert you when supplies get low, and handle orders.")
+        self._reply(user["phone"], user, "\n".join(lines))
+        return "pharmacy_inventory_saved"
+
+    def _handle_inventory_query(self, user: dict) -> str | None:
+        store = self.store.get_pharmacy_store_by_user(user["id"])
+        if not store:
+            return None
+        items = self.store.get_inventory_items(store["id"])
+        if items:
+            lines = [f"📋 Inventory for *{store['name']}*:"]
+            for it in items:
+                lines.append(f"• {it['item_name']}: {it['stock_quantity']} {it['unit']}s @ Rs. {it['price_paise'] / 100:g}")
+            self._reply(user["phone"], user, "\n".join(lines))
+            return "pharmacy_inventory_queried"
+        self._reply(user["phone"], user, "Your pharmacy inventory is currently empty. Text items or upload a CSV to add stock.")
+        return "pharmacy_inventory_empty"
+
+    def _handle_pharmacy_auto_pay(self, user: dict, enable: bool) -> str | None:
+        store = self.store.get_pharmacy_store_by_user(user["id"])
+        if not store:
+            return None
+        self.store.update_pharmacy_store(store["id"], auto_payment_link=1 if enable else 0)
+        if enable:
+            reply = "✅ Automated payment links enabled! Orders will now immediately receive payment links without asking."
+            outcome = "pharmacy_auto_pay_enabled"
+        else:
+            reply = "✅ Automated payment links disabled. I will ask you before sending payment links to customers."
+            outcome = "pharmacy_auto_pay_disabled"
+        self._reply(user["phone"], user, reply)
+        return outcome
+
+    def _handle_medicine_search(self, user: dict, med_search: dict, sid: str) -> str:
+        query = med_search["query"]
+        qty = med_search.get("quantity", 1)
+        unit = med_search.get("unit", "strip")
+
+        cust_lat = med_search.get("latitude")
+        cust_lon = med_search.get("longitude")
+        if cust_lat is None or cust_lon is None:
+            cust_lat = user.get("latitude")
+            cust_lon = user.get("longitude")
+
+        # If customer location is unknown, ask for location pin before displaying nearest shops
+        if cust_lat is None or cust_lon is None:
+            self.store.update_user(
+                user["id"],
+                pending_question="customer_medicine_location",
+                pending_text=f"{query}:{qty}:{unit}",
+            )
+            self._reply(
+                user["phone"],
+                user,
+                f"Sure! To find the nearest medical store with {query} in stock within 3 km, could you please drop your location pin (or share your coordinates/area)?",
+            )
+            return "pharmacy_customer_location_asked"
+
+        return self._search_and_recommend_medicine(user, query, qty, unit, cust_lat, cust_lon)
+
+    def _resolve_customer_medicine_location(self, user: dict, body: str, sid: str) -> str:
+        t = body.strip().lower()
+        if re.search(r"\b(?:no|nope|cancel|stop|dont|never\s*mind|nah)\b", t):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "Understood, medicine search cancelled.")
+            return "pharmacy_customer_location_cancelled"
+
+        lat, lon, addr = parse_location_pin(body)
+        if lat is None or lon is None:
+            self._reply(
+                user["phone"],
+                user,
+                "Could you please share your WhatsApp location pin or send your coordinates / area (e.g. Indiranagar) so I can find stores near you within 3 km?",
+            )
+            return "pharmacy_customer_location_invalid"
+
+        self.store.update_user(
+            user["id"],
+            latitude=lat,
+            longitude=lon,
+            location_address=addr,
+            pending_question=None,
+        )
+        parts = (user.get("pending_text") or "").split(":")
+        query = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 1
+        unit = parts[2] if len(parts) > 2 else "strip"
+        return self._search_and_recommend_medicine(user, query, qty, unit, lat, lon)
+
+    def _search_and_recommend_medicine(
+        self,
+        user: dict,
+        query: str,
+        qty: int,
+        unit: str,
+        cust_lat: float | None = None,
+        cust_lon: float | None = None,
+    ) -> str:
+        matches = self.store.search_medicine_by_location(
+            query,
+            customer_lat=cust_lat,
+            customer_lon=cust_lon,
+            min_qty=qty,
+            max_radius_km=3.0,
+        )
+        if not matches:
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, f"Sorry, I couldn't find any medical store with {query} in stock right now.")
+            return "pharmacy_medicine_not_found"
+
+        best = matches[0]
+        item_unit = unit or best.get("unit", "strip")
+        unit_price = best["price_paise"]
+        total_paise = unit_price * qty
+        unit_inr = unit_price / 100
+        total_inr = total_paise / 100
+        dist = best.get("distance_km")
+        dist_str = f" ({dist:.1f} km away)" if dist is not None else ""
+        within_3km = bool(best.get("within_radius")) or (dist is not None and dist <= 3.0)
+
+        self.store.update_user(
+            user["id"],
+            pending_question="pharmacy_confirm_order",
+            pending_text=f"{best['store_id']}:{best['item_name']}:{qty}:{item_unit}:{total_paise}:{dist}",
+        )
+
+        if dist is not None and not within_3km:
+            reply = (
+                f"No medical stores have {query} in stock within 3 km commute radius. "
+                f"The nearest available store is {best['store_name']}{dist_str}: {best['item_name']} is Rs. {unit_inr:g} per {item_unit}. "
+                f"{qty} {item_unit}s for Rs. {total_inr:g}. Do you want me to place an order? Reply YES to confirm."
+            )
+        else:
+            reply = (
+                f"Found at {best['store_name']}{dist_str}: {best['item_name']} is Rs. {unit_inr:g} per {item_unit}. "
+                f"{qty} {item_unit}s for Rs. {total_inr:g}. Do you want me to place an order? Reply YES to confirm."
+            )
+
+        self._reply(user["phone"], user, reply)
+        return "pharmacy_medicine_found"
+
+    def _resolve_pharmacy_confirm_order(self, user: dict, body: str, sid: str) -> str:
+        t = body.strip().lower()
+        if re.search(r"\b(?:yes|y|yeah|yep|order|place\s+order|sure|do\s+it|ok(?:ay)?|please)\b", t):
+            parts = (user.get("pending_text") or "").split(":")
+            if len(parts) >= 5:
+                store_id = int(parts[0])
+                item_name = parts[1]
+                qty = int(parts[2])
+                unit = parts[3]
+                total_paise = int(parts[4])
+                dist_km = None
+                if len(parts) > 5 and parts[5] != "None":
+                    try:
+                        dist_km = float(parts[5])
+                    except ValueError:
+                        pass
+                store = self.store.get_pharmacy_store(store_id)
+                if not store:
+                    self.store.update_user(user["id"], pending_question=None, pending_text=None)
+                    self._reply(user["phone"], user, "Sorry, this store is no longer available.")
+                    return "pharmacy_store_missing"
+
+                # Deduct inventory stock
+                new_stock, is_low = self.store.deduct_inventory_stock(store_id, item_name, qty)
+                unit_price_paise = total_paise // qty
+                total_inr = total_paise / 100
+                order = self.store.create_pharmacy_order(
+                    store_id=store_id,
+                    customer_phone=user["phone"],
+                    customer_user_id=user["id"],
+                    item_name=item_name,
+                    quantity=qty,
+                    unit=unit,
+                    unit_price_paise=unit_price_paise,
+                    total_amount_paise=total_paise,
+                    distance_km=dist_km,
+                    status="pending_approval",
+                )
+                self.store.update_user(user["id"], pending_question=None, pending_text=None)
+
+                # Customer confirmation
+                dist_info = f" ({dist_km:.1f} km away)" if dist_km is not None else ""
+                self._reply(
+                    user["phone"], user,
+                    f"Order placed with {store['name']}{dist_info} for {qty} {unit}s of {item_name} "
+                    f"(Total: Rs. {total_inr:g})! Ref: #{order['order_ref']}."
+                )
+
+                store_user = self.store.user_by_id(store["user_id"])
+                store_channel = store_user["channel"] if store_user else "sms"
+                base_url = self.s.public_base_url or "https://askweave.xyz"
+                pay_url = f"{base_url}/pay/{order['payment_token']}"
+
+                # Check auto_payment_link setting
+                if store.get("auto_payment_link"):
+                    self.store.update_pharmacy_order(order["id"], payment_link=pay_url, status="payment_pending")
+                    cust_msg = (
+                        f"💳 Payment link for your order from {store['name']} "
+                        f"({qty} {unit}s of {item_name} - Rs. {total_inr:g}):\n{pay_url}\n\n"
+                        f"Please complete payment to confirm pickup."
+                    )
+                    self._send(address(user["phone"], user.get("channel", "sms")), user["id"], cust_msg)
+
+                    owner_msg = (
+                        f"🔔 New Order: Customer ordered {qty} {unit}s of {item_name} for Rs. {total_inr:g}. "
+                        f"Payment link automatically sent to customer (Ref: #{order['order_ref']})."
+                    )
+                    self._send(address(store["phone"], store_channel), store["user_id"], owner_msg)
+                else:
+                    owner_msg = (
+                        f"🔔 New Order: Customer wants {qty} {unit}s of {item_name} for Rs. {total_inr:g}. "
+                        f"Should I send payment slip or payment link?"
+                    )
+                    self.store.update_user(
+                        store["user_id"],
+                        pending_question="pharmacy_send_payment_link",
+                        pending_text=str(order["id"]),
+                    )
+                    self._send(address(store["phone"], store_channel), store["user_id"], owner_msg)
+
+                # In automated mode, immediately offer bulk distributor reorder if stock depleted
+                if store.get("auto_payment_link") and is_low:
+                    inv_item = self.store.get_inventory_item(store_id, item_name)
+                    if inv_item:
+                        bulk_qty = inv_item["bulk_reorder_qty"]
+                        bulk_price_inr = inv_item["bulk_reorder_price_paise"] / 100
+                        self.store.update_user(
+                            store["user_id"],
+                            pending_question="pharmacy_bulk_reorder",
+                            pending_text=f"{store['id']}:{inv_item['item_name']}:{bulk_qty}:{inv_item['bulk_reorder_price_paise']}"
+                        )
+                        low_alert = (
+                            f"⚠️ Low stock alert: {item_name} is less in the inventory (only {new_stock} left). "
+                            f"You can order some. If you want, I can place an order for you in bulk "
+                            f"({bulk_qty} {inv_item['unit']}s for Rs. {bulk_price_inr:g}). Reply YES to order."
+                        )
+                        self._send(address(store["phone"], store_channel), store["user_id"], low_alert)
+
+                return "pharmacy_order_placed"
+
+        elif re.search(r"\b(?:no|nope|cancel|stop|dont|never\s*mind|nah)\b", t):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "No problem, order cancelled.")
+            return "pharmacy_order_cancelled"
+
+        return "pharmacy_confirm_unhandled"
+
+    def _resolve_pharmacy_send_payment_link(self, user: dict, body: str, sid: str) -> str:
+        t = body.strip().lower()
+        if re.search(r"\b(?:yes|y|yeah|yep|send|payment\s*link|slip|link|sure|do\s+it|ok(?:ay)?)\b", t):
+            order_id = int(user["pending_text"]) if user.get("pending_text") and str(user["pending_text"]).isdigit() else None
+            order = self.store.get_pharmacy_order(order_id) if order_id else None
+            if not order:
+                self.store.update_user(user["id"], pending_question=None, pending_text=None)
+                self._reply(user["phone"], user, "Order not found.")
+                return "pharmacy_order_missing"
+
+            store = self.store.get_pharmacy_store(order["store_id"])
+            base_url = self.s.public_base_url or "https://askweave.xyz"
+            pay_url = f"{base_url}/pay/{order['payment_token']}"
+            self.store.update_pharmacy_order(order["id"], payment_link=pay_url, status="payment_pending")
+
+            # Send payment link to customer
+            cust_user = self.store.get_user(order["customer_phone"])
+            cust_channel = cust_user["channel"] if cust_user else "sms"
+            total_inr = order["total_amount_paise"] / 100
+            cust_msg = (
+                f"💳 Payment link for your order from {store['name']} "
+                f"({order['quantity']} {order['unit']}s of {order['item_name']} - Rs. {total_inr:g}):\n{pay_url}\n\n"
+                f"Please complete payment to confirm pickup."
+            )
+            self._send(address(order["customer_phone"], cust_channel), order["customer_user_id"], cust_msg)
+
+            # Check if stock is now low for that medicine, and prompt shopkeeper for bulk reorder
+            inv_item = self.store.get_inventory_item(order["store_id"], order["item_name"])
+            extra = ""
+            if inv_item and inv_item["stock_quantity"] <= inv_item["low_stock_threshold"]:
+                bulk_qty = inv_item["bulk_reorder_qty"]
+                bulk_price_inr = inv_item["bulk_reorder_price_paise"] / 100
+                self.store.update_user(
+                    user["id"],
+                    pending_question="pharmacy_bulk_reorder",
+                    pending_text=f"{order['store_id']}:{inv_item['item_name']}:{bulk_qty}:{inv_item['bulk_reorder_price_paise']}"
+                )
+                extra = (
+                    f"\n\n⚠️ {inv_item['item_name']} is low in stock ({inv_item['stock_quantity']} left). "
+                    f"If you want, I can place a bulk distributor reorder "
+                    f"({bulk_qty} {inv_item['unit']}s for Rs. {bulk_price_inr:g}). Reply YES to order."
+                )
+            else:
+                self.store.update_user(user["id"], pending_question=None, pending_text=None)
+
+            # Reply to shopkeeper
+            self._reply(user["phone"], user, f"✅ Payment link sent to customer for Order #{order['order_ref']}.{extra}")
+            return "pharmacy_payment_link_sent"
+
+        elif re.search(r"\b(?:no|nope|cancel|stop|dont|never\s*mind|nah)\b", t):
+            self.store.update_user(user["id"], pending_question=None, pending_text=None)
+            self._reply(user["phone"], user, "Understood, payment link was not sent.")
+            return "pharmacy_payment_link_declined"
+
+        return "pharmacy_send_link_unhandled"
+
+    def mark_order_paid_and_notify(self, order_id: int) -> dict | None:
+        """Mark an order paid and trigger customer confirmation and merchant pickup alert."""
+        existing = self.store.get_pharmacy_order(order_id)
+        if not existing:
+            return None
+        if existing["status"] == "paid_ready_for_pickup":
+            return existing
+
+        order = self.store.mark_pharmacy_order_paid(order_id)
+        if not order:
+            return None
+        store = self.store.get_pharmacy_store(order["store_id"])
+        store_user = self.store.user_by_id(store["user_id"])
+        store_channel = store_user["channel"] if store_user else "sms"
+        total_inr = order["total_amount_paise"] / 100
+
+        # Customer pickup confirmation
+        cust_user = self.store.get_user(order["customer_phone"])
+        cust_channel = cust_user["channel"] if cust_user else "sms"
+        cust_msg = (
+            f"✅ Payment of Rs. {total_inr:g} confirmed for Order #{order['order_ref']}! "
+            f"Please head to {store['name']} to collect your order."
+        )
+        self._send(address(order["customer_phone"], cust_channel), order["customer_user_id"], cust_msg)
+
+        # Shopkeeper pickup alert
+        owner_msg = (
+            f"✅ Payment received for Order #{order['order_ref']} (Rs. {total_inr:g})! "
+            f"Customer is on their way to come and collect their order "
+            f"({order['quantity']} {order['unit']}s of {order['item_name']}). Please keep it ready."
+        )
+        self._send(address(store["phone"], store_channel), store["user_id"], owner_msg)
+        return order
+
+    def _handle_order_paid_chat(self, user: dict, body: str, sid: str) -> str | None:
+        m = re.search(r"#(MED-\d+)", body, re.I)
+        order = None
+        if m:
+            order = self.store.get_pharmacy_order_by_ref(m.group(1).upper())
+        else:
+            orders = self.store.all(
+                "SELECT * FROM pharmacy_orders WHERE (customer_phone = ? OR customer_user_id = ?) AND status = 'payment_pending' ORDER BY created_at DESC LIMIT 1",
+                (user["phone"], user["id"]),
+            )
+            if orders:
+                order = orders[0]
+        if order and order["status"] != "paid_ready_for_pickup":
+            self.mark_order_paid_and_notify(order["id"])
+            return "pharmacy_order_paid"
+        return None
+
+    # ---------- docprep / government form photo & doc resizer ----------
+
+    def _fetch_inbound_media(self, media_url: str) -> bytes | None:
+        """Fetch media bytes from Twilio/Meta media URL."""
+        if not media_url:
+            return None
+        import httpx
+        try:
+            auth = (self.s.twilio_account_sid, self.s.twilio_auth_token) if self.s.twilio_account_sid else None
+            with httpx.Client(timeout=15.0, follow_redirects=True) as client:
+                resp = client.get(media_url, auth=auth)
+                if resp.status_code == 200:
+                    return resp.content
+                log.warning("Inbound media download failed %d for %s", resp.status_code, media_url)
+        except Exception as e:
+            log.warning("Could not fetch media from %s: %s", media_url, e)
+        return None
+
+    def _handle_docprep_media(self, user: dict, msg: Inbound, body: str, sid: str) -> str:
+        phone = user["phone"]
+        media_bytes = msg.media_data or self._fetch_inbound_media(msg.media_url)
+        if not media_bytes:
+            self._reply(phone, user, "Aapki photo download nahi ho saki. Please send a valid photo, or describe your request in a text or voice note.")
+            return "docprep_fetch_failed"
+
+        cleaned_body = (body or "").strip()
+        is_placeholder = not cleaned_body or (cleaned_body.startswith("[") and cleaned_body.endswith("]"))
+
+        if is_placeholder:
+            staging_dir = self.s.data_dir / "docprep" / "staging"
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            staging_filename = f"staging_{user['id']}_{int(time.time() * 1000)}.bin"
+            staging_path = staging_dir / staging_filename
+            staging_path.write_bytes(media_bytes)
+
+            self.store.update_user(user["id"], pending_question="docprep_exam", pending_text=staging_filename)
+            self._reply(
+                phone,
+                user,
+                "Photo mil gayi! 📸 Kiske liye format karni hai? "
+                "(e.g. 'SSC CGL', 'BPSC', 'Driving License', ya custom size jaise 'under 50kb')?",
+            )
+            return "docprep_staged"
+
+        return self._execute_docprep_processing(user, media_bytes, cleaned_body)
+
+    def _execute_docprep_processing(self, user: dict, media_bytes: bytes, instruction: str) -> str:
+        from ..docprep.solver import process_media
+        from ..docprep.resolver import resolve_specs
+
+        phone = user["phone"]
+        specs = resolve_specs(
+            instruction,
+            ai=self.brain.ai if self.brain else None,
+            db=self.store._conn(),
+        )
+
+        instr_lower = instruction.lower()
+        if any(w in instr_lower for w in ("sign", "signature", "hastakshar")):
+            item = specs.signature
+            doc_type = "signature"
+            default_fname = "signature.jpg"
+        elif any(w in instr_lower for w in ("pdf", "doc", "document", "marksheet", "certificate", "aadhaar")):
+            item = specs.document
+            doc_type = "document"
+            default_fname = "document.pdf"
+        else:
+            item = specs.photo
+            doc_type = "photo"
+            default_fname = "photo.jpg"
+
+        exam_slug = re.sub(r"[^\w\s-]", "", specs.exam_name or "").strip().lower()
+        exam_slug = re.sub(r"[\s_-]+", "_", exam_slug)
+        filename = f"{exam_slug}_{default_fname}" if exam_slug else default_fname
+
+        try:
+            res = process_media(
+                image_bytes=media_bytes,
+                doc_type=doc_type,
+                min_kb=item.min_kb,
+                max_kb=item.max_kb,
+                aspect_ratio=tuple(item.aspect_ratio) if item.aspect_ratio else None,
+                target_width=item.target_width,
+                target_height=item.target_height,
+                output_format=item.format,
+                target_dpi=item.dpi,
+            )
+        except Exception as e:
+            log.warning("process_media failed for user %d: %s", user["id"], e)
+            self._reply(phone, user, f"Photo process karne me dikkat aayi: {e}. Kripya dusri photo bhejein.")
+            return "docprep_failed"
+
+        token, _ = self.store.save_docprep_file(
+            phone=phone,
+            filename=filename,
+            doc_type=doc_type,
+            data=res.data,
+            mime_type=res.mime_type,
+            user_id=user["id"],
+        )
+
+        base_url = self.s.public_base_url or "https://app.askweave.xyz"
+        doc_url = f"{base_url}/doc/{token}/{filename}"
+
+        lines = [
+            f"📸 {doc_type.capitalize()} ready hai!",
+            "",
+            f"• File Size: {res.file_kb} KB (Allowed: {item.min_kb}–{item.max_kb} KB)",
+            f"• Dimensions: {res.width}x{res.height} px ({res.dpi} DPI, {res.format.upper()})",
+        ]
+        if specs.source_note:
+            lines.append(f"• Note: {specs.source_note}")
+        lines.append("")
+        lines.append(f"Direct download link: {doc_url}")
+
+        self._reply(phone, user, "\n".join(lines))
+        return "docprep_processed"
+
+    def _resolve_docprep_exam(self, user: dict, body: str, sid: str) -> str:
+        staging_filename = user.get("pending_text")
+        self.store.update_user(user["id"], pending_question=None, pending_text=None)
+
+        if not staging_filename:
+            return "handled"
+
+        staging_path = self.s.data_dir / "docprep" / "staging" / staging_filename
+        if not staging_path.is_file():
+            self._reply(user["phone"], user, "Purani photo expire ho gayi hai. Kripya dubara photo upload karein.")
+            return "docprep_expired"
+
+        try:
+            media_bytes = staging_path.read_bytes()
+        finally:
+            try:
+                staging_path.unlink()
+            except Exception:
+                pass
+
+        return self._execute_docprep_processing(user, media_bytes, body)
+
+    def _is_docprep_query(self, text: str) -> bool:
+        t = text.lower()
+        has_doc_kw = any(w in t for w in ("photo", "signature", "sign", "document", "marksheet", "hastakshar"))
+        has_spec_kw = any(w in t for w in ("size", "dimension", "kb", "format", "kitna", "chahiye", "rule", "specification", "pixels"))
+        return has_doc_kw and has_spec_kw
+
+    def _answer_docprep_query(self, user: dict, body: str) -> str:
+        from ..docprep.resolver import resolve_specs
+        phone = user["phone"]
+        specs = resolve_specs(
+            body,
+            ai=self.brain.ai if self.brain else None,
+            db=self.store._conn(),
+        )
+
+        title = specs.exam_name or "Official Guidelines"
+        lines = [
+            f"📋 {title} requirements:",
+            "",
+            f"• Photo: {specs.photo.min_kb}–{specs.photo.max_kb} KB ({specs.photo.format.upper()}, 3.5×4.5 cm)",
+            f"• Signature: {specs.signature.min_kb}–{specs.signature.max_kb} KB ({specs.signature.format.upper()})",
+            f"• Documents: {specs.document.min_kb}–{specs.document.max_kb} KB ({specs.document.format.upper()})",
+        ]
+        if specs.source_note:
+            lines.append(f"• Source: {specs.source_note}")
+        lines.append("")
+        lines.append("Apni photo ya signature yahan bhejo, main turant format karke de deta hoon! 📸")
+
+        self._reply(phone, user, "\n".join(lines))
+        return "docprep_query_answered"
 
     def _start_change(self, user: dict, project: dict, change: str, sid: str, lead: str = "") -> str:
         current = project.get("kind") or "android"

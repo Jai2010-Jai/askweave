@@ -241,3 +241,130 @@ def render_pay_page(entry: dict, upi_settings: dict | None) -> str:
 </script>
 </body>
 </html>"""
+
+
+def render_pharmacy_pay_page(order: dict, store: dict | None) -> str:
+    """Render payment landing page for pharmacy medicine order."""
+    store_name = (store.get("name") if store else None) or "Medical Store"
+    upi_id = (store.get("upi_id") if store else None) or ""
+    amount_paise = order["total_amount_paise"]
+    amount_inr = f"{amount_paise / 100:.2f}"
+    item_desc = f"{order['quantity']} {order['unit']}s of {order['item_name']}"
+    status = order.get("status") or "payment_pending"
+    order_ref = order.get("order_ref") or "MED-ORDER"
+
+    safe_store = html.escape(store_name)
+    safe_item = html.escape(item_desc)
+    safe_ref = html.escape(order_ref)
+
+    if status in ("paid_ready_for_pickup", "completed"):
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Confirmed - {safe_store}</title>
+<style>
+  body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 24px; display: flex; justify-content: center; align-items: center; min-height: 90vh; }}
+  .card {{ background: #fff; max-width: 420px; width: 100%; border-radius: 16px; padding: 32px 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; }}
+  .badge {{ width: 64px; height: 64px; border-radius: 50%; background: #e6f4ea; color: #137333; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 16px; }}
+  h1 {{ font-size: 20px; color: #202124; margin: 0 0 8px; }}
+  .amount {{ font-size: 32px; font-weight: 700; color: #137333; margin: 12px 0; }}
+  .order-box {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin: 16px 0; text-align: left; font-size: 14px; }}
+  .footer {{ margin-top: 24px; font-size: 12px; color: #9aa0a6; border-top: 1px solid #f1f3f4; padding-top: 16px; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">✓</div>
+  <h1>Payment Received!</h1>
+  <p>To <strong>{safe_store}</strong></p>
+  <div class="amount">₹{amount_inr}</div>
+  <div class="order-box">
+    <div><strong>Order:</strong> #{safe_ref}</div>
+    <div><strong>Items:</strong> {safe_item}</div>
+    <div style="color: #137333; margin-top: 8px;"><strong>Status:</strong> Ready for pickup. The store has been notified to keep it ready!</div>
+  </div>
+  <div class="footer">Powered by Weave</div>
+</div>
+</body>
+</html>"""
+
+    upi_uri = make_upi_deep_link(upi_id, store_name, amount_paise, note=f"Order {order_ref}") if upi_id else ""
+    qr_data_uri = ""
+    if upi_uri:
+        try:
+            import qrcode
+            qr = qrcode.QRCode(box_size=6, border=2)
+            qr.add_data(upi_uri)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            qr_data_uri = f"data:image/png;base64,{b64}"
+        except Exception:
+            qr_data_uri = ""
+
+    token = order.get("payment_token") or ""
+    upi_html = f"<a href='{html.escape(upi_uri)}' class='pay-btn' id='pay-btn'>Pay ₹{amount_inr} via UPI</a>" if upi_uri else ""
+    qr_html = f"<div class='qr-container'><img src='{qr_data_uri}' width='150' height='150'/><div style='font-size:11px;color:#64748b;margin-top:4px;'>Scan QR with any UPI App</div></div>" if qr_data_uri else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medicine Order Payment - {safe_store}</title>
+<style>
+  body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 90vh; }}
+  .card {{ background: #ffffff; max-width: 420px; width: 100%; border-radius: 20px; padding: 28px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); text-align: center; }}
+  .shop-icon {{ font-size: 36px; margin-bottom: 8px; }}
+  h1 {{ font-size: 20px; color: #0f172a; margin: 0 0 4px; }}
+  .subtitle {{ font-size: 13px; color: #64748b; margin-bottom: 20px; }}
+  .amount-card {{ background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px; margin-bottom: 16px; }}
+  .amount-label {{ font-size: 12px; color: #166534; font-weight: 500; text-transform: uppercase; }}
+  .amount-val {{ font-size: 32px; font-weight: 800; color: #15803d; margin-top: 4px; }}
+  .details {{ background: #f8fafc; border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: left; font-size: 13px; }}
+  .row {{ display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }}
+  .row:last-child {{ border-bottom: none; }}
+  .row span {{ color: #64748b; }}
+  .row strong {{ color: #1e293b; }}
+  .pay-btn {{ display: block; background: #16a34a; color: #ffffff; font-weight: 600; text-decoration: none; padding: 14px 20px; border-radius: 12px; margin-top: 14px; font-size: 16px; border: none; width: 100%; cursor: pointer; box-sizing: border-box; }}
+  .pay-btn:hover {{ background: #15803d; }}
+  .confirm-btn {{ display: block; background: #0284c7; color: #ffffff; font-weight: 600; padding: 14px 20px; border-radius: 12px; margin-top: 10px; font-size: 15px; border: none; width: 100%; cursor: pointer; }}
+  .confirm-btn:hover {{ background: #0369a1; }}
+  .subtext {{ color: #64748b; font-size: 12px; margin: 8px 0; }}
+  .qr-container {{ margin: 12px auto 0; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: inline-block; }}
+  .footer {{ margin-top: 20px; font-size: 11px; color: #94a3b8; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="shop-icon">💊</div>
+  <h1>{safe_store}</h1>
+  <div class="subtitle">Medicine Order Checkout</div>
+
+  <div class="amount-card">
+    <div class="amount-label">Total Amount</div>
+    <div class="amount-val">₹{amount_inr}</div>
+  </div>
+
+  <div class="details">
+    <div class="row"><span>Order Ref</span><strong>#{safe_ref}</strong></div>
+    <div class="row"><span>Medicine</span><strong>{safe_item}</strong></div>
+    <div class="row"><span>Store Pickup</span><strong>Direct Collection</strong></div>
+  </div>
+
+  {upi_html}
+  {qr_html}
+
+  <form action="/pay/{html.escape(token)}/complete" method="POST" style="margin-top:14px;">
+    <button type="submit" class="confirm-btn">✓ I Have Completed Payment</button>
+  </form>
+  <div class="subtext">Clicking confirm will alert the store owner to keep your order ready for collection.</div>
+
+  <div class="footer">Powered by Weave</div>
+</div>
+</body>
+</html>"""

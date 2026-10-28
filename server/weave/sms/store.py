@@ -18,7 +18,9 @@ from typing import Any, Iterator
 
 from .accounts_store import AccountsMixin
 from .analytics_store import AnalyticsMixin
+from .pharmacy_store import PharmacyMixin
 from .udhar_store import UdharMixin
+from ..docprep.store_mixin import DocprepMixin
 
 REF_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ"
 ACTIVE_JOB_STATES = ("queued", "running")
@@ -141,7 +143,7 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin):
+class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin, DocprepMixin, PharmacyMixin):
     def __init__(self, path: Path):
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,6 +190,8 @@ class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin):
         self._migrate_accounts(c)
         self._migrate_analytics(c)  # needs the accounts table, so it runs last
         self._migrate_udhar(c)
+        self._migrate_docprep(c)
+        self._migrate_pharmacy(c)
 
     # ---------- connection ----------
     def _conn(self) -> sqlite3.Connection:

@@ -20,7 +20,8 @@ from ..config import Settings
 log = logging.getLogger("weave.sms")
 
 Action = Literal["none", "new_app", "new_website", "change_app", "rename", "status", "list_apps", "download", "switch",
-                 "cancel", "retry", "publish", "analytics", "udhar_add", "udhar_settle", "udhar_query", "udhar_total", "udhar_config"]
+                 "cancel", "retry", "publish", "analytics", "udhar_add", "udhar_settle", "udhar_query", "udhar_total", "udhar_config",
+                 "business_onboard", "pharmacy_search", "pharmacy_reorder"]
 
 
 class ChatDecision(BaseModel):
@@ -62,6 +63,11 @@ What you can build:
   * Checking balance ("Rajesh ka kitna baki hai?"): action "udhar_query", customer "Rajesh".
   * Total shop credit ("Total udhar kitna hai?"): action "udhar_total".
   * Setting UPI ID ("Mera UPI ID hai abc@upi"): action "udhar_config", phone: "abc@upi".
+- Medical Stores and Pharmacy Operations:
+  You also help medical stores and pharmacies manage inventory, reorder depleted stock, and connect with customer requests:
+  * Integrating Weave with a business ("I want to integrate Weave into my business"): action "business_onboard" (or reply asking what type of business it is).
+  * Finding medicines ("I need two strips of paracetamol, where can I find it?"): action "pharmacy_search".
+  * Depleted stock ("paracetamol got over"): action "pharmacy_reorder".
 What you can NOT do: iPhone apps, servers or backends, logins or accounts, syncing between phones, payments,
 camera, GPS, contacts, real push notifications, uploaded images, or copyrighted characters and brands. When a
 request needs one of these, build the closest version you CAN make and say in one short sentence what it can't do.

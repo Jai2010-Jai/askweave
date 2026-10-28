@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from pathlib import Path
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, HTTPException, Request
@@ -37,7 +38,7 @@ PREVIEW_CSP = ("sandbox allow-scripts allow-popups allow-popups-to-escape-sandbo
                "https://cdnjs.cloudflare.com; img-src https: data:; media-src https:; connect-src 'none'; "
                "form-action 'none'; frame-ancestors 'none'; base-uri 'none'")
 # Paths reachable from the internet (through the HTTPS tunnel/proxy) without the access code.
-PUBLIC_PREFIXES = ("/api/webhooks/twilio/", "/api/webhooks/whatsapp", "/download/", "/preview/", "/chat", "/api/chat/", "/pay/")
+PUBLIC_PREFIXES = ("/api/webhooks/twilio/", "/api/webhooks/whatsapp", "/download/", "/preview/", "/chat", "/api/chat/", "/pay/", "/doc/")
 
 
 def build_router(settings: Settings, store: SmsStore, service: SmsService, provider: SmsProvider,
@@ -96,9 +97,11 @@ def build_router(settings: Settings, store: SmsStore, service: SmsService, provi
             num_media = int(p.get("NumMedia") or 0)
         except ValueError:
             num_media = 0
-        msg = Inbound(from_=p["From"], to=p.get("To", ""), body=p.get("Body", ""), sid=sid,
-                      account_sid=p.get("AccountSid", ""), num_media=num_media)
         media_url = p.get("MediaUrl0", "")
+        media_type = p.get("MediaContentType0", "")
+        msg = Inbound(from_=p["From"], to=p.get("To", ""), body=p.get("Body", ""), sid=sid,
+                      account_sid=p.get("AccountSid", ""), num_media=num_media,
+                      media_url=media_url, media_type=media_type)
         if (settings.voice_enabled and num_media and not msg.body.strip() and is_audio(p.get("MediaContentType0", ""))
                 and media_url and await run_in_threadpool(service.voice_allowed, msg.from_)
                 and not await run_in_threadpool(store.has_inbound, sid)):
@@ -277,6 +280,13 @@ def build_router(settings: Settings, store: SmsStore, service: SmsService, provi
     def pay_checkout(token: str):
         if not token.startswith("pay_") or len(token) > 64:
             raise HTTPException(404, "Invalid payment link")
+        if token.startswith("pay_med_"):
+            order = store.get_pharmacy_order_by_token(token)
+            if not order:
+                raise HTTPException(404, "Payment record not found")
+            pharm_store = store.get_pharmacy_store(order["store_id"])
+            from .pay import render_pharmacy_pay_page
+            return HTMLResponse(content=render_pharmacy_pay_page(order, pharm_store), status_code=200, headers={"Cache-Control": "no-store"})
         entry = store.get_udhar_entry_by_token(token)
         if not entry:
             raise HTTPException(404, "Payment record not found")
@@ -284,6 +294,46 @@ def build_router(settings: Settings, store: SmsStore, service: SmsService, provi
         from .pay import render_pay_page
         html_content = render_pay_page(entry, upi_settings)
         return HTMLResponse(content=html_content, status_code=200, headers={"Cache-Control": "no-store"})
+
+    @r.post("/pay/{token}/complete")
+    @r.get("/pay/{token}/complete")
+    def pay_complete(token: str):
+        if token.startswith("pay_med_"):
+            order = store.get_pharmacy_order_by_token(token)
+            if not order:
+                raise HTTPException(404, "Order not found")
+            service.mark_order_paid_and_notify(order["id"])
+            updated = store.get_pharmacy_order_by_token(token)
+            pharm_store = store.get_pharmacy_store(order["store_id"])
+            from .pay import render_pharmacy_pay_page
+            return HTMLResponse(content=render_pharmacy_pay_page(updated, pharm_store), status_code=200, headers={"Cache-Control": "no-store"})
+        raise HTTPException(404, "Not found")
+
+    # ---------- Formatted citizen document download (public, token-authenticated) ----------
+    @r.get("/doc/{token}/{filename}")
+    def serve_doc(token: str, filename: str):
+        if not TOKEN_RE.fullmatch(token):
+            raise HTTPException(404, "Not found")
+        status, row = store.get_docprep_file(token)
+        if status == "unknown" or row is None:
+            raise HTTPException(404, "Not found")
+        if status == "expired":
+            return PlainTextResponse("This document link has expired (72h limit). Please upload your photo again.", status_code=410)
+
+        base_dir: Path = settings.data_dir
+        path = (base_dir / row["file_path"]).resolve()
+        if not path.is_file() or not str(path).startswith(str(base_dir.resolve())):
+            raise HTTPException(404, "File not found")
+
+        event("docprep.download", token=token[:8], doc_type=row["doc_type"])
+        resp = FileResponse(
+            path,
+            media_type=row["mime_type"],
+            filename=row["filename"],
+        )
+        resp.headers["Cache-Control"] = "private, no-store"
+        resp.headers["Content-Disposition"] = f'inline; filename="{row["filename"]}"'
+        return resp
 
     # ---------- local-only admin (the guard marks loopback dashboard requests as local) ----------
     def require_local(request: Request) -> None:

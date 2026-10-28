@@ -240,6 +240,7 @@ class SmsWorker:
         now_ts = time.time() if now is None else now
         today = utc_day(now_ts)
         purged = purge_trash(self.s.trash_dir, self.s.trash_days)
+        purged_docs = self.store.purge_expired_docprep_files()
         pruned = self.store.prune_analytics(self.s.analytics_raw_days, self.s.analytics_rollup_days, today)
         backup = self.store.backup(self.s.data_dir / "backups", keep=self.s.backup_keep)
         copied = self._copy_backup_off_box(backup)

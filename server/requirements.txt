@@ -5,6 +5,11 @@ google-genai>=1.0,<2
 python-dotenv>=1.0,<2
 qrcode>=7.4,<9
 twilio>=9.0,<10
+httpx>=0.27,<1
+# Encrypts customers' stored Google Stitch logins
+cryptography>=42
+# Medicine photos and documents (weave.docprep)
+pillow>=10,<14
 # Voice notes: local speech-to-text (av 15+ breaks faster-whisper 1.2)
 faster-whisper>=1.0,<2
 av>=12,<15

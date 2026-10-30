@@ -23,6 +23,7 @@ from pydantic import ValidationError
 from . import auth
 from .analytics.collector import View, client_ip, device_class, is_bot, ref_host, utc_day, visitor_hash
 from .analytics.inject import PageCache, etag_for, snippet_for
+from .site.data import DataSnippets
 from .config import Settings, settings as default_settings
 from .core.gemini import make_ai_client
 from .core.jobs import JOB_ID_RE, Orchestrator, QueueFullError, public_job
@@ -145,6 +146,7 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
     app = FastAPI(title="Weave", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
     pages = PageCache()
+    data_snippets = DataSnippets(sms.store) if sms is not None else None
     access_code = auth.load_or_create_code(s.data_dir)
     failures = auth.FailureLimiter()
 
@@ -258,10 +260,17 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
                         headers={**headers, "ETag": etag})
 
     def site_snippet(account: dict, label: str, slug: str) -> bytes:
-        """The script for one site, or nothing when counting is off or we don't know our own address."""
+        """What goes before </body>: the account's live data (products, menu, stock) first, then the visit-and-
+        contact script unless counting is off or we don't know our own address."""
+        data = b""
+        if data_snippets is not None:
+            try:
+                data = data_snippets.for_account(account["id"])
+            except Exception:  # noqa: BLE001 - a page must never fail because of its data
+                log.warning("site data for account %s failed", account["id"], exc_info=True)
         if not s.analytics or not s.public_base_url or (account.get("analytics") or "on") != "on":
-            return b""
-        return snippet_for(s.public_base_url, label, slug)
+            return data
+        return data + snippet_for(s.public_base_url, label, slug)
 
     def serve_hosted(request: Request, label: str, path: str):
         """<label>.<sites_domain>: an account's projects (/<project>/...) or, for numbers without an account, one

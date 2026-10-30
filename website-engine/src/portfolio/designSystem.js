@@ -383,7 +383,12 @@ export const RULES = `WHAT MAKES IT LOOK PROFESSIONAL, NOT AI-MADE:
    If a section has no fitting photo, design it with type, rules and colour instead.
 7. Accessible: real <h1> once, logical h2/h3, buttons and links that say what they do, sufficient contrast (use text-on-accent on accent,
    text-on-deep on deep, white text only on .scrim/.band-photo).
-8. Mobile first: every grid collapses to one column under md; nothing overflows horizontally; tap targets at least 44px tall.`;
+8. Mobile first: every grid collapses to one column under md; nothing overflows horizontally; tap targets at least 44px tall.
+9. Live data: the list of things the business sells or offers (products, menu items, services, rooms, courses) is the owner's live data,
+   which they edit later from WhatsApp and their dashboard. Wrap that list in one element with data-weave-list="products" (or "menu" or
+   "services"), give every card or row data-weave-item, and inside it mark the values with data-weave-field: "name", "price",
+   "description", "category", "image" (on the <img>), and "stock" only if a quantity is shown. Write the real items as normal content;
+   every item in a list uses the same markup. One list per kind of thing; nothing else on the page gets these attributes.`;
 
 // ---------- clean-up of the model's HTML ----------
 const SLOP_CLASSES = [

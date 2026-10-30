@@ -35,6 +35,7 @@ from ..sms.service import Inbound, SmsService, address
 from ..sms.store import SmsStore
 from ..web.hosting import dir_size
 from ..web.validate import PAGE_NAME_RE
+from . import data as sitedata
 from .names import clean_call_sign, username_problem
 from .stitch import SCOPE as STITCH_SCOPE, StitchLinks
 
@@ -425,6 +426,129 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
         return {"ok": True, "marked": store.mark_leads_read(account["id"], time.time())}
 
     # ---------- sales ----------
+    # ---------- the account's own data: products, menu, services, stock ----------
+    def data_table_or_404(account: dict, name: str) -> dict:
+        table = store.data_table(account["id"], name)
+        if table is None:
+            raise HTTPException(404, "No such table")
+        return table
+
+    def data_json(table: dict) -> dict:
+        return {"name": table["name"], "label": table["label"], "fields": table["fields"], "currency": table["currency"],
+                "public": table["public"], "rows": store.data_rows(table["id"])}
+
+    @r.get("/api/account/data")
+    def data_list(request: Request):
+        account = current(request)
+        return {"tables": [{"name": t["name"], "label": t["label"], "rows": t["row_count"], "public": t["public"],
+                            "fields": t["fields"]} for t in store.data_tables(account["id"])],
+                "presets": [{"name": k, "label": v[0]} for k, v in sitedata.PRESETS.items()]}
+
+    @r.post("/api/account/data")
+    async def data_create(request: Request):
+        """A new table, from a preset (products, menu, services) or a list of fields."""
+        require_csrf(request)
+        account = current(request)
+        body = await request.json()
+        if len(store.data_tables(account["id"])) >= sitedata.MAX_TABLES:
+            raise HTTPException(400, f"You can have at most {sitedata.MAX_TABLES} tables.")
+        try:
+            preset = body.get("preset")
+            if preset in sitedata.PRESETS:
+                name = sitedata.clean_name(body.get("name") or preset)
+                label, fields = body.get("label") or sitedata.PRESETS[preset][0], sitedata.fields_of(preset)
+            else:
+                name = sitedata.clean_name(body.get("name") or body.get("label"))
+                label, fields = body.get("label") or name.replace("_", " ").title(), sitedata.clean_fields(body.get("fields"))
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+        if store.data_table(account["id"], name):
+            raise HTTPException(400, "You already have a table with that name.")
+        table = store.create_data_table(account["id"], name, str(label)[:60], fields,
+                                        str(body.get("currency") or "₹")[:4])
+        event("site.data_table_created", account=account["id"], table=name)
+        return data_json(table)
+
+    @r.get("/api/account/data/{name}")
+    def data_get(request: Request, name: str):
+        return data_json(data_table_or_404(current(request), name))
+
+    @r.post("/api/account/data/{name}/settings")
+    async def data_settings(request: Request, name: str):
+        require_csrf(request)
+        table = data_table_or_404(current(request), name)
+        body = await request.json()
+        changes = {}
+        if "label" in body:
+            changes["label"] = str(body["label"] or table["name"])[:60]
+        if "public" in body:
+            changes["public"] = bool(body["public"])
+        if "currency" in body:
+            changes["currency"] = str(body["currency"] or "₹")[:4]
+        if "fields" in body:
+            try:
+                changes["fields"] = sitedata.clean_fields(body["fields"])
+            except ValueError as e:
+                raise HTTPException(400, str(e)) from None
+        store.update_data_table(table["id"], **changes)
+        return data_json(store.data_table(table["account_id"], name))
+
+    @r.post("/api/account/data/{name}/delete")
+    def data_delete(request: Request, name: str):
+        require_csrf(request)
+        account = current(request)
+        store.delete_data_table(data_table_or_404(account, name)["id"])
+        event("site.data_table_deleted", account=account["id"], table=name)
+        return {"ok": True}
+
+    @r.post("/api/account/data/{name}/rows")
+    async def data_add_row(request: Request, name: str):
+        require_csrf(request)
+        table = data_table_or_404(current(request), name)
+        if store.data_row_count(table["id"]) >= sitedata.MAX_ROWS:
+            raise HTTPException(400, f"A table holds at most {sitedata.MAX_ROWS} rows.")
+        body = await request.json()
+        row_id = store.add_data_rows(table["id"], [sitedata.coerce(table["fields"], body.get("data") or {})])[0]
+        return {"id": row_id}
+
+    @r.post("/api/account/data/{name}/rows/{row_id}")
+    async def data_edit_row(request: Request, name: str, row_id: int):
+        require_csrf(request)
+        table = data_table_or_404(current(request), name)
+        body = await request.json()
+        if not store.update_data_row(table["id"], row_id, sitedata.coerce(table["fields"], body.get("data") or {})):
+            raise HTTPException(404, "No such row")
+        return {"ok": True}
+
+    @r.post("/api/account/data/{name}/rows/{row_id}/delete")
+    def data_delete_row(request: Request, name: str, row_id: int):
+        require_csrf(request)
+        table = data_table_or_404(current(request), name)
+        if not store.delete_data_row(table["id"], row_id):
+            raise HTTPException(404, "No such row")
+        return {"ok": True}
+
+    @r.get("/api/account/data/{name}/export.csv")
+    def data_export(request: Request, name: str):
+        table = data_table_or_404(current(request), name)
+        return Response(sitedata.export_csv(table, store.data_rows(table["id"])), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{table["name"]}.csv"'})
+
+    @r.post("/api/account/data/{name}/import")
+    async def data_import(request: Request, name: str):
+        """A spreadsheet (CSV) replaces the table's rows; columns are matched by name."""
+        require_csrf(request)
+        table = data_table_or_404(current(request), name)
+        raw = await request.body()
+        if not raw:
+            raise HTTPException(400, "Attach a .csv file.")
+        try:
+            rows = sitedata.import_csv(table, raw)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+        store.replace_data_rows(table["id"], rows)
+        return {"rows": len(rows)}
+
     @r.post("/api/account/sales/import")
     async def import_sales(request: Request):
         """Step one parses and shows what it found; step two, with confirm, stores it.
@@ -618,6 +742,7 @@ def build_site_router(settings: Settings, store: SmsStore, service: SmsService, 
         store.delete_account_sessions(account_id=account["id"])
         if stitch:
             stitch.disconnect(account["id"])
+        store.delete_account_data(account["id"])  # their products, menu and stock tables
         event("site.account_deleted", account=account["id"])
         resp = JSONResponse({"ok": True})
         resp.delete_cookie(COOKIE, path="/")

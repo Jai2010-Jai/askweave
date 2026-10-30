@@ -21,7 +21,9 @@ log = logging.getLogger("weave.sms")
 
 Action = Literal["none", "new_app", "new_website", "change_app", "rename", "status", "list_apps", "download", "switch",
                  "cancel", "retry", "publish", "analytics", "udhar_add", "udhar_settle", "udhar_query", "udhar_total", "udhar_config",
-                 "business_onboard", "pharmacy_search", "pharmacy_reorder"]
+                 "business_onboard", "pharmacy_search", "pharmacy_reorder", "stock"]
+StockOp = Literal["stock_set", "stock_add", "stock_remove", "sold_out", "available", "price", "add_item",
+                  "remove_item", "list", "low"]
 
 
 class ChatDecision(BaseModel):
@@ -36,6 +38,10 @@ class ChatDecision(BaseModel):
     amount: float | None = Field(default=None, description="Amount in INR for udhar actions.")
     due_days: int | None = Field(default=None, description="Due date in days from now for udhar_add.")
     phone: str | None = Field(default=None, description="Customer phone number or UPI ID.")
+    op: StockOp | None = Field(default=None, description="stock: what to change (see the stock action).")
+    item: str | None = Field(default=None, max_length=120, description="stock: the item's name as it appears in their list.")
+    table: str | None = Field(default=None, max_length=32, description="stock: which of their lists (e.g. products, menu), if not the main one.")
+    quantity: float | None = Field(default=None, description="stock: how many (to set, add or remove).")
 
 
 SYSTEM = """You are Weave, a smart, friendly assistant people chat with on WhatsApp, SMS or a web chat. You build
@@ -63,6 +69,16 @@ What you can build:
   * Checking balance ("Rajesh ka kitna baki hai?"): action "udhar_query", customer "Rajesh".
   * Total shop credit ("Total udhar kitna hai?"): action "udhar_total".
   * Setting UPI ID ("Mera UPI ID hai abc@upi"): action "udhar_config", phone: "abc@upi".
+- Their website's live data (products, menu, services and stock shown on their live site, listed under "Their
+  data" below; changes show on the site at once, no rebuild): action "stock" with op:
+  * "chai stock 20" / "20 chai left": op stock_set, item "chai", quantity 20.
+  * "got 10 more samosa": op stock_add, quantity 10. "sold 3 cakes": op stock_remove, quantity 3.
+  * "paneer roll is over" / "out of X": op sold_out. "X is back, 15 pieces": op available, quantity 15.
+  * "make cold coffee 120" / "chai price 25": op price, amount = the new price.
+  * "add veg puff 30 rupees, 40 pieces": op add_item, item, amount = price, quantity = stock.
+  * "remove the brownie": op remove_item. "show my products": op list. "what's running low?": op low.
+  Use the item name from their list when it clearly matches; set table only when they have several lists.
+  Your reply is replaced by what actually changed, so keep it to a short lead-in or leave it empty.
 - Medical Stores and Pharmacy Operations:
   You also help medical stores and pharmacies manage inventory, reorder depleted stock, and connect with customer requests:
   * Integrating Weave with a business ("I want to integrate Weave into my business"): action "business_onboard" (or reply asking what type of business it is).

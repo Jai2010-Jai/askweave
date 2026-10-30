@@ -396,6 +396,9 @@ async function codeFromDesign(req, engine, topic, design) {
     'content for this business (real item names, local prices, hours, area); make every navigation link point to an ' +
     'in-page section (#id); make it responsive with a working mobile menu; forms must use action="#"; remove any ' +
     'login, sign-up or payment UI; no emoji, no invented statistics or awards. Return one complete HTML document only.\n\n' +
+    'Mark the list of things the business sells (products, menu items or services) as live data: the list element ' +
+    'gets data-weave-list="products" (or "menu" or "services"), each card data-weave-item, and the values inside ' +
+    'data-weave-field="name", "price", "description", "category" and "image" (on the <img>). ' +
     'Keep the <head> (Tailwind script and tailwind.config) exactly as it is. Headlines must be written for the ' +
     'business; never reuse the customer\'s chat wording (e.g. "can you make").\n\n' +
     `STITCH DESIGN:\n${design.slice(0, 40000)}`,

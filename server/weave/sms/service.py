@@ -679,6 +679,10 @@ class SmsService:
                 lines.append(f"   Last build failed: {str(last['error'])[:300]}")
         if not projects:
             lines.append("(none yet)")
+        if account:
+            from ..site.data import chat_summary
+            data = chat_summary(self.store, account["id"])
+            lines += ["", "Their data (shown live on their sites):"] + (data or ["(none yet)"])
         job = self.store.active_job(user["id"])
         lines += ["", f"Build running now: {job['ref']} ({job['kind']}, {job['status']})" if job else "Build running now: none"]
         history = [m for m in self.store.messages_for_user(user["id"], limit=30) if m["body"]]
@@ -778,6 +782,20 @@ class SmsService:
             if "@" in upi_id:
                 parsed = UdharParseResult(action="set_upi", upi_id=upi_id)
                 return self._handle_udhar(user, parsed, body, sid)
+        if d.action == "stock" and d.op:
+            account = self.store.account_for_user(user["id"]) if user.get("account_id") else None
+            if account is None:
+                self._reply(user["phone"], user, "Sign in on your Weave dashboard first, then I can keep your "
+                                                 "products and stock up to date for you.")
+                return "stock_no_account"
+            from ..site.data import chat_change
+            qty = d.quantity
+            text = chat_change(self.store, account["id"], d.op, d.table, d.item,
+                               qty if d.op.startswith("stock") or d.op == "available" else d.amount,
+                               None if qty is None else str(qty))
+            event("sms.stock", op=d.op, phone=mask(user["phone"]))
+            self._reply(user["phone"], user, text)
+            return "stock"
         if d.action == "business_onboard":
             return self._handle_business_onboard_ask(user, body, sid)
         if d.action == "pharmacy_search":

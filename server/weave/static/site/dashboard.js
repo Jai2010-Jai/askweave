@@ -31,6 +31,7 @@
     loadTraffic();
     loadLeads();
     loadSales();
+    loadData();
     loadDigest();
   }
 
@@ -39,6 +40,122 @@
     const sym = { INR: "Rs ", USD: "$", EUR: "EUR ", GBP: "GBP " }[cur] || (cur ? cur + " " : "");
     return sym + Math.round(Math.abs(n)).toLocaleString() ;
   };
+
+  // ---------- products & stock ----------
+  let dataTables = [], dataOpen = null;
+
+  async function loadData(open) {
+    let f;
+    try {
+      f = await api("/api/account/data");
+    } catch (e) {
+      return;
+    }
+    dataTables = f.tables;
+    $("#data-preset").replaceChildren(...f.presets.map((p) => el("option", { value: p.name }, p.label)),
+      el("option", { value: "" }, "Something else..."));
+    const pick = open || (dataOpen && dataTables.some((t) => t.name === dataOpen) ? dataOpen : dataTables[0]?.name);
+    $("#data-tabs").replaceChildren(...dataTables.map((t) => el("button", {
+      class: "btn ghost small" + (t.name === pick ? " on" : ""), type: "button", onclick: () => loadData(t.name),
+    }, `${t.label || t.name} (${t.rows})`)));
+    $("#data-table").hidden = !pick;
+    if (pick) openTable(pick);
+  }
+
+  async function openTable(name) {
+    dataOpen = name;
+    const t = await api(`/api/account/data/${encodeURIComponent(name)}`);
+    $("#data-public").checked = t.public;
+    $("#data-export").href = `/api/account/data/${encodeURIComponent(name)}/export.csv`;
+    const head = el("tr", {}, ...t.fields.map((f) => el("th", {}, f.label)), el("th", {}, ""));
+    const rows = t.rows.map((r) => dataRow(t, r));
+    $("#data-grid").replaceChildren(el("thead", {}, head), el("tbody", {}, ...rows));
+    $("#data-status").textContent = t.rows.length ? "" : "No items yet.";
+  }
+
+  function cellValue(f, v) {
+    if (v === null || v === undefined) return "";
+    return String(v);
+  }
+
+  function dataRow(t, r) {
+    const inputs = {};
+    const save = async () => {
+      const data = {};
+      for (const f of t.fields) data[f.key] = f.type === "yesno" ? inputs[f.key].checked : inputs[f.key].value;
+      try {
+        await api(`/api/account/data/${encodeURIComponent(t.name)}/rows/${r.id}`, { data });
+        $("#data-status").textContent = "Saved. Your live site has it now.";
+        if (inputs.stock) inputs.stock.classList.toggle("low", inputs.stock.value !== "" && Number(inputs.stock.value) <= 5);
+      } catch (e) {
+        $("#data-status").textContent = e.message;
+      }
+    };
+    const cells = t.fields.map((f) => {
+      const v = r.data[f.key];
+      const input = f.type === "yesno"
+        ? el("input", { type: "checkbox", checked: !!v, onchange: save })
+        : el("input", { type: "text", inputmode: f.type === "money" || f.type === "number" ? "decimal" : null,
+          class: (f.type === "money" || f.type === "number" ? "num" : "")
+            + (f.key === "stock" && v !== null && v !== undefined && v !== "" && Number(v) <= 5 ? " low" : ""),
+          placeholder: f.type === "image" ? "https://..." : "", value: cellValue(f, v), onchange: save });
+      inputs[f.key] = input;
+      return el("td", {}, input);
+    });
+    const del = el("button", { class: "del", type: "button", title: "Delete", "aria-label": "Delete item",
+      onclick: async () => {
+        if (!confirm(`Delete ${r.data.name || "this item"}?`)) return;
+        await api(`/api/account/data/${encodeURIComponent(t.name)}/rows/${r.id}/delete`, {});
+        loadData(t.name);
+      } }, "×");
+    return el("tr", {}, ...cells, el("td", {}, del));
+  }
+
+  $("#data-add").addEventListener("click", async () => {
+    if (!dataOpen) return;
+    await api(`/api/account/data/${encodeURIComponent(dataOpen)}/rows`, { data: { name: "New item" } });
+    loadData(dataOpen);
+  });
+  $("#data-public").addEventListener("change", async () => {
+    await api(`/api/account/data/${encodeURIComponent(dataOpen)}/settings`, { public: $("#data-public").checked });
+    $("#data-status").textContent = $("#data-public").checked ? "Shown on your live sites." : "Hidden from your live sites.";
+  });
+  $("#data-delete").addEventListener("click", async () => {
+    if (!dataOpen || !confirm("Delete this whole list? Your sites will go back to the items they were built with.")) return;
+    await api(`/api/account/data/${encodeURIComponent(dataOpen)}/delete`, {});
+    dataOpen = null;
+    loadData();
+  });
+  $("#data-create").addEventListener("click", async () => {
+    const preset = $("#data-preset").value;
+    let body = { preset };
+    if (!preset) {
+      const label = prompt("What's the list called? (e.g. Rooms, Courses)");
+      if (!label) return;
+      const cols = prompt("Its columns, separated by commas", "name, price, description, image");
+      if (!cols) return;
+      body = { label, fields: cols.split(",").map((c) => ({ label: c.trim() })).filter((c) => c.label) };
+    }
+    try {
+      const t = await api("/api/account/data", body);
+      loadData(t.name);
+    } catch (e) {
+      $("#data-note").textContent = e.message;
+    }
+  });
+  $("#data-import").addEventListener("click", () => $("#data-file").click());
+  $("#data-file").addEventListener("change", async () => {
+    const file = $("#data-file").files[0];
+    if (!file || !dataOpen) return;
+    if (!confirm(`Replace every item in this list with the rows in ${file.name}?`)) { $("#data-file").value = ""; return; }
+    const res = await fetch(`/api/account/data/${encodeURIComponent(dataOpen)}/import`, {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "text/csv", "X-Weave": "1" }, body: file,
+    });
+    const data = await res.json().catch(() => ({}));
+    $("#data-file").value = "";
+    $("#data-status").textContent = res.ok ? `${data.rows} items loaded.` : (data.detail || "That file couldn't be read.");
+    if (res.ok) loadData(dataOpen);
+  });
 
   async function loadSales() {
     let f;

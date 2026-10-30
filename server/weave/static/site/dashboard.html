@@ -59,6 +59,29 @@
     <section class="card"><ul class="projects" id="trash"></ul></section>
   </div>
 
+  <h2>Your products &amp; stock</h2>
+  <section class="card" id="data">
+    <div class="hint" id="data-note">What you sell, with prices and stock. Your live sites show it straight away, and you
+      can change it from WhatsApp too: "chai stock 20", "samosa price 15", "what's low?".</div>
+    <div class="row data-tabs" id="data-tabs"></div>
+    <div id="data-table" hidden>
+      <div class="row data-tools">
+        <label class="check small"><input type="checkbox" id="data-public"> Show on my live sites</label>
+        <a class="btn ghost small" id="data-export" href="#">Download CSV</a>
+        <input id="data-file" type="file" accept=".csv,text/csv" hidden>
+        <button class="btn ghost small" type="button" id="data-import">Upload CSV</button>
+        <button class="btn danger small" type="button" id="data-delete">Delete list</button>
+      </div>
+      <div class="data-grid-wrap"><table class="data-grid" id="data-grid"></table></div>
+      <div class="row actions"><button class="btn small" type="button" id="data-add">Add item</button>
+        <span class="hint" id="data-status"></span></div>
+    </div>
+    <div class="row data-new">
+      <select id="data-preset"></select>
+      <button class="btn ghost small" type="button" id="data-create">New list</button>
+    </div>
+  </section>
+
   <h2>Your sales</h2>
   <section class="card">
     <div class="stats" id="sales-stats" hidden></div>

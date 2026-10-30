@@ -528,6 +528,13 @@ class SmsWorker:
             if used > self.s.user_storage_mb * 1_000_000:
                 raise ValueError(f"storage limit of {self.s.user_storage_mb} MB reached")
             publish_project(user_root, site_dir, slug)
+            try:  # the products, menu or services on a new site become the owner's editable data
+                from ..site.data import seed_from_site
+
+                if created := seed_from_site(self.store, account["id"], site_dir):
+                    event("sms.data_seeded", account=account["id"], tables=",".join(created))
+            except Exception:  # noqa: BLE001 - the site is live either way
+                logging.getLogger("weave.sms").warning("seeding site data failed", exc_info=True)
             url = project_url(account["username"], slug, self.s.sites_domain)
             self.store.update_project(project["id"], deploy_url=url, deploy_site_id=f"{account['username']}/{slug}",
                                       slug=slug)

@@ -60,6 +60,25 @@ header (`weave/web/hosting.py`). Hosted pages get the same CSP sandbox as previe
 exact version is uploaded to a `*.netlify.app` site. It is off in production and was only tested against a fake
 Netlify API.
 
+## Live data: products, menu, services and stock
+
+Every account has its own data tables (`weave/sms/data_store.py`, logic in `weave/site/data.py`), so a live site is
+not frozen at build time.
+
+- **Marking:** the website generator marks the list of things a business sells with `data-weave-list="products"`
+  (or `menu`, `services`), each card with `data-weave-item`, and the values with `data-weave-field="name|price|..."`.
+- **Seeding:** when a site is first published to an account, those items become the owner's table. A table that
+  already exists is never overwritten by a rebuild.
+- **Serving:** each page served from `<username>.<sites_domain>` gets the account's public tables added before
+  `</body>`, with a small script that redraws each marked list (one copy of the first card per row). Rows with
+  stock 0, or `available` off, are marked "Sold out". The page stays sandboxed with `connect-src 'none'`: the data
+  travels inside the page. The page's ETag includes the data version, so a change shows on the next visit.
+- **Managing:** the dashboard's "Your products & stock" section edits rows, uploads and downloads CSV, and can
+  hide a table from the sites. On WhatsApp the chat AI's `stock` action handles "chai stock 20", "sold 3 cakes",
+  "samosa price 15", "add veg puff 30 rupees, 40 pieces", "remove the brownie", "show my products" and
+  "what's low?". The reply says what actually changed, not what the AI guessed.
+- **Limits:** 20 tables per account, 2,000 rows per table, 30 fields. Data is deleted with the account.
+
 ## Limitations
 
 - Websites are single static pages, with optional design options 2 and 3: no backend, logins, databases, payments

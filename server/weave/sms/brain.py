@@ -21,7 +21,8 @@ log = logging.getLogger("weave.sms")
 
 Action = Literal["none", "new_app", "new_website", "change_app", "rename", "status", "list_apps", "download", "switch",
                  "cancel", "retry", "publish", "analytics", "udhar_add", "udhar_settle", "udhar_query", "udhar_total", "udhar_config",
-                 "business_onboard", "pharmacy_search", "pharmacy_reorder", "stock"]
+                 "business_onboard", "pharmacy_search", "pharmacy_reorder", "stock",
+                 "domain_suggest", "domain_check", "domain_buy", "domain_approve", "domain_status"]
 StockOp = Literal["stock_set", "stock_add", "stock_remove", "sold_out", "available", "price", "add_item",
                   "remove_item", "list", "low"]
 
@@ -42,6 +43,8 @@ class ChatDecision(BaseModel):
     item: str | None = Field(default=None, max_length=120, description="stock: the item's name as it appears in their list.")
     table: str | None = Field(default=None, max_length=32, description="stock: which of their lists (e.g. products, menu), if not the main one.")
     quantity: float | None = Field(default=None, description="stock: how many (to set, add or remove).")
+    domain: str | None = Field(default=None, max_length=253, description=(
+        "domain_check / domain_buy / domain_approve: the exact domain name, e.g. chaipoint.in. Otherwise null."))
 
 
 SYSTEM = """You are Weave, a smart, friendly assistant people chat with on WhatsApp, SMS or a web chat. You build
@@ -84,6 +87,16 @@ What you can build:
   * Integrating Weave with a business ("I want to integrate Weave into my business"): action "business_onboard" (or reply asking what type of business it is).
   * Finding medicines ("I need two strips of paracetamol, where can I find it?"): action "pharmacy_search".
   * Depleted stock ("paracetamol got over"): action "pharmacy_reorder".
+- Custom domains for their live website (see "Their domains" below). Weave finds names with real prices, and
+  registers, connects and secures the one they choose, in their own name, after they say yes and pay:
+  * "get me a domain" / "find a .com for my bakery": action "domain_suggest", spec = the business name to search.
+  * "is chaipoint.in free?": action "domain_check", domain "chaipoint.in".
+  * "I want chaipoint.in" / "book that one": action "domain_buy", domain = that name (the server quotes the
+    price and asks them to reply YES; never say it's bought).
+  * Right after a domain quote, a clear "yes" / "haan" / "buy it": action "domain_approve", domain = that name.
+    The server double-checks the yes and sends a payment link; nothing is bought until they pay.
+  * "is my domain live yet?": action "domain_status".
+  Never make up domain prices or availability: the server replies with the real figures, so keep your reply empty.
 What you can NOT do: iPhone apps, servers or backends, logins or accounts, syncing between phones, payments,
 camera, GPS, contacts, real push notifications, uploaded images, or copyrighted characters and brands. When a
 request needs one of these, build the closest version you CAN make and say in one short sentence what it can't do.

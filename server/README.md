@@ -20,6 +20,7 @@ Dashboard (Google) ────┘                            └─ Website: AI
 | `weave/site/` | askweave.xyz accounts: Google sign-in, dashboard API, abuse reports |
 | `weave/core/` | AI clients (`gemini.py`, `glm.py`), Android build pipeline (`jobs.py`, `builder.py`, `validation.py`, `prompts.py`) |
 | `weave/web/` | Website builds (`builder.py` + `bridge.mjs`), validation, hosting, optional Netlify publish |
+| `weave/domains/` | Custom domains: suggest, approve, pay, register, DNS, HTTPS, live, renew, behind swappable providers (OpenSRS, Cloudflare, Dodo Payments; fakes for tests). See [`docs/DOMAINS.md`](docs/DOMAINS.md) |
 | `weave/analytics/` | Visits to hosted sites: counting and buffering (`collector.py`), the numbers people are shown (`metrics.py`). See [`docs/ANALYTICS.md`](docs/ANALYTICS.md) |
 | `weave/static/` | Pages served by the server: local dashboard, `/chat`, `/start`, `/dashboard`, terms, privacy |
 | `android_template/` | The Gradle project generated apps are built in |

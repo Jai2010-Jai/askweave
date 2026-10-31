@@ -20,6 +20,7 @@ from .accounts_store import AccountsMixin
 from .analytics_store import AnalyticsMixin
 from .pharmacy_store import PharmacyMixin
 from .data_store import DataMixin
+from .domains_store import DomainsMixin
 from .udhar_store import UdharMixin
 from ..docprep.store_mixin import DocprepMixin
 
@@ -144,7 +145,7 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin, DocprepMixin, PharmacyMixin, DataMixin):
+class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin, DocprepMixin, PharmacyMixin, DataMixin, DomainsMixin):
     def __init__(self, path: Path):
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -200,6 +201,7 @@ class SmsStore(AccountsMixin, AnalyticsMixin, UdharMixin, DocprepMixin, Pharmacy
         self._migrate_docprep(c)
         self._migrate_pharmacy(c)
         self._migrate_data(c)
+        self._migrate_domains(c)  # needs accounts and projects
 
     # ---------- connection ----------
     def _conn(self) -> sqlite3.Connection:

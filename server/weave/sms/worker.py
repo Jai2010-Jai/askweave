@@ -52,6 +52,7 @@ class SmsWorker:
         self.service = service
         self.voice = voice
         self.nlg = None
+        self.domains = None  # weave.domains.DomainService when custom domains are on
         # Visits to hosted sites land here from the request path and are written by _analytics_loop.
         self.views = ViewBuffer() if settings.analytics else None
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
@@ -86,6 +87,8 @@ class SmsWorker:
         loops += [(f"sms-jobs-android-{i}", self._job_loop, ("android",)) for i in range(self.s.max_concurrent_builds)]
         if self.websites is not None:
             loops += [(f"sms-jobs-web-{i}", self._job_loop, ("website",)) for i in range(self.s.website_workers)]
+        if self.domains is not None:
+            loops.append(("sms-domains", self._domain_loop, ()))
         for name, target, args in loops:
             self._spawn(name, target, *args)
         self.start_analytics()
@@ -126,6 +129,20 @@ class SmsWorker:
                 event("sms.worker_error", logging.ERROR)
                 logging.getLogger("weave.sms").exception("sms job loop error")
                 self._stop.wait(5)
+
+    def _domain_loop(self) -> None:
+        """Custom domains: one due step at a time (registering, DNS, HTTPS...), plus quote expiry and renewals."""
+        last_housekeeping = 0.0
+        while not self._stop.is_set():
+            try:
+                if time.time() - last_housekeeping > 60:
+                    self.domains.housekeeping()
+                    last_housekeeping = time.time()
+                if not self.domains.run_due(self.worker_id):
+                    self._stop.wait(5)
+            except Exception:  # noqa: BLE001 - the loop must survive anything
+                logging.getLogger("weave.domains").exception("domain loop error")
+                self._stop.wait(10)
 
     def _outbox_loop(self) -> None:
         while not self._stop.is_set():

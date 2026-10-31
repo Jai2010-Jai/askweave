@@ -79,7 +79,7 @@ def _hostname(netloc: str | None) -> str:
 
 def create_app(settings: Settings | None = None, orchestrator: Orchestrator | None = None,
                sms_provider=None, start_sms_worker: bool | None = None, website_builder=None,
-               publisher=None) -> FastAPI:
+               publisher=None, domain_providers=None) -> FastAPI:
     s = settings or default_settings
     gemini = make_ai_client(s)
     orch = orchestrator or Orchestrator(s, gemini)
@@ -122,8 +122,27 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             sms.nlg = nlg_presenter
         from .site.routes import PUBLIC_PREFIXES as SITE_PREFIXES
         public_prefixes: tuple[str, ...] = PUBLIC_PREFIXES + SITE_PREFIXES
+        from .domains import make_domain_service
+        from .sms import messages as M
+        from .sms.service import address as sms_address
+
+        def tell_account(account_id: int, text: str) -> None:
+            """A domain update, sent over the channel the account's linked phone uses (like a build update)."""
+            user = sms_store.account_user(account_id)
+            if user is None or user["status"] != "active":
+                return
+            limit = M.MAX_CHARS if user["channel"] == "sms" else M.MAX_CHARS_CHAT
+            sms_service.queue_text(sms_address(user["phone"], user["channel"]), user["id"], text, limit, None,
+                                   user["reply_from"] if user["channel"] != "web" else None)
+
+        domains = make_domain_service(s, sms_store, notify=tell_account, providers=domain_providers)
+        sms_service.domains = sms.domains = domains
+        if domains is not None:
+            from .domains.routes import PUBLIC_PREFIXES as DOMAIN_PREFIXES
+            public_prefixes += DOMAIN_PREFIXES
     else:
         public_prefixes = ()
+        domains = None
     # The worker also serves the web chat, so it runs whenever messaging isn't switched off.
     run_worker = (sms is not None and s.sms_worker == "embedded") if start_sms_worker is None else start_sms_worker
     # With an external worker the build and outbox threads live in the other process, but page views are
@@ -163,6 +182,12 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             if request.method not in ("GET", "HEAD"):
                 return PlainTextResponse("Method not allowed", status_code=405)
             return serve_hosted(request, hosted, request.url.path)
+        route = custom_domain(host) if domains is not None else None
+        if route is not None:
+            # A customer's own domain (weave.domains): only ever their one project, public and read-only like above.
+            if request.method not in ("GET", "HEAD"):
+                return PlainTextResponse("Method not allowed", status_code=405)
+            return serve_custom(request, route, host, request.url.path)
         if request.method == "GET" and request.url.path == "/get":
             # The phone client APK holds no secrets; anyone on the network may download it.
             return await call_next(request)
@@ -302,6 +327,38 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
                                                            "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"})
         return PlainTextResponse(missing, status_code=404)
 
+    def custom_domain(host: str) -> dict | None:
+        """The domain row for a Host that is none of ours (not the app, not a subdomain of sites_domain). A host no
+        customer has connected gets None, and the request carries on to the normal (access-code) checks."""
+        if not host or host in LOCAL_HOSTS or "." not in host:
+            return None
+        ours = (s.sites_domain or "").lower()
+        if ours and (host == ours or host.endswith("." + ours)) or host == _hostname(urlsplit(s.public_base_url).netloc):
+            return None
+        from .domains.states import ROUTABLE
+        return sms.store.domain_route(host, ROUTABLE)
+
+    def serve_custom(request: Request, route: dict, host: str, path: str):
+        if path == "/.well-known/weave-domain":  # the deployment check (weave.domains.HttpsVerifier) reads this
+            return PlainTextResponse(route["verify_token"], headers={"Cache-Control": "no-store"})
+        if host.startswith("www."):
+            query = f"?{request.url.query}" if request.url.query else ""
+            return RedirectResponse(f"https://{route['name']}{path}{query}", status_code=308)
+        if route["account_status"] != "active":
+            return PlainTextResponse("This site is unavailable.", status_code=451)
+        owner = sms.store.account_user(route["account_id"])
+        # The project must still exist and still belong to the account that owns the domain.
+        if not route["slug"] or route["deleted_at"] or owner is None or owner["id"] != route["user_id"]:
+            return PlainTextResponse(missing, status_code=404)
+        label, slug = route["username"], route["slug"]
+        kind, value = user_file(s.user_sites_dir / label, f"/{slug}/{path.lstrip('/')}")
+        if kind != "file":
+            return PlainTextResponse(missing, status_code=404)
+        account = sms.store.one("SELECT * FROM accounts WHERE id = ?", (route["account_id"],))
+        count_view(request, account, label, slug, value.name)
+        return hosted_page(request, value, {**site_headers, "Content-Security-Policy": PREVIEW_CSP},
+                           site_snippet(account, label, slug))
+
     def get_job(job_id: str) -> dict:
         if not JOB_ID_RE.fullmatch(job_id):
             raise HTTPException(404, "build not found")
@@ -427,8 +484,14 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
             # New websites are designed in the owner's own Stitch account when they've connected it.
             sms.service.web.design_credentials = stitch.credentials
         app.include_router(build_site_router(s, sms.store, sms.service, orch.store, worker=sms, stitch=stitch))
+        if domains is not None:
+            from .domains.routes import build_domain_router
+            from .site.routes import COOKIE as SITE_COOKIE
+
+            app.include_router(build_domain_router(s, sms.store, domains, cookie=SITE_COOKIE))
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     app.state.orchestrator = orch
     app.state.sms = sms
+    app.state.domains = domains
     return app

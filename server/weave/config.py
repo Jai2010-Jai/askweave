@@ -122,6 +122,14 @@ def find_cloudflared() -> str | None:
     return None
 
 
+def _float_env(name: str, default: float, lo: float, hi: float) -> float:
+    try:
+        value = float(os.environ.get(name, "").strip() or default)
+    except ValueError:
+        return default
+    return min(max(value, lo), hi)
+
+
 def _str_env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
@@ -274,6 +282,40 @@ class Settings:
     website_deploy: str = field(default_factory=lambda: _choice_env("WEAVE_WEBSITE_DEPLOY", "off", {"off", "netlify", "weave"}))
     sites_domain: str = field(default_factory=lambda: _str_env("WEAVE_SITES_DOMAIN").lower().strip("."))
     netlify_auth_token: str = field(default_factory=lambda: _str_env("NETLIFY_AUTH_TOKEN"), repr=False)
+
+    # ---- Custom domains (weave/domains, docs/DOMAINS.md) ----
+    # off | sandbox (every provider faked: try the whole flow, nothing is bought) | on (real providers where
+    # credentials are set; purchasing stays off until registrar and payments are both real).
+    domains: str = field(default_factory=lambda: _choice_env("WEAVE_DOMAINS", "off", {"off", "sandbox", "on"}))
+    # The second key for spending real money: needed as well as OPENSRS_ENV=live and DODO_PAYMENTS_ENV=live.
+    domain_live_purchases: bool = field(default_factory=lambda: _choice_env(
+        "WEAVE_DOMAIN_LIVE_PURCHASES", "off", {"on", "off"}) == "on")
+    opensrs_username: str = field(default_factory=lambda: _str_env("OPENSRS_USERNAME"))
+    opensrs_api_key: str = field(default_factory=lambda: _str_env("OPENSRS_API_KEY"), repr=False)
+    opensrs_env: str = field(default_factory=lambda: _choice_env("OPENSRS_ENV", "test", {"test", "live"}))
+    opensrs_currency: str = field(default_factory=lambda: _str_env("OPENSRS_CURRENCY", "USD").upper() or "USD")
+    cloudflare_api_token: str = field(default_factory=lambda: _str_env("CLOUDFLARE_API_TOKEN"), repr=False)
+    cloudflare_account_id: str = field(default_factory=lambda: _str_env("CLOUDFLARE_ACCOUNT_ID"))
+    cloudflare_tunnel_id: str = field(default_factory=lambda: _str_env("CLOUDFLARE_TUNNEL_ID"))
+    # Where the tunnel sends a customer domain's requests: this server.
+    domain_origin: str = field(default_factory=lambda: _str_env("WEAVE_DOMAIN_ORIGIN"))
+    dodo_api_key: str = field(default_factory=lambda: _str_env("DODO_PAYMENTS_API_KEY"), repr=False)
+    dodo_webhook_key: str = field(default_factory=lambda: _str_env("DODO_PAYMENTS_WEBHOOK_KEY"), repr=False)
+    dodo_env: str = field(default_factory=lambda: _choice_env("DODO_PAYMENTS_ENV", "test", {"test", "live"}))
+    # A one-time "Pay What You Want" product: each checkout sets its amount to the domain's quote.
+    dodo_domain_product_id: str = field(default_factory=lambda: _str_env("DODO_DOMAIN_PRODUCT_ID"))
+    # Customer prices: registrar cost x WEAVE_DOMAIN_FX_RATE (registrar currency -> WEAVE_DOMAIN_CURRENCY)
+    # x (1 + markup), rounded up to a whole unit. The currency must be the Dodo product's.
+    domain_currency: str = field(default_factory=lambda: _str_env("WEAVE_DOMAIN_CURRENCY", "USD").upper() or "USD")
+    domain_fx_rate: float = field(default_factory=lambda: _float_env("WEAVE_DOMAIN_FX_RATE", 1.0, 0.0001, 100_000))
+    domain_markup_percent: int = field(default_factory=lambda: _int_env("WEAVE_DOMAIN_MARKUP_PERCENT", 20, 0, 500))
+    # Names whose first year would cost the customer more than this (smallest unit) are never offered: premiums.
+    domain_max_price_minor: int = field(default_factory=lambda: _int_env(
+        "WEAVE_DOMAIN_MAX_PRICE_MINOR", 5000, 100, 100_000_000))
+    domain_tlds: list[str] = field(default_factory=lambda: _list_env("WEAVE_DOMAIN_TLDS")
+                                   or ["com", "in", "co.in", "net", "org", "shop", "store"])
+    domain_quote_minutes: int = field(default_factory=lambda: _int_env("WEAVE_DOMAIN_QUOTE_MINUTES", 30, 5, 1440))
+    domain_payment_hours: int = field(default_factory=lambda: _int_env("WEAVE_DOMAIN_PAYMENT_HOURS", 24, 1, 168))
 
     @property
     def builds_dir(self) -> Path:

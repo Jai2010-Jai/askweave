@@ -96,6 +96,7 @@ class SmsService:
         self._req = threading.local()  # per-request: our number the inbound message was sent to
         self.brain = None  # ChatBrain when plain-language chat runs through the AI backend
         self.web = None  # weave.web.builder.WebsiteBuilder; None = no website builder in this process
+        self.domains = None  # weave.domains.DomainService when custom domains are on
         self.researcher = None  # weave.web.research.Researcher: researches a website idea and asks tailored questions
         self.nlg = None  # weave.sms.nlg.NlgPresenter; presents verified facts naturally
         self.translator = None  # weave.sms.translate.Translator; puts messages into each person's language
@@ -683,6 +684,8 @@ class SmsService:
             from ..site.data import chat_summary
             data = chat_summary(self.store, account["id"])
             lines += ["", "Their data (shown live on their sites):"] + (data or ["(none yet)"])
+            if self.domains is not None:
+                lines += ["", "Their domains:"] + (self._domain_lines(account) or ["(none yet)"])
         job = self.store.active_job(user["id"])
         lines += ["", f"Build running now: {job['ref']} ({job['kind']}, {job['status']})" if job else "Build running now: none"]
         history = [m for m in self.store.messages_for_user(user["id"], limit=30) if m["body"]]
@@ -796,6 +799,8 @@ class SmsService:
             event("sms.stock", op=d.op, phone=mask(user["phone"]))
             self._reply(user["phone"], user, text)
             return "stock"
+        if d.action.startswith("domain_"):
+            return self._domain_action(user, d, body, project)
         if d.action == "business_onboard":
             return self._handle_business_onboard_ask(user, body, sid)
         if d.action == "pharmacy_search":
@@ -810,6 +815,110 @@ class SmsService:
         else:
             self._reply(user["phone"], user, "Sorry, I didn't catch that. What would you like to build?")
         return "chat"
+
+    # ---------- custom domains (weave.domains) ----------
+    def _domain_lines(self, account: dict) -> list[str]:
+        from ..domains.service import money
+        out = []
+        for dom in self.store.account_domains(account["id"])[:5]:
+            line = f"{dom['name']}: {dom['state']}"
+            order = self.store.latest_domain_order(dom["id"])
+            if order and order["status"] == "quoted":
+                line += f" (quoted {money(order['amount_minor'], order['currency'])}, waiting for their YES)"
+            out.append(line + (f" https://{dom['name']}/" if dom["state"] in ("LIVE", "EXPIRING") else ""))
+        return out
+
+    def _domain_action(self, user: dict, d, body: str, project: dict | None) -> str:
+        from ..domains.providers import ProviderError
+        from ..domains.service import DomainError, is_yes, money
+
+        def say(text: str) -> None:
+            self._reply(user["phone"], user, text)
+
+        account = self.store.account_for_user(user["id"]) if user.get("account_id") else None
+        if account is None:
+            say("Sign in on your Weave dashboard first, then I can get your website its own domain.")
+            return "domain_no_account"
+        dom = self.domains
+        if dom is None:
+            say("Custom domains aren't available yet. Your site stays live at its Weave address.")
+            return "domain_off"
+        dashboard = f"{self.s.public_base_url}/dashboard" if self.s.public_base_url else "your Weave dashboard"
+        try:
+            if d.action == "domain_suggest":
+                query = (d.spec or d.domain or (project or self._active_project(user) or {}).get("name") or "").strip()
+                found = dom.suggest(query)
+                if not found:
+                    say(f"I couldn't find a good free name for \"{query}\". Tell me another name to try.")
+                    return "domain_none"
+                lines = [f"{i}. {r['domain']}: {money(r['first_year_minor'], r['currency'])} first year, then "
+                         f"{money(r['renewal_minor'], r['currency'])}/yr" for i, r in enumerate(found, 1)]
+                say("Available right now:\n" + "\n".join(lines) + "\nTell me which one you want.")
+                return "domain_suggested"
+            if d.action == "domain_check":
+                if not d.domain:
+                    say("Which domain should I check?")
+                    return "domain_unclear"
+                r = dom.check(d.domain)
+                say(f"{r['domain']} is free: {money(r['first_year_minor'], r['currency'])} for the first year, "
+                    f"then {money(r['renewal_minor'], r['currency'])} a year. Want it?" if r["available"]
+                    else f"{r['domain']} isn't available. Want me to suggest some that are?")
+                return "domain_checked"
+            if d.action == "domain_buy":
+                if not d.domain:
+                    say("Which domain would you like?")
+                    return "domain_unclear"
+                row, order = dom.quote(account, d.domain, project["id"] if project else None, actor="chat")
+                say(dom.quote_text(row, order))
+                return "domain_quoted"
+            if d.action == "domain_approve":
+                waiting = []
+                for row in self.store.account_domains(account["id"]):
+                    order = self.store.latest_domain_order(row["id"])
+                    if order and order["status"] == "quoted" and row["state"] in ("AWAITING_APPROVAL", "EXPIRING"):
+                        waiting.append((row, order))
+                if d.domain:
+                    try:
+                        from ..domains.service import clean_domain
+                        wanted = clean_domain(d.domain)
+                    except DomainError:
+                        wanted = ""
+                    waiting = [(r, o) for r, o in waiting if r["name"] == wanted]
+                if not waiting:
+                    say("There's no domain waiting for your OK. Tell me which one you want and I'll quote it.")
+                    return "domain_nothing_to_approve"
+                if len(waiting) > 1:
+                    say("Which one? " + ", ".join(r["name"] for r, _ in waiting))
+                    return "domain_unclear"
+                row, order = waiting[0]
+                # The one place a chat message can lead to a payment: their own words must be a plain yes, whatever
+                # the AI decided, and it only opens a checkout for the quote we sent them.
+                if not is_yes(body):
+                    event("sms.domain_approve_overruled", phone=mask(user["phone"]))
+                    say(f"To buy {row['name']} for {money(order['amount_minor'], order['currency'])}, reply YES.")
+                    return "domain_needs_yes"
+                out = dom.approve(account, row["id"], order["id"], order["amount_minor"], via="chat", text=body,
+                                  return_url=dashboard if dashboard.startswith("https://") else "https://askweave.xyz/")
+                say(f"Great. Pay {money(out['amount_minor'], out['currency'])} here: {out['checkout_url']}\n"
+                    f"I'll register {row['name']} in your name as soon as the payment clears.")
+                return "domain_checkout"
+            if d.action == "domain_status":
+                say(dom.status_text(account))
+                return "domain_status"
+        except DomainError as e:
+            if e.code == "contact":
+                say(f"{e.message[:-1]} on {dashboard} (Domains), then reply YES again.")
+            elif e.code == "which_project":
+                names = ", ".join(p["name"] for p in e.extra.get("projects", [])) or "none are live yet"
+                say(f"Which website should the domain show? ({names})")
+            else:
+                say(e.message)
+            return f"domain_{e.code}"
+        except ProviderError:
+            say("The domain service isn't answering right now. Try again in a few minutes.")
+            return "domain_provider_error"
+        say("Sorry, I didn't catch that. Which domain?")
+        return "domain_unclear"
 
     def _command(self, user: dict, word: str, rest: str, sid: str) -> str | None:
         """Exact commands (HELP, STATUS, USE 2, ...). Returns None for anything that reads like normal speech."""

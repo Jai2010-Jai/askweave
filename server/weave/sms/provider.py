@@ -205,6 +205,10 @@ class OffProvider:
         return False
 
 
+# +1 555 is not a real area code, so these numbers can never belong to a real WhatsApp user.
+SIMULATOR_PREFIX = "whatsapp:+1555"
+
+
 class ChannelRouter:
     """Sends 'web:' addresses to the Weave web chat (stored in SQLite, nothing leaves the machine);
     routes 'whatsapp:' to Meta or Twilio depending on WEAVE_WHATSAPP_PROVIDER;
@@ -225,6 +229,9 @@ class ChannelRouter:
     def send(self, to: str, body: str, status_callback: str | None, sender: str | None = None) -> SendResult:
         if to.startswith("web:"):
             return SendResult(sid=f"WEB{time.time_ns()}", status="delivered")
+        if to.startswith(SIMULATOR_PREFIX):
+            # The WhatsApp simulator's numbers: the reply is already stored, which is all the simulator reads.
+            return SendResult(sid=f"SIM{time.time_ns()}", status="delivered")
 
         if to.startswith("whatsapp:"):
             wp = self.settings.whatsapp_provider if self.settings else "twilio"

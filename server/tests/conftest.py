@@ -24,7 +24,7 @@ BROKEN = GOOD.replace('Text("ok")', 'Txt("ok")')
 
 class ReadySettings(Settings):
     def doctor(self) -> dict:
-        return {"ready": True, "checks": []}
+        return {"ready": True, "checks": [], "blocking": []}
 
 
 @pytest.fixture

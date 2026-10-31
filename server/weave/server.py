@@ -158,6 +158,9 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         presented = bearer[7:] if bearer.lower().startswith("bearer ") else ""
         authed = False
         hosted = label_for_host(host, s.sites_domain) if s.website_deploy == "weave" else None
+        if hosted is None and s.website_deploy == "weave" and client_ip in LOOPBACK_CLIENTS:
+            # <name>.localhost: the same site on the Weave computer, where *.<sites_domain> may point elsewhere.
+            hosted = label_for_host(host, "localhost")
         if hosted:
             # A customer site on <name>.<sites_domain>: public, read-only, sandboxed. Never reaches the API.
             if request.method not in ("GET", "HEAD"):
@@ -259,7 +262,7 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         return Response(head + snippet + tail, media_type="text/html; charset=utf-8",
                         headers={**headers, "ETag": etag})
 
-    def site_snippet(account: dict, label: str, slug: str) -> bytes:
+    def site_snippet(account: dict, label: str, slug: str, base: str = "") -> bytes:
         """What goes before </body>: the account's live data (products, menu, stock) first, then the visit-and-
         contact script unless counting is off or we don't know our own address."""
         data = b""
@@ -268,9 +271,10 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
                 data = data_snippets.for_account(account["id"])
             except Exception:  # noqa: BLE001 - a page must never fail because of its data
                 log.warning("site data for account %s failed", account["id"], exc_info=True)
-        if not s.analytics or not s.public_base_url or (account.get("analytics") or "on") != "on":
+        base = base or s.public_base_url
+        if not s.analytics or not base or (account.get("analytics") or "on") != "on":
             return data
-        return data + snippet_for(s.public_base_url, label, slug)
+        return data + snippet_for(base, label, slug)
 
     def serve_hosted(request: Request, label: str, path: str):
         """<label>.<sites_domain>: an account's projects (/<project>/...) or, for numbers without an account, one
@@ -289,8 +293,11 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         if kind == "file":
             slug = value.parent.name
             count_view(request, account, label, slug, value.name)
+            # Viewed as <name>.localhost, the contact form and visit counter talk to this computer, not the public URL.
+            base = (f"http://127.0.0.1:{request.url.port}" if _hostname(request.headers.get("host")).endswith(".localhost")
+                    else "")
             return hosted_page(request, value, {**site_headers, "Content-Security-Policy": PREVIEW_CSP},
-                               site_snippet(account, label, slug))
+                               site_snippet(account, label, slug, base))
         if kind == "index":
             count_view(request, account, label, "", "index.html")
             user = sms.store.account_user(account["id"])
@@ -418,6 +425,9 @@ def create_app(settings: Settings | None = None, orchestrator: Orchestrator | No
         app.include_router(build_router(s, sms.store, sms.service, sms.provider, orch.store, sms.voice,
                                         websites=sms.service.web))
         app.include_router(build_chat_router(s, sms.store, sms.service, orch.store))
+        from .sms.simulator import build_simulator_router
+
+        app.include_router(build_simulator_router(s, sms.store))
         from .site.routes import build_site_router
 
         from .site.stitch import StitchLinks

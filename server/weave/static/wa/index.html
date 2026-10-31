@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="referrer" content="no-referrer">
+  <title>WhatsApp Simulator</title>
+  <link rel="stylesheet" href="/wa/app.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="side">
+      <header class="side-head">
+        <div class="avatar me" aria-hidden="true">S</div>
+        <div class="side-title">Chats</div>
+        <button id="newChat" class="icon-btn" type="button" title="New chat (a brand-new number)" aria-label="New chat">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-6 9h-2v-2H9V8h2V6h2v2h2v2h-2v2Z"/></svg>
+        </button>
+      </header>
+      <div class="sim-note">Simulator: each chat is a fake +1 555 number. Weave replies exactly as on WhatsApp; nothing is sent to real phones.</div>
+      <ol id="chatList" class="chat-list"></ol>
+    </aside>
+
+    <main class="conv">
+      <div id="placeholder" class="placeholder">
+        <div class="ph-art" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="72" height="72"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Z"/></svg>
+        </div>
+        <h1>WhatsApp Simulator</h1>
+        <p>Talk to your local Weave the way a customer does on WhatsApp.</p>
+        <button id="startChat" class="green-btn" type="button">Start a chat</button>
+      </div>
+
+      <section id="thread" class="thread" hidden>
+        <header class="conv-head">
+          <button id="back" class="icon-btn back" type="button" aria-label="Back to chats">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg>
+          </button>
+          <div class="avatar weave" aria-hidden="true">W</div>
+          <div class="who">
+            <div class="who-name">Weave</div>
+            <div id="presence" class="who-sub">online</div>
+          </div>
+          <div class="head-actions">
+            <span id="myNumber" class="my-number"></span>
+            <button id="menuBtn" class="icon-btn" type="button" aria-label="Menu">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/></svg>
+            </button>
+          </div>
+          <div id="menu" class="menu" hidden>
+            <button type="button" id="signUp">Sign up (create a Weave account)</button>
+            <button type="button" id="openDashboard">Open this account's dashboard</button>
+            <button type="button" id="linkOwner">Make this number an owner (no limits)</button>
+            <button type="button" id="newChat2">New chat (new number)</button>
+          </div>
+        </header>
+
+        <div id="scroller" class="scroller">
+          <ol id="log" class="log"></ol>
+          <div id="typing" class="row in" hidden>
+            <div class="bubble typing-bubble"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+        <form id="composer" class="composer">
+          <textarea id="text" rows="1" maxlength="1600" placeholder="Type a message" aria-label="Message"></textarea>
+          <button id="send" class="send" type="submit" aria-label="Send">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script src="/wa/app.js"></script>
+</body>
+</html>

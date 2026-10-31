@@ -487,7 +487,8 @@ class Settings:
             "Set WEAVE_BACKUP_UPLOAD to a command that copies a file somewhere else.")
 
         core_checks = [c for c in checks if c["name"] in ("AI API key", "JDK 17+", "Android SDK", "Android platform 35", "Android SDK license", "Gradle wrapper")]
-        return {"ready": all(c["ok"] for c in core_checks), "checks": checks}
+        return {"ready": all(c["ok"] for c in core_checks), "checks": checks,
+                "blocking": [c for c in core_checks if not c["ok"]]}
 
     def website_problem(self) -> str:
         """Why the website builder cannot run (empty when it can). Kept out of doctor(), which gates Android builds."""

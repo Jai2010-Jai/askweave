@@ -249,7 +249,8 @@ class Orchestrator:
     def _run(self, job: dict) -> None:
         req = BuildRequest(prompt=job["prompt"], app_name=job["requested_name"])
         doctor = self.s.doctor()
-        missing = [c for c in doctor["checks"] if not c["ok"]]
+        # Only the checks a build needs; the rest (backups, analytics, ...) are warnings.
+        missing = doctor["blocking"]
         if missing:
             lines = [f"- {c['name']}: {c['detail']}. Fix: {c['fix']}" for c in missing]
             self._log(job, "Prerequisites missing:\n" + "\n".join(lines))

@@ -175,7 +175,7 @@ To stop selling at once, set `WEAVE_DOMAIN_LIVE_PURCHASES=off` and restart: quot
 
 ## Not done yet
 
-- No dashboard screen: the API is ready, `weave/static/site/dashboard.js` doesn't call it yet.
+- In sandbox mode the checkout is a local "Test checkout" page (`/api/account/domains/sandbox-pay/...`), so the dashboard flow can be clicked through end to end without real money.
 - The registrar is never told to auto-renew (each renewal is paid by the customer first). An expired name sits in
   the registry's grace period, but Weave has no "renew an EXPIRED domain" path yet: that needs a person.
 - `WEAVE_DOMAIN_FX_RATE` is a fixed number, not a live rate.

@@ -178,7 +178,7 @@ def test_nothing_is_registered_without_explicit_approval_and_payment(env):
     env.store.update_domain(q["id"], state=S.REGISTERING, next_run_at=env.clock())
     drive(env)
     assert env.p.registrar.count("register") == 0 and state(env, q["id"]) == S.FAILED
-    assert r.json()["checkout_url"].startswith("https://pay.mock.test/")
+    assert "/api/account/domains/sandbox-pay/cks_" in r.json()["checkout_url"]
 
 
 def test_approval_needs_the_registrant_details(env):
@@ -501,7 +501,7 @@ def test_chat_quotes_then_a_plain_yes_sends_a_payment_link(env):
     assert "chaipoint.com is available: $14 for the first year" in env.last(MEMBER)
     assert "Their domains:" in env.ai.contexts[-1]
     env.text(MEMBER, "yes")
-    assert "Pay $14 here: https://pay.mock.test/" in env.last(MEMBER)
+    assert "Pay $14 here: https://weave.example.test/api/account/domains/sandbox-pay/" in env.last(MEMBER)
     d = env.store.account_domains(env.sam["id"])[0]
     assert d["state"] == S.PAYMENT_PENDING and env.p.registrar.count("register") == 0
     assert env.store.latest_domain_order(d["id"])["approved_via"] == "chat"
@@ -648,3 +648,13 @@ def test_cloudflare_tunnel_route_keeps_the_catch_all_last():
     assert hosts == ["app.askweave.xyz", "chaipoint.com", "www.chaipoint.com", None]
     hosting.disconnect("chaipoint.com")
     assert [r.get("hostname") for r in puts[-1]] == ["app.askweave.xyz", None]
+
+
+def test_sandbox_checkout_page_pays_for_the_owner_only(env):
+    q = quote(env)
+    url = approve(env, q).json()["checkout_url"]
+    path = url.split("weave.example.test", 1)[1]
+    assert "Test checkout" in env.web_client.get(path).text
+    assert env.tia_client.post(path, data={"result": "ok"}).status_code == 404  # someone else's checkout
+    r = env.web_client.post(path, data={"result": "ok"}, follow_redirects=False)
+    assert r.status_code == 303 and state(env, q["id"]) == S.REGISTERING

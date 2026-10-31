@@ -59,6 +59,45 @@
     <section class="card"><ul class="projects" id="trash"></ul></section>
   </div>
 
+  <div id="domains-box" hidden>
+    <h2>Your own domain</h2>
+    <section class="card">
+      <div class="notice small" id="domains-mode" hidden></div>
+      <ul class="projects" id="domains"></ul>
+      <form id="domain-form" class="row" novalidate>
+        <input id="domain-q" type="text" maxlength="80" placeholder="Business name or domain, e.g. chai point">
+        <select id="domain-project"></select>
+        <button class="btn" type="submit">Find domains</button>
+      </form>
+      <div class="hint" id="domain-hint">Your site gets its own address like chaipoint.com, with HTTPS, registered in your
+        name. You approve the price and pay before anything is bought.</div>
+      <ul class="projects" id="domain-results"></ul>
+      <details id="contact-box">
+        <summary class="small">Registrant details (the domain's legal owner: you)</summary>
+        <form id="contact-form" novalidate>
+          <div class="row">
+            <input id="c-first_name" type="text" placeholder="First name" maxlength="60">
+            <input id="c-last_name" type="text" placeholder="Last name" maxlength="60">
+          </div>
+          <input id="c-org_name" type="text" placeholder="Business name (optional)" maxlength="100">
+          <input id="c-address1" type="text" placeholder="Address" maxlength="120">
+          <div class="row">
+            <input id="c-city" type="text" placeholder="City" maxlength="60">
+            <input id="c-state" type="text" placeholder="State" maxlength="60">
+            <input id="c-postal_code" type="text" placeholder="PIN / postal code" maxlength="20">
+          </div>
+          <div class="row">
+            <input id="c-country" type="text" placeholder="Country code, e.g. IN" maxlength="2">
+            <input id="c-phone" type="text" placeholder="Phone, e.g. +91.9876543210" maxlength="20">
+          </div>
+          <input id="c-email" type="email" placeholder="Email" maxlength="120">
+          <div class="row actions"><button class="btn ghost small" type="submit">Save details</button></div>
+          <div class="hint" id="contact-hint"></div>
+        </form>
+      </details>
+    </section>
+  </div>
+
   <h2>Your products &amp; stock</h2>
   <section class="card" id="data">
     <div class="hint" id="data-note">What you sell, with prices and stock. Your live sites show it straight away, and you

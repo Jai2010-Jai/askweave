@@ -33,6 +33,7 @@
     loadSales();
     loadData();
     loadDigest();
+    loadDomains();
   }
 
   // ---------- sales ----------
@@ -40,6 +41,147 @@
     const sym = { INR: "Rs ", USD: "$", EUR: "EUR ", GBP: "GBP " }[cur] || (cur ? cur + " " : "");
     return sym + Math.round(Math.abs(n)).toLocaleString() ;
   };
+
+  // ---------- custom domains ----------
+  const CONTACT = ["first_name", "last_name", "org_name", "address1", "city", "state", "postal_code", "country",
+    "phone", "email"];
+  const DOMAIN_TAG = { LIVE: "ok", FAILED: "fail", EXPIRED: "fail", EXPIRING: "fail", AWAITING_APPROVAL: "",
+    PAYMENT_PENDING: "busy" };
+  const price = (minor, cur) => {
+    const sym = { INR: "₹", USD: "$", EUR: "€", GBP: "£" }[cur] || (cur ? cur + " " : "");
+    const whole = minor / 100;
+    return sym + (Number.isInteger(whole) ? whole.toLocaleString() : whole.toFixed(2));
+  };
+  let domainsLoaded = false;
+
+  async function loadDomains() {
+    let r;
+    try {
+      r = await api("/api/account/domains");
+    } catch (e) {
+      return;  // custom domains are switched off on this server
+    }
+    $("#domains-box").hidden = false;
+    const c = r.config;
+    const note = !c.purchasing ? `Buying domains isn't switched on yet (${c.problem}). You can still search.`
+      : c.mode === "sandbox" ? "Test mode: nothing is really bought or charged." : "";
+    $("#domains-mode").hidden = !note;
+    $("#domains-mode").textContent = note;
+    $("#domains").replaceChildren(...r.domains.map(domainItem));
+    if (!domainsLoaded) {
+      domainsLoaded = true;
+      const sites = me.projects.filter((p) => p.kind === "website" && p.url);
+      $("#domain-project").replaceChildren(...sites.map((p) => el("option", { value: p.id }, p.name)));
+      $("#domain-project").hidden = sites.length < 2;
+      if (!sites.length) $("#domain-hint").textContent = "Build a website first; then give it its own domain here.";
+      loadContact();
+    }
+  }
+
+  function domainItem(d) {
+    const o = d.order;
+    const actions = [];
+    if (o && o.status === "quoted" && (d.state === "AWAITING_APPROVAL" || d.state === "EXPIRING")) {
+      const what = o.kind === "renew" ? `Renew for ${price(o.amount_minor, o.currency)}`
+        : `Buy for ${price(o.amount_minor, o.currency)}`;
+      actions.push(el("button", { class: "btn small", type: "button", onclick: () => approveDomain(d) }, what));
+    }
+    if (o && o.status === "awaiting_payment" && o.checkout_url) {
+      actions.push(el("a", { class: "btn small", href: o.checkout_url }, `Pay ${price(o.amount_minor, o.currency)}`));
+    }
+    if (["AWAITING_APPROVAL", "PAYMENT_PENDING", "AVAILABLE", "DISCOVERING"].includes(d.state)) {
+      actions.push(el("button", { class: "btn ghost small", type: "button", onclick: () => domainAct(d, "cancel") }, "Cancel"));
+    }
+    if (d.retryable) {
+      actions.push(el("button", { class: "btn ghost small", type: "button", onclick: () => domainAct(d, "retry") }, "Try again"));
+    }
+    if (d.state === "LIVE") {
+      actions.push(el("button", { class: "btn ghost small", type: "button", onclick: () => domainAct(d, "renew") }, "Renew early"));
+    }
+    const facts = [];
+    if (d.first_year_minor) facts.push(`${price(d.first_year_minor, d.currency)} first year, then ${price(d.renewal_minor, d.currency)}/yr`);
+    if (d.expires_at) facts.push(`renews ${new Date(d.expires_at * 1000).toLocaleDateString()}`);
+    if (o && o.refund_status === "refunded") facts.push("refunded");
+    return el("li", { class: "project" },
+      el("div", { class: "top" }, el("span", { class: "name" }, d.domain),
+        el("span", { class: "tag " + (DOMAIN_TAG[d.state] ?? "busy") }, d.label)),
+      d.url ? el("a", { class: "url", href: d.url, target: "_blank", rel: "noopener" }, d.url) : null,
+      facts.length ? el("div", { class: "small muted" }, facts.join(" · ")) : null,
+      d.error && d.state === "FAILED" ? el("div", { class: "small muted" }, d.error) : null,
+      actions.length ? el("div", { class: "row actions" }, actions) : null);
+  }
+
+  async function approveDomain(d) {
+    const o = d.order;
+    const renew = o.kind === "renew";
+    const msg = renew ? `Renew ${d.domain} for a year for ${price(o.amount_minor, o.currency)}?`
+      : `Buy ${d.domain} for ${price(o.amount_minor, o.currency)} (then ${price(d.renewal_minor, d.currency)} a year)?\n` +
+        "It's registered in your name. You'll pay on the next page.";
+    if (!confirm(msg)) return;
+    try {
+      const r = await api(`/api/account/domains/${d.id}/approve`, { order_id: o.id, amount_minor: o.amount_minor, confirm: true });
+      location.href = r.checkout_url;
+    } catch (e) {
+      if (e.status === 409 && /details|registrant/i.test(e.message)) $("#contact-box").open = true;
+      alert(e.message);
+      loadDomains();
+    }
+  }
+
+  async function domainAct(d, verb) {
+    if (verb === "cancel" && !confirm(`Cancel ${d.domain}? Nothing has been charged.`)) return;
+    try { await api(`/api/account/domains/${d.id}/${verb}`, {}); } catch (e) { alert(e.message); }
+    loadDomains();
+  }
+
+  async function pickDomain(name) {
+    $("#domain-hint").textContent = `Checking ${name}…`;
+    const pid = Number($("#domain-project").value) || null;
+    try {
+      await api("/api/account/domains", { domain: name, project_id: pid });
+      $("#domain-results").replaceChildren();
+      $("#domain-hint").textContent = `${name} is held at this price for a while: press Buy to continue.`;
+    } catch (e) {
+      $("#domain-hint").textContent = e.message;
+    }
+    loadDomains();
+  }
+
+  async function loadContact() {
+    try {
+      const r = await api("/api/account/domains/contact");
+      for (const k of CONTACT) $("#c-" + k).value = (r.contact && r.contact[k]) || "";
+      if (!r.contact && me.email) $("#c-email").value = me.email;
+      $("#contact-hint").textContent = r.problem ? `Needed before buying: ${r.problem}.` : "Saved.";
+    } catch (e) { /* switched off */ }
+  }
+
+  $("#domain-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = $("#domain-q").value.trim();
+    if (!q) return;
+    $("#domain-hint").textContent = "Searching…";
+    $("#domain-results").replaceChildren();
+    try {
+      const r = await api(`/api/account/domains/search?q=${encodeURIComponent(q)}`);
+      $("#domain-hint").textContent = r.results.length ? "Available now:" : "Nothing free for that. Try another name.";
+      $("#domain-results").replaceChildren(...r.results.map((x) => el("li", { class: "project" },
+        el("div", { class: "top" }, el("span", { class: "name" }, x.domain),
+          el("span", { class: "small muted" },
+            `${price(x.first_year_minor, x.currency)} first year, then ${price(x.renewal_minor, x.currency)}/yr`)),
+        el("div", { class: "row actions" },
+          el("button", { class: "btn small", type: "button", onclick: () => pickDomain(x.domain) }, "Choose")))));
+    } catch (err) { $("#domain-hint").textContent = err.message; }
+  });
+  $("#contact-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(CONTACT.map((k) => [k, $("#c-" + k).value.trim()]));
+    try {
+      await api("/api/account/domains/contact", data);
+      $("#contact-hint").className = "hint good";
+      $("#contact-hint").textContent = "Saved.";
+    } catch (err) { $("#contact-hint").className = "hint bad"; $("#contact-hint").textContent = err.message; }
+  });
 
   // ---------- products & stock ----------
   let dataTables = [], dataOpen = null;

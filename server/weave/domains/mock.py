@@ -203,12 +203,14 @@ class MockPayments(PaymentProvider, _Faults):
         self.checkouts: dict[str, dict] = {}
         self.payments: dict[str, Payment] = {}
         self.refunds: list[tuple[str, str]] = []
+        # Sandbox mode points checkouts at a local "pay" button (weave.domains.routes) instead of a dead link.
+        self.checkout_base = "https://pay.mock.test/"
 
     def create_checkout(self, *, amount_minor, currency, description, customer_email, return_url, metadata):
         self._hit("create_checkout", amount_minor, currency)
         cid = f"cks_{secrets.token_hex(6)}"
         self.checkouts[cid] = {"amount": amount_minor, "currency": currency, "metadata": dict(metadata)}
-        return Checkout(cid, f"https://pay.mock.test/{cid}")
+        return Checkout(cid, f"{self.checkout_base}{cid}")
 
     def complete(self, checkout_id: str, *, succeed: bool = True, amount_minor: int | None = None,
                  currency: str | None = None) -> tuple[dict, bytes]:

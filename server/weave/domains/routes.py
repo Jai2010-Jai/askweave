@@ -11,7 +11,7 @@ import time
 from collections import defaultdict, deque
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from ..sms.observe import event
 from .providers import ProviderError
@@ -208,6 +208,38 @@ def build_domain_router(settings, store, domains: DomainService, cookie: str = "
             return provider_down(e)
         return {**domains.summary(store.domain(domain_id)), "order_id": order["id"],
                 "amount_minor": order["amount_minor"]}
+
+    from .mock import MockPayments
+    if domains.mode == "sandbox" and isinstance(domains.p.payments, MockPayments):
+        # Sandbox only: a pretend checkout page, so the whole flow can be clicked through without real money.
+        domains.p.payments.checkout_base = f"{base}/api/account/domains/sandbox-pay/" if base else "/api/account/domains/sandbox-pay/"
+
+        @r.get("/api/account/domains/sandbox-pay/{checkout_id}")
+        def sandbox_checkout(request: Request, checkout_id: str):
+            current(request)
+            co = domains.p.payments.checkouts.get(checkout_id)
+            if co is None:
+                raise HTTPException(404, "no such test checkout")
+            amount = f"{co['amount'] / 100:.2f} {co['currency']}"
+            return HTMLResponse(
+                "<!DOCTYPE html><meta name=viewport content='width=device-width'><title>Test checkout</title>"
+                "<body style='font:16px system-ui;max-width:28rem;margin:3rem auto;padding:0 1rem'>"
+                f"<h1>Test checkout</h1><p>Sandbox mode: no money moves. Amount: <b>{amount}</b></p>"
+                f"<form method=post action='/api/account/domains/sandbox-pay/{checkout_id}'>"
+                "<button name=result value=ok>Pay (test)</button> <button name=result value=fail>Fail payment</button>"
+                "</form></body>", headers={"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
+                                                                     "form-action 'self'"})
+
+        @r.post("/api/account/domains/sandbox-pay/{checkout_id}")
+        async def sandbox_pay(request: Request, checkout_id: str):
+            account = current(request)
+            co = domains.p.payments.checkouts.get(checkout_id)
+            if co is None or str(co["metadata"].get("account_id")) != str(account["id"]):
+                raise HTTPException(404, "no such test checkout")
+            form = (await request.body()).decode()
+            headers, raw = domains.p.payments.complete(checkout_id, succeed="result=fail" not in form)
+            domains.handle_webhook(headers, raw)  # exactly what the signed webhook would do
+            return RedirectResponse(f"/dashboard?domain={co['metadata'].get('domain_id')}", status_code=303)
 
     @r.post(WEBHOOK_PATH)
     async def payment_webhook(request: Request):
